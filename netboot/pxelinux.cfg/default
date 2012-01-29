@@ -1,0 +1,7 @@
+DEFAULT menu.c32
+TIMEOUT 3000
+MENU TITLE PXE
+
+LABEL Core
+KERNEL memdisk
+APPEND iso initrd=Core.iso
