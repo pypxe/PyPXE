@@ -17,3 +17,10 @@ File info:
 ./netboot/menu.c32: pxelinux menu
 ./README: this
 ./netcfg.sh: automatically edits dhcpd.py with information from provided interface (e.g eth0)
+
+The Why:
+I didn't like the normal way of having to install and setup dhcpd and tftp
+etc, so I wrote my own. I've not run any performance tests.
+In all my tests with hardware available to me It's successfully booted fine.
+It was mainly used to learn python as well as PXE, and I wrote it when I
+was just starting out with python, hence why the code is awful.
