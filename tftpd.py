@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 import socket,binascii,os
 from math import ceil
 from sys import exit

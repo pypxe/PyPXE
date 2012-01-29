@@ -3,7 +3,7 @@ This is a pure python(2) PXE server.
 Instructions:
 1. Edit netboot/pxelinux.cfg/default with your settings.
     The default boots tinycore linux Core-current.iso
-2. Edit dhcpd.py network settings
+2. Run ./netcfg.sh OR manually edit dhcpd.py with your network settings
 3. Run both dhcpd.py and tftpd.py
 4. PXE boot your clients.
 
@@ -16,3 +16,4 @@ File info:
 ./netboot/memdisk: binary to allow pxelinux to boot isos
 ./netboot/menu.c32: pxelinux menu
 ./README: this
+./netcfg.sh: automatically edits dhcpd.py with information from provided interface (e.g eth0)

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 #dhcpd.py pure python dhcp server
 #pxe capable
 import socket, binascii,time
@@ -10,7 +11,7 @@ offerto='192.168.2.150'
 subnetmask='255.255.255.0'
 broadcast='192.168.2.255'
 router='192.168.2.1'
-dnsserver='192.168.2.1'
+dnsserver='8.8.8.8'
 leasetime=86400 #int
 
 tftpserver='192.168.2.3'
