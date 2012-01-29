@@ -6,3 +6,13 @@ Instructions:
 2. Edit dhcpd.py network settings
 3. Run both dhcpd.py and tftpd.py
 4. PXE boot your clients.
+
+File info:
+./dhcpd.py: dhcp server with pxe stuff
+./tftpd.py: tftp server for pxe get
+./netboot/pxelinux.cfg/default: pxe menu control
+./netboot/Core.iso: tinycore iso for testing purposes (http://distro.ibiblio.org/tinycorelinux/welcome.html0
+./netboot/pxelinux.0: pxelinux binary
+./netboot/memdisk: binary to allow pxelinux to boot isos
+./netboot/menu.c32: pxelinux menu
+./README: this
