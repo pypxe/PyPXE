@@ -21,7 +21,7 @@ leases=[]
 for ip in ['192.168.2.'+str(x) for x in range(int(offerfrom[offerfrom.rfind('.')+1:]),int(offerto[offerto.rfind('.')+1:])+1)]:
    leases.append([ip,False,'000000000000',0])
 
-def release():
+def release(): #release a lease after timelimit has expired
    for lease in leases:
       if not lease[1]:
          if time.time()+leasetime == leasetime: continue
@@ -31,7 +31,7 @@ def release():
             lease[2]='000000000000'
             lease[3]=0
 
-def getlease(hwaddr):
+def getlease(hwaddr): #return the lease of mac address, or create if doesn't exist
    global leases
    for lease in leases:
       if hwaddr == lease[2]:
@@ -56,7 +56,7 @@ def slicendice(msg,slices=dhcpfields):
       yield msg[:x]
       msg = msg[x:]
 
-def reqparse(message):
+def reqparse(message): #handles either DHCPDiscover or DHCPRequest
    data=None
    #send: boolean as to whether to send data back, and data: data to send, if any
    #print len(message)
@@ -88,14 +88,15 @@ def reqparse(message):
       data+='\x43'+binascii.unhexlify(hex(len(pxefilename)+1)[2:].rjust(2,'0'))+pxefilename+'\x00\xff'
    return data
 
-while 1:
+while 1: #main loop
     try:
         message, address = s.recvfrom(8192)
-        if not message.startswith('\x01') and not address[0] == '0.0.0.0': continue
-        data=reqparse(message)
+        if not message.startswith('\x01') and not address[0] == '0.0.0.0': #only if request is a dhcp request
+           continue
+        data=reqparse(message) #handle request
         if data:
-           s.sendto(data,('<broadcast>',68))
-        release()
+           s.sendto(data,('<broadcast>',68)) #reply
+        release() #update releases table
     except KeyboardInterrupt:
         exit()
 #    except:
