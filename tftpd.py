@@ -12,11 +12,9 @@ s.bind((host, port))
 
 def group(s, n): return [s[i:i+n] for i in xrange(0, len(s), n)]
 last=()
-import time
 while 1:
     try:
         message, address = s.recvfrom(8192)
-        print repr(message)
         if last == address: continue
         if message.startswith('\x00\x01'): #WRQ
            message=message.split('\x00')
