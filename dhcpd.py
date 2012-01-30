@@ -25,7 +25,7 @@ for ip in ['192.168.2.'+str(x) for x in range(int(offerfrom[offerfrom.rfind('.')
 def release(): #release a lease after timelimit has expired
    for lease in leases:
       if not lease[1]:
-         if time.time()+leasetime == leasetime
+         if time.time()+leasetime == leasetime:
              continue
          if lease[-1] > time.time()+leasetime:
             print "Released",lease[0]
@@ -81,7 +81,7 @@ def reqparse(message): #handles either DHCPDiscover or DHCPRequest
       data+='\x63\x82\x53\x63'+'\x35\x01\x02'+'\x01\x04'
       data+=socket.inet_aton(subnetmask)+'\x36\x04'+socket.inet_aton(serverhost)
       data+='\x1c\x04'+socket.inet_aton(broadcast)+'\x03\x04'
-      data+=+socket.inet_aton(router)+'\x06\x04'+socket.inet_aton(dnsserver)
+      data+=socket.inet_aton(router)+'\x06\x04'+socket.inet_aton(dnsserver)
       data+='\x33\x04'+binascii.unhexlify(hex(leasetime)[2:].rjust(8,'0'))
       data+='\x42'+binascii.unhexlify(hex(len(tftpserver))[2:].rjust(2,'0'))+tftpserver
       data+='\x43'+binascii.unhexlify(hex(len(pxefilename)+1)[2:].rjust(2,'0'))
