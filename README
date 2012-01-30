@@ -24,3 +24,7 @@ etc, so I wrote my own. I've not run any performance tests.
 In all my tests with hardware available to me It's successfully booted fine.
 It was mainly used to learn python as well as PXE, and I wrote it when I
 was just starting out with python, hence why the code is awful.
+
+License:
+Do whatever the hell you want with this. Credit would be
+appreciated but it's not required.
