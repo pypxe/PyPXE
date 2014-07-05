@@ -71,7 +71,21 @@ class TFTPD:
                 if self.ongoing.has_key(address):
                     self.sendblock(address)
 
+class DHCPD:
+    """dhcp server, full. Implemented from
+    http://www.ietf.org/rfc/rfc2131.txt and
+    https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
+    https://tools.ietf.org/html/rfc2132"""
+    #dhcp extensions code 66/67
+    #src 3 9.4-9.5
 
-if __name__ == '__main__':
-    tftpd = TFTPD()
-    tftpd.listen()
+    #recv: DHCPDISCOVER (opt 53, sub 1)
+    #send: DHCPOFFER (opt 53, sub 2), matching xid, flags, giaddr, chaddr. Send boot&network stuff
+    #recv: DHCPREQUEST (opt 53, sub 3) 
+    #send: DHCPACK (opt 53, sub 5), xid, ciaddr, flags, giaddr, chaddr from DHCPREQUEST
+    #src 3 pg 28
+
+
+#if __name__ == '__main__':
+#    tftpd = TFTPD()
+#    tftpd.listen()
