@@ -1,26 +1,9 @@
-This is a pure python(2) PXE server.
+Pure Python2 PXE (DHCP/TFTP) server.
 
-Instructions:
-1. Edit netboot/pxelinux.cfg/default with your settings.
-    The default boots tinycore linux Core-current.iso
-2. Modify settings.py
-3. Run both dhcpd.py and tftpd.py
-4. PXE boot your clients.
+Edit the head of server.py to change your preferred network settings.
+Example TinyCore iso included along with relevant configs in netboot/
 
-File info:
-./settings.py: global config
-./dhcpd.py: dhcp server with pxe stuff
-./tftpd.py: tftp server for pxe get
-./netboot/pxelinux.cfg/default: pxe menu control
-./netboot/Core.iso: tinycore iso for testing purposes (http://distro.ibiblio.org/tinycorelinux/welcome.html)
-./netboot/pxelinux.0: pxelinux binary
-./netboot/memdisk: binary to allow pxelinux to boot isos
-./netboot/menu.c32: pxelinux menu
-./README: this
+The DHCP/TFTP servers can also be used as part of other programs, as and library.
 
-The Why:
-I didn't like the normal way of having to install and setup dhcpd and tftp
-etc, so I wrote my own. I've not run any performance tests.
-In all my tests with hardware available to me It's successfully booted fine.
-It was mainly used to learn python as well as PXE, and I wrote it when I
-was just starting out with python, hence why the code is awful.
+To run:
+    sudo python2 server.py
