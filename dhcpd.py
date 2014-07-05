@@ -9,7 +9,7 @@ leasetime=86400 #int
 
 pxefilename='/netboot/pxelinux.0'
 
-networkmsb = '.'.join(offerfrom.split('.')[:-1])
+networkmsb = '.'.join(offerfrom.split('.')[:-1])+"."
 
 leases=[]
 #next line creates the (blank) leases table. This probably isn't necessary.
