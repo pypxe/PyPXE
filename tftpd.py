@@ -2,9 +2,7 @@
 import socket,binascii,os
 from math import ceil
 from sys import exit
-
-host = ''
-port = 69
+from settings import *
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

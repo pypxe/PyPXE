@@ -3,23 +3,17 @@
 #pxe capable
 import socket, binascii,time
 from sys import exit
-host = ''
-port = 67
-serverhost='192.168.2.3'
-offerfrom='192.168.2.100'
-offerto='192.168.2.150'
-subnetmask='255.255.255.0'
-broadcast='192.168.2.255'
-router='192.168.2.1'
-dnsserver='8.8.8.8'
+from settings import *
+
 leasetime=86400 #int
 
-tftpserver='192.168.2.3'
 pxefilename='/netboot/pxelinux.0'
+
+networkmsb = '.'.join(offerfrom.split('.')[:-1])
 
 leases=[]
 #next line creates the (blank) leases table. This probably isn't necessary.
-for ip in ['192.168.2.'+str(x) for x in range(int(offerfrom[offerfrom.rfind('.')+1:]),int(offerto[offerto.rfind('.')+1:])+1)]:
+for ip in [networkmsb+str(x) for x in range(int(offerfrom[offerfrom.rfind('.')+1:]),int(offerto[offerto.rfind('.')+1:])+1)]:
    leases.append([ip,False,'000000000000',0])
 
 def release(): #release a lease after timelimit has expired
