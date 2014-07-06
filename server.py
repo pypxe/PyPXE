@@ -2,7 +2,8 @@ import socket
 import struct
 import os
 from collections import defaultdict
-from time import time
+from time import time, sleep
+import threading
 
 class TFTPD:
     """tftp server, read only. Implemented from
@@ -124,6 +125,9 @@ class DHCPD:
         """NBO the str ip"""
         return struct.pack("!BBBB", *map(int, ip.split('.')))
 
+    def printmac(self, mac):
+        return ':'.join(map(lambda x:hex(x)[2:].zfill(2), struct.unpack("BBBBBB", mac))).upper()
+
     def craftheader(self, message):
         """Craft the DHCP header using parts of the message"""
         xid, flags, giaddr, chaddr = struct.unpack("!4x4s2x2s4x4x4x4s16s", message[:44])
@@ -138,7 +142,7 @@ class DHCPD:
             offer = self.nextip()
             self.leases[clientmac]['ip'] = offer
             self.leases[clientmac]['expire'] = time() + 86400
-            print clientmac, "->", self.leases[clientmac]['ip']
+            print self.printmac(clientmac), "->", self.leases[clientmac]['ip']
         #yiaddr
         response += self.packip(offer)
         #siaddr
@@ -212,6 +216,16 @@ class DHCPD:
 
 if __name__ == '__main__':
     tftpd = TFTPD()
-    tftpd.listen()
-#    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', '/netboot/pxelinux.0', '192.168.2.2')
-#    dhcpd.listen()
+    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', '/netboot/pxelinux.0', '192.168.2.2')
+
+    tftpthread = threading.Thread(target=tftpd.listen)
+    dhcpthread = threading.Thread(target=dhcpd.listen)
+
+    tftpthread.daemon = True
+    dhcpthread.daemon = True
+
+    tftpthread.start()
+    dhcpthread.start()
+
+    while True:
+        sleep(1)
