@@ -1,9 +1,9 @@
 Pure Python2 PXE (DHCP/TFTP) server.
 
-Edit the head of server.py to change your preferred network settings.
+Edit the call of DHCPD, located at the bottom of server.py, to your preferred network settings.
 Example TinyCore iso included along with relevant configs in netboot/
 
-The DHCP/TFTP servers can also be used as part of other programs, as and library.
+The DHCP/TFTP servers can also be used as part of other programs, as a library.
 
 To run:
     sudo python2 server.py
