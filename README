@@ -1,3 +1,9 @@
+Note:
+I will implement proxyDHCP tomorrow
+
+
+
+
 Pure Python2 PXE (DHCP/TFTP) server.
 
 Edit the call of DHCPD, located at the bottom of server.py, to your preferred network settings.
