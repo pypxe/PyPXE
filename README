@@ -7,3 +7,7 @@ The DHCP/TFTP servers can also be used as part of other programs, as a library.
 
 To run:
     sudo python2 server.py
+
+WARNING:
+Neither of these servers are fully compliant. They work for PXE.
+Any other uses are purely coincidental. Use at your own risk.
