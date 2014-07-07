@@ -95,6 +95,9 @@ class DHCPD:
         self.filename = filename
         self.magic = struct.pack("!I", 0x63825363) #magic cookie
         self.ipxe = useipxe
+        if usehttp and not ipxe:
+            print "HTTP enabled but iPXE isn't, your client MUST support"
+            print "native HTTP booting (e.g. iPXE ROM)"
         if usehttp:
             self.filename = "http://%s%s" % (self.fileserver, self.filename)
 
