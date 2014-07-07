@@ -83,7 +83,7 @@ class DHCPD:
     Implemented from
     rfc2131, rfc2132 and 
     https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol"""
-    def __init__(self, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename, ip, useipxe, usehttp, port = 67):
+    def __init__(self, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename, ip, useipxe, usehttp, proxydhcp, port = 67):
         self.ip = ip
         self.port = port
         self.fileserver = fileserver #TFTP OR HTTP
@@ -95,7 +95,8 @@ class DHCPD:
         self.filename = filename
         self.magic = struct.pack("!I", 0x63825363) #magic cookie
         self.ipxe = useipxe
-        if usehttp and not ipxe:
+        self.proxydhcp = proxydhcp
+        if usehttp and not self.ipxe:
             print "HTTP enabled but iPXE isn't, your client MUST support"
             print "native HTTP booting (e.g. iPXE ROM)"
         if usehttp:
@@ -109,20 +110,15 @@ class DHCPD:
         self.leases = defaultdict(lambda:{'ip':'', 'expire':0, 'ipxe':True})
 
     def nextip(self):
-        """return the next unleased ip from range"""
+        """return the next unleased ip from range
+        Also does lease expiry by overwrite"""
         network = '.'.join(self.offerfrom.split('.')[:-1])
         fromhost = int(self.offerfrom.split('.')[-1])
         tohost = int(self.offerto.split('.')[-1])
-        leased = [self.leases[i]['ip'] for i in self.leases]
+        leased = [self.leases[i]['ip'] for i in self.leases if self.leases[i]['expire']>time()]
         for host in xrange(fromhost, tohost+1):
             if network+"."+str(host) not in leased:
                 return network+"."+str(host)
-
-    def timeoutleases(self):
-        """remove expired leases for reuse"""
-        for lease in self.leases:
-            if self.leases[lease]['expire'] < time():
-                self.leases.pop(lease)
 
     def packip(self, ip):
         """NBO the str ip"""
@@ -133,25 +129,37 @@ class DHCPD:
         to human friendly format, for logging"""
         return ':'.join(map(lambda x:hex(x)[2:].zfill(2), struct.unpack("BBBBBB", mac))).upper()
 
-    def craftheader(self, message):
+    def craftheader(self, message, proxyack):
         """Craft the DHCP header using parts of the message"""
-        xid, flags, giaddr, chaddr = struct.unpack("!4x4s2x2s4x4x4x4s16s", message[:44])
+        xid, flags, yiaddr, giaddr, chaddr = struct.unpack("!4x4s2x2s4x4s4x4s16s", message[:44])
         clientmac = chaddr[:6]
         #op, htype, hlen, hops, xid
         response =  struct.pack("!BBBB4s", 2, 1, 6, 0, xid)
-        #secs, flags, ciaddr
-        response += struct.pack("!HHI", 0, 0, 0)
-        if self.leases[clientmac]['ip']: #OFFER
-            offer = self.leases[clientmac]['ip']
-        else: #ACK
-            offer = self.nextip()
-            self.leases[clientmac]['ip'] = offer
-            self.leases[clientmac]['expire'] = time() + 86400
-            print self.printmac(clientmac), "->", self.leases[clientmac]['ip']
-        #yiaddr
-        response += self.packip(offer)
-        #siaddr
-        response += self.packip(self.ip)
+        if not self.proxydhcp:
+            #secs, flags, ciaddr
+            response += struct.pack("!HHI", 0, 0, 0)
+        else:
+            response += struct.pack("!HHI", 0, 0x8000, 0)
+        if not self.proxydhcp:
+            if self.leases[clientmac]['ip']: #OFFER
+                offer = self.leases[clientmac]['ip']
+            else: #ACK
+                offer = self.nextip()
+                self.leases[clientmac]['ip'] = offer
+                self.leases[clientmac]['expire'] = time() + 86400
+                print self.printmac(clientmac), "->", self.leases[clientmac]['ip']
+        if not proxyack and not self.proxydhcp:
+            #yiaddr
+            response += self.packip(offer)
+        elif not proxyack:
+            response += self.packip('0.0.0.0')
+        else:
+            response += yiaddr
+        if not self.proxydhcp:
+            #siaddr
+            response += self.packip(self.ip)
+        else:
+            response += self.packip('0.0.0.0')
         #giaddr
         response += struct.pack("!I", 0)
         #chaddr
@@ -170,14 +178,15 @@ class DHCPD:
             (See rfc2132 9.6)"""
         #Message type, offer
         response = struct.pack("!BBB", 53, 1, opt53)
-        #DHCP Server
-        response += struct.pack("!BB", 54, 4) + self.packip(self.ip)
-        #SubnetMask
-        response += struct.pack("!BB", 1, 4) + self.packip(self.subnetmask)
-        #Router
-        response += struct.pack("!BB", 3, 4) + self.packip(self.router)
-        #Lease time
-        response += struct.pack("!BBI", 51, 4, 86400)
+        if not self.proxydhcp:
+            #DHCP Server
+            response += struct.pack("!BB", 54, 4) + self.packip(self.ip)
+            #SubnetMask
+            response += struct.pack("!BB", 1, 4) + self.packip(self.subnetmask)
+            #Router
+            response += struct.pack("!BB", 3, 4) + self.packip(self.router)
+            #Lease time
+            response += struct.pack("!BBI", 51, 4, 86400)
         #TFTP Server OR HTTP Server
         #If iPXE need both
         response += struct.pack("!BB", 66, len(self.fileserver)) + self.fileserver
@@ -190,6 +199,10 @@ class DHCPD:
             response += struct.pack("!BB", 67, 16) + "/chainload.kpxe" + "\x00"
             if opt53 == 5:
                 self.leases[clientmac]['ipxe'] = False
+        if self.proxydhcp:
+            response += struct.pack("!BB", 60, 9) + "PXEClient"
+            #tell client to look back for filename
+            response += struct.pack("!BBBB", 43, 3, 6, 0b1000)
 
         #End options
         response += "\xff"
@@ -198,15 +211,15 @@ class DHCPD:
 
     def dhcpoffer(self, message):
         """Respond to discovery with offer"""
-        clientmac, headerresponse = self.craftheader(message)
+        clientmac, headerresponse = self.craftheader(message, 0)
         optionsresponse = self.craftoptions(2, clientmac) #DHCPOFFER
 
         response = headerresponse + optionsresponse
         self.sock.sendto(response, ('<broadcast>', 68))
 
-    def dhcpack(self, message):
+    def dhcpack(self, message, proxyack):
         """Respond to request with acknowledge"""
-        clientmac, headerresponse = self.craftheader(message)
+        clientmac, headerresponse = self.craftheader(message, proxyack)
         optionsresponse = self.craftoptions(5, clientmac) #DHCPACK
 
         response = headerresponse + optionsresponse
@@ -216,16 +229,16 @@ class DHCPD:
         """Main listen loop"""
         while True:
             message, address = self.sock.recvfrom(1024)
-            self.timeoutleases()
             op = struct.unpack("!B", message[:1])[0]
-            if not op == 1 and address[0] != '0.0.0.0':
-                continue #probably not a dhcp packet
+            if not "PXEClient" in message: continue
             #see rfc2131 pg 10
             type = struct.unpack("!BxB", message[240:240+3]) #options offset
             if type == (53, 1):
                 self.dhcpoffer(message)
-            elif type == (53, 3):
-                self.dhcpack(message)
+            elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
+                self.dhcpack(message, 0) #normal DHCP practice
+            elif type == (53, 3) and address[0] != '0.0.0.0':
+                self.dhcpack(message, 1)
 
 class HTTPD:
     """HTTP Server, limited to GET and HEAD
@@ -281,15 +294,16 @@ class HTTPD:
 
 if __name__ == '__main__':
     os.chdir("netboot")
-    USEIPXE = True #boot into ipxe first, then filename
-    USEHTTP = True #filename is on fileserver as http
+    USEIPXE = False #boot into ipxe first, then filename
+    USEHTTP = False #filename is on fileserver as http
+    PROXYDHCP = True
     if not USEHTTP:
         filename = "/pxelinux.0"
     else:
         filename = "/boot.ipxe"
 
     tftpd = TFTPD()
-    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP)
+    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP, PROXYDHCP)
 
     tftpthread = threading.Thread(target=tftpd.listen)
     dhcpthread = threading.Thread(target=dhcpd.listen)
