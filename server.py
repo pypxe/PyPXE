@@ -7,7 +7,7 @@ import threading
 
 class TFTPD:
     """tftp server, read only. Implemented from
-    http://www.ietf.org/rfc/rfc1350.txt"""
+    rfc1350 and rfc2348"""
     def __init__(self, ip = '', port = 69):
         self.ip = ip
         self.port = port
@@ -17,6 +17,7 @@ class TFTPD:
         self.sock.bind((self.ip, self.port))
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda:{"filename":'', "handle":None, "block":1})
+        os.chroot('.')
 
     def filename(self, message):
         """First null delimited field after opcode
@@ -49,7 +50,7 @@ class TFTPD:
         self.sock.sendto(response, address)
         if len(data) != 512:
             descriptor['handle'].close()
-            print "%s -> %s:%d" % (descriptor['filename'], address[0], address[1])
+            print "tftp://%s -> %s:%d" % (descriptor['filename'], address[0], address[1])
             self.ongoing.pop(address)
         else:
             descriptor['block'] += 1
@@ -58,8 +59,6 @@ class TFTPD:
         """On RRQ opcode, reply with file if
         exists, else error"""
         filename = self.filename(message)
-        if filename.startswith('/'):
-            filename = '.'+filename
         if not os.path.exists(filename):
             self.notfound(address)
             return
@@ -82,9 +81,8 @@ class DHCPD:
     """dhcp server, limited to pxe options.
     /24 Hard coded.
     Implemented from
-    http://www.ietf.org/rfc/rfc2131.txt and
-    https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
-    https://tools.ietf.org/html/rfc2132"""
+    rfc2131, rfc2132 and 
+    https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol"""
     def __init__(self, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename, ip, useipxe, usehttp, port = 67):
         self.ip = ip
         self.port = port
@@ -128,6 +126,8 @@ class DHCPD:
         return struct.pack("!BBBB", *map(int, ip.split('.')))
 
     def printmac(self, mac):
+        """Turn the MAC Address from binary
+        to human friendly format, for logging"""
         return ':'.join(map(lambda x:hex(x)[2:].zfill(2), struct.unpack("BBBBBB", mac))).upper()
 
     def craftheader(self, message):
@@ -224,12 +224,66 @@ class DHCPD:
             elif type == (53, 3):
                 self.dhcpack(message)
 
+class HTTPD:
+    """HTTP Server, limited to GET and HEAD
+    Implemented from
+    rfc2616, rfc7230
+    """
+    def __init__(self, ip = '', port = 80):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind((ip, port))
+        self.sock.listen(1)
+        os.chroot('.')
+    def handlereq(self, connection, addr):
+        """Handle HTTP request"""
+        request = connection.recv(1024)
+        startline = request.split("\r\n")[0].split(' ')
+        method = startline[0]
+        target = startline[1]
+
+        if not os.path.exists(target) or not os.path.isfile(target):
+            status = "404 Not Found"
+        elif method not in ("GET", "HEAD"):
+            status = "501 Not Implemented"
+        else:
+            status = "200 OK"
+        response = "HTTP/1.1 %s\r\n" % status
+        if status[:3] in ("404", "501"):
+            #Fail out
+            connection.send(response)
+            connection.close()
+            return
+
+        response += "Content-Length: %d\r\n" % os.path.getsize(target)
+        response += "\r\n"
+        if method == "HEAD":
+            connection.send(response)
+            connection.close()
+            return
+
+        handle = open(target)
+        response += handle.read()
+        handle.close()
+        connection.send(response)
+        connection.close()
+        print "http://%s -> %s:%d" % (target, addr[0], addr[1])
+
+    def listen(self):
+        """Main listen loop"""
+        while True:
+            conn, addr = self.sock.accept()
+            self.handlereq(conn, addr)
+
 
 if __name__ == '__main__':
     os.chdir("netboot")
     USEIPXE = True #boot into ipxe first, then filename
     USEHTTP = True #filename is on fileserver as http
-    filename = "/boot.cfg"
+    if not USEHTTP:
+        filename = "/pxelinux.0"
+    else:
+        filename = "/boot.ipxe"
 
     tftpd = TFTPD()
     dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP)
@@ -242,6 +296,12 @@ if __name__ == '__main__':
 
     tftpthread.start()
     dhcpthread.start()
+
+    if USEHTTP:
+        httpd = HTTPD()
+        httpdthread = threading.Thread(target=httpd.listen)
+        httpdthread.daemon = True
+        httpdthread.start()
 
     while True:
         sleep(1)

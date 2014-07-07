@@ -1,4 +1,4 @@
-Pure Python2 PXE (DHCP/TFTP) server.
+Pure Python2 PXE (DHCP/TFTP/HTTP) server.
 
 Supports iPXE chainloading, and therefore iPXE scripts.
 
