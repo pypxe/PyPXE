@@ -18,7 +18,6 @@ class TFTPD:
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda:{"filename":'', "handle":None, "block":1})
 
-
     def filename(self, message):
         """First null delimited field after opcode
         is the filename.
@@ -86,10 +85,10 @@ class DHCPD:
     http://www.ietf.org/rfc/rfc2131.txt and
     https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
     https://tools.ietf.org/html/rfc2132"""
-    def __init__(self, tftpserver, offerfrom, offerto, subnetmask, router, dnsserver, filename, ip, port = 67):
+    def __init__(self, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename, ip, useipxe, usehttp, port = 67):
         self.ip = ip
         self.port = port
-        self.tftpserver = tftpserver
+        self.fileserver = fileserver #TFTP OR HTTP
         self.offerfrom = offerfrom
         self.offerto = offerto
         self.subnetmask = subnetmask
@@ -97,13 +96,16 @@ class DHCPD:
         self.dnsserver = dnsserver
         self.filename = filename
         self.magic = struct.pack("!I", 0x63825363) #magic cookie
+        self.ipxe = useipxe
+        if usehttp:
+            self.filename = "http://%s%s" % (self.fileserver, self.filename)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.bind(('', self.port))
         #key is mac
-        self.leases = defaultdict(lambda:{'ip':'', 'expire':0})
+        self.leases = defaultdict(lambda:{'ip':'', 'expire':0, 'ipxe':True})
 
     def nextip(self):
         """return the next unleased ip from range"""
@@ -155,9 +157,9 @@ class DHCPD:
         response += "\x00"*192
         #magic section
         response += self.magic
-        return response
+        return (clientmac, response)
 
-    def craftoptions(self, opt53):
+    def craftoptions(self, opt53, clientmac):
         """Craft option fields.
         opt53:
             2 - DHCPOFFER
@@ -173,10 +175,19 @@ class DHCPD:
         response += struct.pack("!BB", 3, 4) + self.packip(self.router)
         #Lease time
         response += struct.pack("!BBI", 51, 4, 86400)
-        #TFTP Server
-        response += struct.pack("!BB", 66, len(self.tftpserver)) + self.tftpserver
+        #TFTP Server OR HTTP Server
+        #If iPXE need both
+        response += struct.pack("!BB", 66, len(self.fileserver)) + self.fileserver
         #Filename null terminated
-        response += struct.pack("!BB", 67, len(self.filename)+1) + self.filename + "\x00"
+        if not self.ipxe or not self.leases[clientmac]['ipxe']:
+            #Either we don't care about iPXE, or we've already chainloaded ipxe
+            response += struct.pack("!BB", 67, len(self.filename)+1) + self.filename + "\x00"
+        else:
+            #chainload iPXE
+            response += struct.pack("!BB", 67, 16) + "/chainload.kpxe" + "\x00"
+            if opt53 == 5:
+                self.leases[clientmac]['ipxe'] = False
+
         #End options
         response += "\xff"
         return response
@@ -184,16 +195,16 @@ class DHCPD:
 
     def dhcpoffer(self, message):
         """Respond to discovery with offer"""
-        headerresponse = self.craftheader(message)
-        optionsresponse = self.craftoptions(2) #DHCPOFFER
+        clientmac, headerresponse = self.craftheader(message)
+        optionsresponse = self.craftoptions(2, clientmac) #DHCPOFFER
 
         response = headerresponse + optionsresponse
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def dhcpack(self, message):
         """Respond to request with acknowledge"""
-        headerresponse = self.craftheader(message)
-        optionsresponse = self.craftoptions(5) #DHCPACK
+        clientmac, headerresponse = self.craftheader(message)
+        optionsresponse = self.craftoptions(5, clientmac) #DHCPACK
 
         response = headerresponse + optionsresponse
         self.sock.sendto(response, ('<broadcast>', 68))
@@ -215,8 +226,13 @@ class DHCPD:
 
 
 if __name__ == '__main__':
+    os.chdir("netboot")
+    USEIPXE = True #boot into ipxe first, then filename
+    USEHTTP = True #filename is on fileserver as http
+    filename = "/boot.cfg"
+
     tftpd = TFTPD()
-    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', '/netboot/pxelinux.0', '192.168.2.2')
+    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP)
 
     tftpthread = threading.Thread(target=tftpd.listen)
     dhcpthread = threading.Thread(target=dhcpd.listen)

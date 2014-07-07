@@ -1,13 +1,10 @@
-Note:
-I will implement proxyDHCP tomorrow
-
-
-
-
 Pure Python2 PXE (DHCP/TFTP) server.
+
+Supports iPXE chainloading, and therefore iPXE scripts.
 
 Edit the call of DHCPD, located at the bottom of server.py, to your preferred network settings.
 Example TinyCore iso included along with relevant configs in netboot/
+chainload.kpxe is the undionly.kpxe from the iPXE project
 
 The DHCP/TFTP servers can also be used as part of other programs, as a library.
 
