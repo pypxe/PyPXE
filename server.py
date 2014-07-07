@@ -100,8 +100,10 @@ class DHCPD:
         if usehttp and not self.ipxe:
             print "HTTP enabled but iPXE isn't, your client MUST support"
             print "native HTTP booting (e.g. iPXE ROM)"
-        if usehttp:
+        if useipxe and usehttp:
             self.filename = "http://%s%s" % (self.fileserver, self.filename)
+        if useipxe and not usehttp:
+            self.filename = "tftp://%s%s" % (self.fileserver, self.filename)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -164,7 +166,9 @@ class DHCPD:
         #chaddr
         response += chaddr
         #bootp legacy pad
-        response += "\x00"*192
+        response += "\x00"*64 #server name
+        response += self.filename
+        response += "\x00"*(128-len(self.filename))
         #magic section
         response += self.magic
         return (clientmac, response)
@@ -177,9 +181,9 @@ class DHCPD:
             (See rfc2132 9.6)"""
         #Message type, offer
         response = struct.pack("!BBB", 53, 1, opt53)
+        #DHCP Server
+        response += struct.pack("!BB", 54, 4) + self.packip(self.ip)
         if not self.proxydhcp:
-            #DHCP Server
-            response += struct.pack("!BB", 54, 4) + self.packip(self.ip)
             #SubnetMask
             response += struct.pack("!BB", 1, 4) + self.packip(self.subnetmask)
             #Router
@@ -199,8 +203,7 @@ class DHCPD:
             self.leases[clientmac]['ipxe'] = False
         if self.proxydhcp:
             response += struct.pack("!BB", 60, 9) + "PXEClient"
-            #look back
-            response += struct.pack("!BBBBBB", 43, 4, 6, 1, 0b1011, 0xff)
+            response += struct.pack("!BBBBBBB4sB", 43, 10, 6, 1, 0b1000, 10, 4, "\x00PXE", 0xff)
 
         #End options
         response += "\xff"
@@ -299,8 +302,10 @@ if __name__ == '__main__':
     PROXYDHCP = True
     if not USEIPXE:
         filename = "/pxelinux.0"
-    else:
+    elif not USEHTTP:
         filename = "/boot.ipxe"
+    else:
+        filename = "/boot.http.ipxe"
 
     tftpd = TFTPD()
     dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP, PROXYDHCP)

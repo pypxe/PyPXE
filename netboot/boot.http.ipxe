@@ -1,0 +1,4 @@
+#!ipxe
+initrd http://192.168.2.2/Core.iso
+chain http://192.168.2.2/memdisk iso
+sanboot
