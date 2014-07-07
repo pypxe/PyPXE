@@ -96,6 +96,7 @@ class DHCPD:
         self.magic = struct.pack("!I", 0x63825363) #magic cookie
         self.ipxe = useipxe
         self.proxydhcp = proxydhcp
+        self.bypass = []
         if usehttp and not self.ipxe:
             print "HTTP enabled but iPXE isn't, your client MUST support"
             print "native HTTP booting (e.g. iPXE ROM)"
@@ -129,7 +130,7 @@ class DHCPD:
         to human friendly format, for logging"""
         return ':'.join(map(lambda x:hex(x)[2:].zfill(2), struct.unpack("BBBBBB", mac))).upper()
 
-    def craftheader(self, message, proxyack):
+    def craftheader(self, message):
         """Craft the DHCP header using parts of the message"""
         xid, flags, yiaddr, giaddr, chaddr = struct.unpack("!4x4s2x2s4x4s4x4s16s", message[:44])
         clientmac = chaddr[:6]
@@ -148,13 +149,11 @@ class DHCPD:
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
                 print self.printmac(clientmac), "->", self.leases[clientmac]['ip']
-        if not proxyack and not self.proxydhcp:
+        if not self.proxydhcp:
             #yiaddr
             response += self.packip(offer)
-        elif not proxyack:
-            response += self.packip('0.0.0.0')
         else:
-            response += yiaddr
+            response += self.packip('0.0.0.0')
         if not self.proxydhcp:
             #siaddr
             response += self.packip(self.ip)
@@ -197,12 +196,11 @@ class DHCPD:
         else:
             #chainload iPXE
             response += struct.pack("!BB", 67, 16) + "/chainload.kpxe" + "\x00"
-            if opt53 == 5:
-                self.leases[clientmac]['ipxe'] = False
+            self.leases[clientmac]['ipxe'] = False
         if self.proxydhcp:
             response += struct.pack("!BB", 60, 9) + "PXEClient"
-            #tell client to look back for filename
-            response += struct.pack("!BBBB", 43, 3, 6, 0b1000)
+            #look back
+            response += struct.pack("!BBBBBB", 43, 4, 6, 1, 0b1011, 0xff)
 
         #End options
         response += "\xff"
@@ -211,15 +209,15 @@ class DHCPD:
 
     def dhcpoffer(self, message):
         """Respond to discovery with offer"""
-        clientmac, headerresponse = self.craftheader(message, 0)
+        clientmac, headerresponse = self.craftheader(message)
         optionsresponse = self.craftoptions(2, clientmac) #DHCPOFFER
 
         response = headerresponse + optionsresponse
         self.sock.sendto(response, ('<broadcast>', 68))
 
-    def dhcpack(self, message, proxyack):
+    def dhcpack(self, message):
         """Respond to request with acknowledge"""
-        clientmac, headerresponse = self.craftheader(message, proxyack)
+        clientmac, headerresponse = self.craftheader(message)
         optionsresponse = self.craftoptions(5, clientmac) #DHCPACK
 
         response = headerresponse + optionsresponse
@@ -229,16 +227,18 @@ class DHCPD:
         """Main listen loop"""
         while True:
             message, address = self.sock.recvfrom(1024)
-            op = struct.unpack("!B", message[:1])[0]
+            clientmac = struct.unpack("!28x6s", message[:34])
             if not "PXEClient" in message: continue
             #see rfc2131 pg 10
             type = struct.unpack("!BxB", message[240:240+3]) #options offset
             if type == (53, 1):
                 self.dhcpoffer(message)
+                self.bypass.append(clientmac)
             elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
-                self.dhcpack(message, 0) #normal DHCP practice
-            elif type == (53, 3) and address[0] != '0.0.0.0':
-                self.dhcpack(message, 1)
+                self.dhcpack(message)
+            elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
+                self.dhcpack(message)
+                self.bypass.pop(clientmac)
 
 class HTTPD:
     """HTTP Server, limited to GET and HEAD
@@ -294,10 +294,10 @@ class HTTPD:
 
 if __name__ == '__main__':
     os.chdir("netboot")
-    USEIPXE = False #boot into ipxe first, then filename
-    USEHTTP = False #filename is on fileserver as http
+    USEIPXE = True #boot into ipxe first, then filename
+    USEHTTP = True #filename is on fileserver as http
     PROXYDHCP = True
-    if not USEHTTP:
+    if not USEIPXE:
         filename = "/pxelinux.0"
     else:
         filename = "/boot.ipxe"
