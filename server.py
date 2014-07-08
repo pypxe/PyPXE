@@ -197,6 +197,8 @@ class DHCPD:
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
             #Either we don't care about iPXE, or we've already chainloaded ipxe
             response += struct.pack("!BB", 67, len(self.filename)+1) + self.filename + "\x00"
+            if not self.leases[clientmac]['ipxe']:
+                self.leases[clientmac]['ipxe'] = True #fix reboot without restart server
         else:
             #chainload iPXE
             response += struct.pack("!BB", 67, 16) + "/chainload.kpxe" + "\x00"
