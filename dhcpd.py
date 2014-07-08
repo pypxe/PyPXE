@@ -48,10 +48,6 @@ class DHCPD:
             if network+"."+str(host) not in leased:
                 return network+"."+str(host)
 
-    def packip(self, ip):
-        """NBO the str ip"""
-        return struct.pack("!BBBB", *map(int, ip.split('.')))
-
     def printmac(self, mac):
         """Turn the MAC Address from binary
         to human friendly format, for logging"""
@@ -78,14 +74,14 @@ class DHCPD:
                 print self.printmac(clientmac), "->", self.leases[clientmac]['ip']
         if not self.proxydhcp:
             #yiaddr
-            response += self.packip(offer)
+            response += socket.inet_aton(offer)
         else:
-            response += self.packip('0.0.0.0')
+            response += socket.inet_aton('0.0.0.0')
         if not self.proxydhcp:
             #siaddr
-            response += self.packip(self.ip)
+            response += socket.inet_aton(self.ip)
         else:
-            response += self.packip('0.0.0.0')
+            response += socket.inet_aton('0.0.0.0')
         #giaddr
         response += struct.pack("!I", 0)
         #chaddr
@@ -107,12 +103,12 @@ class DHCPD:
         #Message type, offer
         response = struct.pack("!BBB", 53, 1, opt53)
         #DHCP Server
-        response += struct.pack("!BB", 54, 4) + self.packip(self.ip)
+        response += struct.pack("!BB", 54, 4) + socket.inet_aton(self.ip)
         if not self.proxydhcp:
             #SubnetMask
-            response += struct.pack("!BB", 1, 4) + self.packip(self.subnetmask)
+            response += struct.pack("!BB", 1, 4) + socket.inet_aton(self.subnetmask)
             #Router
-            response += struct.pack("!BB", 3, 4) + self.packip(self.router)
+            response += struct.pack("!BB", 3, 4) + socket.inet_aton(self.router)
             #Lease time
             response += struct.pack("!BBI", 51, 4, 86400)
         #TFTP Server OR HTTP Server
