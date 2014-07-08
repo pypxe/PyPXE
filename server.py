@@ -1,9 +1,38 @@
-import socket
-import struct
-import os
+import socket, struct, os, threading
 from collections import defaultdict
 from time import time, sleep
-import threading
+
+#
+# PyPXE Global Settings
+#
+
+NETBOOT_DIR = 'netboot' #local directory where network boot files are located
+USE_IPXE = True #boot into ipxe first, then filename
+USE_HTTP = True #filename is on fileserver as http
+USE_DHCP = True #enable/disable built-in DHCP server
+
+#
+# DHCP Server Settings
+#
+
+DHCP_PROXYDHCP = True
+DHCP_SERVER_IP = '192.168.2.2'
+DHCP_FILESERVER_IP = '192.168.2.2'
+DHCP_OFFER_BEGIN = '192.168.2.100'
+DHCP_OFFER_END = '192.168.2.150'
+DHCP_SUBNET = '255.255.255.0'
+DHCP_ROUTER = '192.168.2.1'
+DHCP_DNS = '8.8.8.8'
+if not USE_IPXE:
+    DHCP_FILENAME = NETBOOT_DIR + '/pxelinux.0'
+elif not USE_HTTP:
+    DHCP_FILENAME =  NETBOOT_DIR + '/boot.ipxe'
+else:
+    DHCP_FILENAME =  NETBOOT_DIR + '/boot.http.ipxe'
+
+#
+# END CONFIGURATION
+#
 
 class TFTPD:
     """tftp server, read only. Implemented from
@@ -11,7 +40,6 @@ class TFTPD:
     def __init__(self, ip = '', port = 69):
         self.ip = ip
         self.port = port
-        
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
@@ -298,27 +326,16 @@ class HTTPD:
 
 
 if __name__ == '__main__':
-    
-    os.chdir("netboot")
-    USEIPXE = True #boot into ipxe first, then filename
-    USEHTTP = True #filename is on fileserver as http
-    USEDHCP = True #using DHCP server written above
-    PROXYDHCP = True
 
-    if not USEIPXE:
-        filename = "/pxelinux.0"
-    elif not USEHTTP:
-        filename = "/boot.ipxe"
-    else:
-        filename = "/boot.http.ipxe"
-
+    #setup TFTP server
     tftpd = TFTPD()
     tftpthread = threading.Thread(target=tftpd.listen)
     tftpthread.daemon = True
     tftpthread.start()
 
+    #setup DHCP server
     if USEDHCP:
-        dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP, PROXYDHCP)
+        dhcpd = DHCPD(DHCP_FILESERVER_IP, DHCP_OFFER_BEGIN, DHCP_OFFER_END, DHCP_SUBNET, DHCP_ROUTER, DHCP_DNS, DHCP_FILENAME, DHCP_SERVER_IP, USEIPXE, USEHTTP, DHCP_PROXYDHCP)
         dhcpthread = threading.Thread(target=dhcpd.listen)
         dhcpthread.daemon = True
         dhcpthread.start()
