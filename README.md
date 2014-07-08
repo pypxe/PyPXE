@@ -54,7 +54,7 @@ optional arguments:
 ```
 
 **WARNING:**
-Neither of these servers are fully compliant. They work for PXE.
+None of these servers are fully compliant. They work for PXE.
 Any other uses are purely coincidental. Use at your own risk.
 
 
