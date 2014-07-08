@@ -9,11 +9,8 @@ chainload.kpxe is the undionly.kpxe from the iPXE project (http://ipxe.org)
 Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used
 independently. See server.py for example usage
 
-To run:
-
-    sudo python2 server.py
-
 ```
+# python2 server.py --help
 usage: server.py [-h] [--dhcp | --proxydhcp | --no-dhcp] [--ipxe | --no-ipxe]
                  [--http | --no-http] [-s DHCP_SERVER_IP]
                  [-f DHCP_FILESERVER_IP] [-b DHCP_OFFER_BEGIN]
