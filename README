@@ -2,7 +2,7 @@ Pure Python2 PXE (DHCP/TFTP/HTTP) server.
 
 Supports iPXE chainloading, and therefore iPXE scripts.
 
-Edit the call of DHCPD, located at the bottom of server.py, to your preferred network settings.
+Edit the server.py settings to your preferred network settings.
 Example TinyCore iso included along with relevant configs in netboot/
 chainload.kpxe is the undionly.kpxe from the iPXE project (http://ipxe.org)
 
