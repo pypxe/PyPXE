@@ -23,9 +23,9 @@ DHCP_OFFER_END = '192.168.2.150'
 DHCP_SUBNET = '255.255.255.0'
 DHCP_ROUTER = '192.168.2.1'
 DHCP_DNS = '8.8.8.8'
-if not USEIPXE:
+if not USE_IPXE:
     DHCP_FILENAME = NETBOOT_DIR + '/pxelinux.0'
-elif not USEHTTP:
+elif not USE_HTTP:
     DHCP_FILENAME =  NETBOOT_DIR + '/boot.ipxe'
 else:
     DHCP_FILENAME =  NETBOOT_DIR + '/boot.http.ipxe'
