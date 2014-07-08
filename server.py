@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Set options at runtime. Defaults are in %(prog)s", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     exclusive = parser.add_mutually_exclusive_group(required=False)
     exclusive.add_argument("--dhcp", action="store_true", dest="USE_DHCP", help="Use builtin DHCP server", default=USE_DHCP)
-    exclusive.add_argument("--proxydhcp", action="store_true", dest="DHCP_PROXYDHCP", help="Use builtin DHCP server in proxy mode", default=DHCP_PROXYDHCP)
+    exclusive.add_argument("--proxydhcp", action="store_true", dest="DHCP_PROXYDHCP", help="Use builtin DHCP server in proxy mode (implies --dhcp)", default=DHCP_PROXYDHCP)
     exclusive.add_argument("--no-dhcp", action="store_false", dest="USE_DHCP", help="Disable builtin DHCP server", default=not USE_DHCP)
 
     exclusive = parser.add_mutually_exclusive_group(required=False)
@@ -60,6 +60,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.USE_HTTP and not args.USE_IPXE:
         print "HTTP selected but iPXE disabled. PXE ROM must support HTTP requests"
+    if args.USE_PROXYDHCP:
+        args.USEDHCP = True
 
     os.chdir(args.NETBOOT)
 
