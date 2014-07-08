@@ -298,10 +298,13 @@ class HTTPD:
 
 
 if __name__ == '__main__':
+    
     os.chdir("netboot")
     USEIPXE = True #boot into ipxe first, then filename
     USEHTTP = True #filename is on fileserver as http
+    USEDHCP = True #using DHCP server written above
     PROXYDHCP = True
+
     if not USEIPXE:
         filename = "/pxelinux.0"
     elif not USEHTTP:
@@ -310,16 +313,15 @@ if __name__ == '__main__':
         filename = "/boot.http.ipxe"
 
     tftpd = TFTPD()
-    dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP, PROXYDHCP)
-
     tftpthread = threading.Thread(target=tftpd.listen)
-    dhcpthread = threading.Thread(target=dhcpd.listen)
-
     tftpthread.daemon = True
-    dhcpthread.daemon = True
-
     tftpthread.start()
-    dhcpthread.start()
+
+    if USEDHCP:
+        dhcpd = DHCPD('192.168.2.2', '192.168.2.100', '192.168.2.150', '255.255.255.0', '192.168.2.1', '8.8.8.8', filename, '192.168.2.2', USEIPXE, USEHTTP, PROXYDHCP)
+        dhcpthread = threading.Thread(target=dhcpd.listen)
+        dhcpthread.daemon = True
+        dhcpthread.start()
 
     if USEHTTP:
         httpd = HTTPD()
