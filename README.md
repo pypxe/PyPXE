@@ -2,10 +2,8 @@
 
 Supports iPXE chainloading, and therefore iPXE scripts.
 
-Edit the server.py settings to your preferred network settings or run with --help
-
-Example TinyCore iso included along with relevant configs in netboot/
-
+Edit the server.py settings to your preferred network settings or run with --help  
+Example TinyCore iso included along with relevant configs in netboot/  
 chainload.kpxe is the undionly.kpxe from the iPXE project (http://ipxe.org)
 
 Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used
