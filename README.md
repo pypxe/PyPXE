@@ -3,8 +3,11 @@
 Supports iPXE chainloading, and therefore iPXE scripts.
 
 Edit the server.py settings to your preferred network settings or run with --help  
-Example TinyCore iso included along with relevant configs in netboot/  
-chainload.kpxe is the undionly.kpxe from the iPXE project (http://ipxe.org)
+
+Core.iso is from the TinyCore Project (http://distro.ibiblio.org/tinycorelinux/)  
+chainload.kpxe is the undionly.kpxe from the iPXE project (http://ipxe.org/)  
+pxelinux.0, menu.c32 and memdisk are from the SYSLINUX project (http://www.syslinux.org/)  
+
 
 Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used
 independently. See server.py for example usage
