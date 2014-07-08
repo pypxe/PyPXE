@@ -10,6 +10,7 @@ Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be
 independently. See server.py for example usage
 
 To run:
+
     sudo python2 server.py
 
 WARNING:
@@ -18,7 +19,7 @@ Any other uses are purely coincidental. Use at your own risk.
 
 
 License:
-
+```
 The MIT License (MIT)
 
 Copyright (c) 2014 PsychoMario
@@ -40,3 +41,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
