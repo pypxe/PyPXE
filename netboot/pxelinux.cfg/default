@@ -1,7 +1,7 @@
 DEFAULT menu.c32
 TIMEOUT 1
-MENU TITLE PXE
+MENU TITLE PyPXE
 
-LABEL Core
+LABEL TinyCore
 KERNEL memdisk
 APPEND iso initrd=Core.iso

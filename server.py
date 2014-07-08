@@ -6,9 +6,7 @@ from tftpd import TFTPD
 from dhcpd import DHCPD
 if __name__ == '__main__':
     if os.getuid() != 0:
-        print
-        print "Not root. Servers will probably fail to bind"
-        print
+        print "\nWarning: Not root. Servers will probably fail to bind.\n"
     
     #PyPXE Global Settings
     NETBOOT = "netboot" #local boot file directory
@@ -59,7 +57,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     if args.USE_HTTP and not args.USE_IPXE:
-        print "HTTP selected but iPXE disabled. PXE ROM must support HTTP requests"
+        print "\nWarning: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n"
     if args.USE_PROXYDHCP:
         args.USEDHCP = True
 
