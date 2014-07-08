@@ -60,7 +60,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.USE_HTTP and not args.USE_IPXE:
         print "HTTP selected but iPXE disabled. PXE ROM must support HTTP requests"
-    if args.USE_PROXYDHCP:
+    if args.DHCP_PROXYDHCP:
         args.USEDHCP = True
 
     os.chdir(args.NETBOOT)
