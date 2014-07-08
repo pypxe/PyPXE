@@ -3,7 +3,9 @@
 Supports iPXE chainloading, and therefore iPXE scripts.
 
 Edit the server.py settings to your preferred network settings or run with --help
+
 Example TinyCore iso included along with relevant configs in netboot/
+
 chainload.kpxe is the undionly.kpxe from the iPXE project (http://ipxe.org)
 
 Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used
@@ -13,7 +15,6 @@ To run:
 
     sudo python2 server.py
 
---help:
 ```
 usage: server.py [-h] [--dhcp | --proxydhcp | --no-dhcp] [--ipxe | --no-ipxe]
                  [--http | --no-http] [-s DHCP_SERVER_IP]
@@ -58,8 +59,8 @@ Neither of these servers are fully compliant. They work for PXE.
 Any other uses are purely coincidental. Use at your own risk.
 
 
-License:
 ```
+License:
 The MIT License (MIT)
 
 Copyright (c) 2014 PsychoMario
