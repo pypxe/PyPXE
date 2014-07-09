@@ -1,16 +1,16 @@
-##Pure Python2 PXE (DHCP/TFTP/HTTP) Server
+#About
+This repository contains code that intends to provide a working PXE server (via HTTP, TFTP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
+**WARNING:**
+None of these servers are fully compliant. They work for PXE.
+Any other uses are purely coincidental. Use at your own risk.
 
-Supports iPXE chainloading, and therefore iPXE scripts.
+##Usage
 
-Edit the server.py settings to your preferred network settings or run with --help  
+PyPXE supports iPXE chainloading, and therefore, iPXE scripts.
 
-Core.iso is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/)  
-chainload.kpxe is the undionly.kpxe from the [iPXE Project](http://ipxe.org/)  
-pxelinux.0, menu.c32 and memdisk are from the [SYSLINUX Project](http://www.syslinux.org/)  
+Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used independently. See ```server.py``` for example usage
 
-
-Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used
-independently. See server.py for example usage
+Edit the ```server.py``` settings to your preferred network settings or run with ```--help``` 
 
 ```
 # python2 server.py --help
@@ -54,6 +54,7 @@ optional arguments:
                         /boot.http.ipxe)
 ```
 
-**WARNING:**
-None of these servers are fully compliant. They work for PXE.
-Any other uses are purely coincidental. Use at your own risk.
+##Additional Notes
+```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/)  
+```chainload.kpxe``` is the ```undionly.kpxe``` from the [iPXE Project](http://ipxe.org/)  
+```pxelinux.0```, ```menu.c32``` and ```memdisk``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
