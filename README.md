@@ -7,7 +7,7 @@ This repository contains code that intends to provide a working PXE server (via 
 
 PyPXE supports iPXE chainloading, and therefore, iPXE scripts.
 
-Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used independently. See ```server.py``` for example usage
+Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. See ```server.py``` for example usage where all three are used in combination with the option of enabling/disabling them individually while also setting some options.
 
 Edit the ```server.py``` settings to your preferred network settings or run with ```--help``` 
 
