@@ -22,8 +22,7 @@ class DHCPD:
         self.ipxe = useipxe
         self.proxydhcp = proxydhcp
         if usehttp and not self.ipxe:
-            print "HTTP enabled but iPXE isn't, your client MUST support"
-            print "native HTTP booting (e.g. iPXE ROM)"
+            print "\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n"
         if useipxe and usehttp:
             self.filename = "http://%s%s" % (self.fileserver, self.filename)
         if useipxe and not usehttp:
