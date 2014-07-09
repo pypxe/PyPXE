@@ -5,7 +5,7 @@ This repository contains code that intends to provide a working PXE server (via 
 
 ##Usage
 
-PyPXE supports iPXE chainloading, and therefore, iPXE scripts.
+PyPXE supports iPXE chainloading and, therefore, iPXE scripts.
 
 Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. See ```server.py``` for example usage where all three are used in combination with the option of enabling/disabling them individually while also setting some options.
 
@@ -54,6 +54,6 @@ optional arguments:
 ```
 
 ##Additional Notes
-```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/)  
+```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE.
 ```chainload.kpxe``` is the ```undionly.kpxe``` from the [iPXE Project](http://ipxe.org/)  
 ```pxelinux.0```, ```menu.c32``` and ```memdisk``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
