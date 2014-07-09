@@ -21,7 +21,6 @@ class DHCPD:
         self.magic = struct.pack("!I", 0x63825363) #magic cookie
         self.ipxe = useipxe
         self.proxydhcp = proxydhcp
-        self.bypass = []
         if usehttp and not self.ipxe:
             print "HTTP enabled but iPXE isn't, your client MUST support"
             print "native HTTP booting (e.g. iPXE ROM)"
@@ -159,10 +158,8 @@ class DHCPD:
             type = struct.unpack("!BxB", message[240:240+3]) #options offset
             if type == (53, 1):
                 self.dhcpoffer(message)
-                self.bypass.append(clientmac)
             elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
                 self.dhcpack(message)
             elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
                 self.dhcpack(message)
-                self.bypass.pop(clientmac)
 
