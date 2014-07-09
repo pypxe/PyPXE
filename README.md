@@ -24,9 +24,10 @@ Set options at runtime. Defaults are in server.py
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dhcp                Use builtin DHCP server (default: True)
+  --dhcp                Use builtin DHCP server (use with --proxydhcp for
+                        proxy mode) (default: True)
   --proxydhcp           Use builtin DHCP server in proxy mode (implies --dhcp)
-                        (default: True)
+                        (default: False)
   --no-dhcp             Disable builtin DHCP server (default: False)
   --ipxe                Chainload iPXE rom (default: True)
   --no-ipxe             Don't chainload iPXE rom (default: False)
@@ -56,29 +57,3 @@ optional arguments:
 **WARNING:**
 None of these servers are fully compliant. They work for PXE.
 Any other uses are purely coincidental. Use at your own risk.
-
-
-```
-License:
-The MIT License (MIT)
-
-Copyright (c) 2014 PsychoMario
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
