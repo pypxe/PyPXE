@@ -30,7 +30,7 @@ class TFTPD:
         response += "File Not Found"
         self.sock.sendto(response, address)
 
-    def sendblock(self, address, initial):
+    def sendblock(self, address):
         """short int 3 == data block"""
         descriptor = self.ongoing[address]
         response =  struct.pack("!H", 3) #Data
@@ -69,7 +69,7 @@ class TFTPD:
         if response:
             response = struct.pack("!H", 6) + response
             self.sock.sendto(response, address)
-        self.sendblock(address, True)
+        self.sendblock(address)
 
     def listen(self):
         """Main listen loop"""
@@ -80,4 +80,4 @@ class TFTPD:
                 self.read(address, message)
             if opcode == 4:
                 if self.ongoing.has_key(address):
-                    self.sendblock(address, False)
+                    self.sendblock(address)
