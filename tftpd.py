@@ -12,7 +12,7 @@ class TFTPD:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         #key is (address, port) pair
-        self.ongoing = defaultdict(lambda:{"filename":'', "handle":None, "block":1})
+        self.ongoing = defaultdict(lambda:{"filename":'', "handle":None, "block":1, "blksize":512})
         os.chroot('.')
 
     def filename(self, message):
@@ -32,19 +32,13 @@ class TFTPD:
 
     def sendblock(self, address, initial):
         """short int 3 == data block"""
-        if initial: #need to send tsize first. rfc2349
-            response =  struct.pack("!H7sB3sB5sB", 6, "blksize", 0, "512", 0, "tsize", 0)
-            response += str(os.path.getsize(self.ongoing[address]['filename']))
-            response += "\x00"
-            self.sock.sendto(response, address)
-            return
         descriptor = self.ongoing[address]
         response =  struct.pack("!H", 3) #Data
         response += struct.pack("!H", descriptor['block']) #This block id
-        data = descriptor["handle"].read(512)
+        data = descriptor["handle"].read(descriptor['blksize'])
         response += data
         self.sock.sendto(response, address)
-        if len(data) != 512:
+        if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
             print "tftp://%s -> %s:%d" % (descriptor['filename'], address[0], address[1])
             self.ongoing.pop(address)
@@ -60,6 +54,21 @@ class TFTPD:
             return
         self.ongoing[address]['filename'] = filename
         self.ongoing[address]['handle'] = open(filename, "r")
+        options = message.split(chr(0))[3:-1]
+        options = dict(zip(options[0::2], options[1::2]))
+        response = ""
+        if 'blksize' in options:
+            response += "blksize\x00"
+            response += options['blksize']
+            response += "\x00"
+            self.ongoing[address]['blksize'] = int(options['blksize'])
+        if 'tsize' in options:
+            response += "tsize\x00"
+            response += str(os.path.getsize(self.ongoing[address]['filename']))
+            response += "\x00"
+        if response:
+            response = struct.pack("!H", 6) + response
+            self.sock.sendto(response, address)
         self.sendblock(address, True)
 
     def listen(self):
