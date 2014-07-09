@@ -24,9 +24,10 @@ Set options at runtime. Defaults are in server.py
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dhcp                Use builtin DHCP server (default: True)
+  --dhcp                Use builtin DHCP server (use with --proxydhcp for
+                        proxy mode) (default: True)
   --proxydhcp           Use builtin DHCP server in proxy mode (implies --dhcp)
-                        (default: True)
+                        (default: False)
   --no-dhcp             Disable builtin DHCP server (default: False)
   --ipxe                Chainload iPXE rom (default: True)
   --no-ipxe             Don't chainload iPXE rom (default: False)
