@@ -137,6 +137,9 @@ class DHCPD:
 		else:
 			#chainload iPXE
 			response += struct.pack( '!BB', 67, 16 ) + '/chainload.kpxe' + '\x00'
+			#don't boot-loop once we've sent the two first packets
+			if opt53 == 5: #ack
+				self.leases[ clientmac ][ 'ipxe' ] = False
 		if self.proxydhcp:
 			response += struct.pack( '!BB', 60, 9 ) + 'PXEClient'
 			response += struct.pack( '!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, '\x00PXE', 0xff )
@@ -160,7 +163,6 @@ class DHCPD:
 
 		response = headerresponse + optionsresponse
 		self.sock.sendto( response, ( '<broadcast>', 68 ) )
-		self.leases[ clientmac ][ 'ipxe' ] = False
 
 	 def listen( self ):
 		'''Main listen loop'''
