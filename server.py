@@ -34,7 +34,7 @@ if __name__ == '__main__':
 		parser.add_argument( '--no-ipxe', action = 'store_false', dest = 'USE_IPXE', help = 'Toggle iPXE ROM', default = True )
 		parser.add_argument( '--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Toggle built-in HTTP server', default = True )
 		exclusive = parser.add_mutually_exclusive_group( required = False )
-		exclusive.add_argument( '--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Toggle built-in DHCP server', default = True )
+		exclusive.add_argument( '--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Toggle built-in DHCP server (implies --no-dhcp-proxy)', default = True )
 		exclusive.add_argument( '--no-dhcp-proxy', action = 'store_false', dest = 'DHCP_PROXY_MODE', help = 'Toggle built-in DHCP server proxy mode', default = True )
 		parser.add_argument( '-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP )
 		parser.add_argument( '-f', '--dhcp-fileserver-ip', action = 'store', dest = 'DHCP_FILESERVER_IP', help = 'DHCP fileserver IP', default = DHCP_FILESERVER_IP )
