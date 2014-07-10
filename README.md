@@ -13,19 +13,20 @@ Edit the ```server.py``` settings to your preferred network settings or run with
 
 ```
 # python2 server.py --help
-usage: server.py [-h] [--dhcp | --dhcp-proxy] [-s DHCP_SERVER_IP]
-                 [-f DHCP_FILESERVER_IP] [-b DHCP_OFFER_BEGIN]
-                 [-e DHCP_OFFER_END] [-n DHCP_SUBNET] [-r DHCP_ROUTER]
-                 [-d DHCP_DNS] [--no-ipxe] [--no-http] [-a NETBOOT_DIR]
+usage: server.py [-h] [--no-ipxe] [--no-http] [--no-dhcp | --no-dhcp-proxy]
+                 [-s DHCP_SERVER_IP] [-f DHCP_FILESERVER_IP]
+                 [-b DHCP_OFFER_BEGIN] [-e DHCP_OFFER_END] [-n DHCP_SUBNET]
+                 [-r DHCP_ROUTER] [-d DHCP_DNS] [-a NETBOOT_DIR]
                  [-i NETBOOT_FILE]
 
 Set options at runtime. Defaults are in server.py
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dhcp                Use built-in DHCP server (default: False)
-  --dhcp-proxy          Use builtin DHCP server in proxy mode (if specified,
-                        will start DHCP server) (default: False)
+  --no-ipxe             Toggle iPXE ROM (default: True)
+  --no-http             Toggle built-in HTTP server (default: True)
+  --no-dhcp             Toggle built-in DHCP server (default: True)
+  --no-dhcp-proxy       Toggle built-in DHCP server proxy mode (default: True)
   -s DHCP_SERVER_IP, --dhcp-server-ip DHCP_SERVER_IP
                         DHCP Server IP (default: 192.168.2.2)
   -f DHCP_FILESERVER_IP, --dhcp-fileserver-ip DHCP_FILESERVER_IP
@@ -40,8 +41,6 @@ optional arguments:
                         DHCP lease router (default: 192.168.2.1)
   -d DHCP_DNS, --dhcp-dns DHCP_DNS
                         DHCP lease DNS server (default: 8.8.8.8)
-  --no-ipxe             Do not chainload iPXE ROM (default: True)
-  --no-http             Do not use built-in HTTP server (default: True)
   -a NETBOOT_DIR, --netboot-dir NETBOOT_DIR
                         Local file serve directory (default: netboot)
   -i NETBOOT_FILE, --netboot-file NETBOOT_FILE
