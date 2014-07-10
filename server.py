@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
 		#configure/start HTTP server
 		if args.USE_HTTP:
-			httpd = HTTPD()
+			httpd = HTTPD( netbootDirectory = args.NETBOOT_DIR )
 			httpdthread = threading.Thread( target = httpd.listen )
 			httpdthread.daemon = True
 			httpdthread.start()

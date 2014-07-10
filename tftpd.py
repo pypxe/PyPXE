@@ -3,7 +3,7 @@ from collections import defaultdict
 
 class TFTPD:
 	'''This class implements a read-only TFTP server implemented from RFC1350 and RFC2348'''
-	def __init__ ( self, ip = '0.0.0.0', port = 69, netbootDirectory = 'netboot' ):
+	def __init__ ( self, ip = '0.0.0.0', port = 69, netbootDirectory = '.' ):
 		self.ip = ip
 		self.port = port
 		self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
