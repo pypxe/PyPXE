@@ -44,11 +44,11 @@ if __name__ == '__main__':
 
 		#argument group for iPXE
 		exclusive = parser.add_mutually_exclusive_group( required = False )
-		exclusive.add_argument( '--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Chainload iPXE ROM', default = False )
+		exclusive.add_argument( '--no-ipxe', action = 'store_false', dest = 'USE_IPXE', help = 'Do not chainload iPXE ROM', default = True )
 
 		#argument group for HTTP server
 		exclusive = parser.add_mutually_exclusive_group( required = False )
-		exclusive.add_argument( '--http', action = 'store_true', dest = 'USE_HTTP', help = 'Do not use built-in HTTP server', default = False )
+		exclusive.add_argument( '--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Do not use built-in HTTP server', default = True )
 
 		parser.add_argument( '-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR )
 		parser.add_argument( '-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE )
