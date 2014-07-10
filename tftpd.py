@@ -25,7 +25,7 @@ class TFTPD:
 			is the filename. This method returns the filename
 			from the message.
 		'''
-		return message[2:].split( '\x00' )[0]
+		return message[2:].split( chr(0) )[0]
 
 	def notFound( self, address ):
 		'''
@@ -73,14 +73,14 @@ class TFTPD:
 		options = dict( zip( options[0::2], options[1::2] ) )
 		response = ''
 		if 'blksize' in options:
-			response += 'blksize\x00'
+			response += 'blksize'+chr(0)
 			response += options[ 'blksize' ]
-			response += '\x00'
+			response += chr(0)
 			self.ongoing[ address ][ 'blksize' ] = int( options[ 'blksize' ] )
 		if 'tsize' in options:
-			response += 'tsize\x00'
+			response += 'tsize'+chr(0)
 			response += str( os.path.getsize( self.ongoing[ address ][ 'filename' ] ) )
-			response += '\x00'
+			response += chr(0)
 		if response:
 			response = struct.pack( '!H', 6 ) + response
 			self.sock.sendto( response, address )

@@ -106,12 +106,12 @@ class DHCPD:
 		#chaddr
 		response += chaddr
 		#bootp legacy pad
-		response += '\x00' * 64 #server name
+		response += chr(0) * 64 #server name
 		if self.proxydhcp:
 			response += self.filename
-			response += '\x00' * ( 128 - len( self.filename ) )
+			response += chr(0) * ( 128 - len( self.filename ) )
 		else:
-			response += '\x00'*128
+			response += chr(0)*128
 		#magic section
 		response += self.magic
 		return ( clientmac, response )
@@ -140,16 +140,16 @@ class DHCPD:
 		#Filename null terminated
 		if not self.ipxe or not self.leases[ clientmac ][ 'ipxe' ]:
 			#Either we don't care about iPXE, or we've already chainloaded ipxe
-			response += struct.pack( '!BB', 67, len( self.filename ) + 1 ) + self.filename + '\x00'
+			response += struct.pack( '!BB', 67, len( self.filename ) + 1 ) + self.filename + chr(0)
 		else:
 			#chainload iPXE
-			response += struct.pack( '!BB', 67, 16 ) + '/chainload.kpxe' + '\x00'
+			response += struct.pack( '!BB', 67, 16 ) + '/chainload.kpxe' + chr(0)
 			#don't boot-loop once we've sent the two first packets
 			if opt53 == 5: #ack
 				self.leases[ clientmac ][ 'ipxe' ] = False
 		if self.proxydhcp:
 			response += struct.pack( '!BB', 60, 9 ) + 'PXEClient'
-			response += struct.pack( '!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, '\x00PXE', 0xff )
+			response += struct.pack( '!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, chr(0)+'PXE', 0xff )
 
 		#End options
 		response += '\xff'
