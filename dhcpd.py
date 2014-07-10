@@ -4,16 +4,16 @@ from time import time
 
 class DHCPD:
 	 '''
-	 	This class implements a DHCP Server, limited to pxe options,
+		This class implements a DHCP Server, limited to pxe options,
 		where the subnet /24 is hard coded. Implemented from RFC2131,
 		RFC2132 and https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 	 '''
 	 def __init__( self,
-	 				ip,
-	 				fileserver,
-	 				offerfrom,
-	 				offerto,
-	 				subnetmask, 
+					ip,
+					fileserver,
+					offerfrom,
+					offerto,
+					subnetmask, 
 					router,
 					dnsserver,
 					filename = '/pxelinux.0',
