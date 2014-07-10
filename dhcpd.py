@@ -144,7 +144,7 @@ class DHCPD:
 		response = headerresponse + optionsresponse
 		self.sock.sendto( response, ( '<broadcast>', 68 ) )
 
-	 def listen(self):
+	 def listen( self ):
 		'''Main listen loop'''
 		while True:
 			message, address = self.sock.recvfrom( 1024 )
