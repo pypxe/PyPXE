@@ -1,5 +1,5 @@
 #About
-This repository contains code that intends to provide a working PXE server (via HTTP, TFTP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
+This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
 
 **WARNING:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
