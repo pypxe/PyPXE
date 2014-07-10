@@ -21,6 +21,7 @@ Argument | Explanation
 
 ###DHCP Server Arguments
 Argument | Variable | Explanation
+--- | --- | ---
 ```-s``` or ```--dhcp-server-ip``` | DHCP_SERVER_IP | DHCP Server IP (default: 192.168.2.2) 
 ```-f```or ```--dhcp-fileserver-ip``` | DHCP_FILESERVER_IP | DHCP fileserver IP (default: 192.168.2.2)
 ```-b```or ```--dhcp-begin``` | DHCP_OFFER_BEGIN | DHCP lease range start (default: 192.168.2.100)
