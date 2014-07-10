@@ -1,13 +1,18 @@
 import socket, struct, os
 
 class HTTPD:
-	'''This class implements a HTTP Server, limited to GET and HEAD, from RFC2616, RFC7230'''
+	'''
+		This class implements a HTTP Server, limited to GET and HEAD,
+		from RFC2616, RFC7230
+	'''
 	def __init__( self, ip = '0.0.0.0', port = 80, netbootDirectory = '.' ):
 		self.sock = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
 		self.sock.bind( ( ip, port ) )
 		self.sock.listen( 1 )
-		os.chdir ( netbootDirectory ) #start in network boot file directory
+		#Start in network boot file directory
+		#chroot simplifies target later, also slight security increase
+		os.chdir ( netbootDirectory )
 		os.chroot ( '.' )
 	def handlereq( self, connection, addr ):
 		'''Handle HTTP request'''
