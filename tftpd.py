@@ -14,12 +14,9 @@ class TFTPD:
 		self.sock.bind( ( self.ip, self.port ) )
 
 		#key is (address, port) pair
-		self.ongoing = defaultdict( lambda : { 'filename' : '',
-							'handle' : None,
-							'block' : 1,
-							'blksize' : 512 } )
-		#Start in network boot file directory
-		#chroot simplifies bootfiles, also slight security increase
+		self.ongoing = defaultdict( lambda : { 'filename' : '', 'handle' : None, 'block' : 1, 'blksize' : 512 } )
+		# Start in network boot file directory and then chroot, 
+		# this simplifies target later as well as offers a slight security increase
 		os.chdir ( netbootDirectory )
 		os.chroot ( '.' )
 	def filename( self, message ):
@@ -55,9 +52,7 @@ class TFTPD:
 		self.sock.sendto( response, address )
 		if len( data ) != descriptor[ 'blksize' ]:
 			descriptor[ 'handle' ].close()
-			print 'tftp://%s -> %s:%d' % ( descriptor[ 'filename' ],
-							address[0],
-							address[1] )
+			print 'tftp://%s -> %s:%d' % ( descriptor[ 'filename' ], address[0], address[1] )
 			self.ongoing.pop( address )
 		else:
 			descriptor[ 'block' ] += 1

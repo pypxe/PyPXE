@@ -10,8 +10,8 @@ class HTTPD:
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
 		self.sock.bind( ( ip, port ) )
 		self.sock.listen( 1 )
-		#Start in network boot file directory
-		#chroot simplifies target later, also slight security increase
+		# Start in network boot file directory and then chroot, 
+		# this simplifies target later as well as offers a slight security increase
 		os.chdir ( netbootDirectory )
 		os.chroot ( '.' )
 	def handlereq( self, connection, addr ):
