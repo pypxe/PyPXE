@@ -55,5 +55,4 @@ optional arguments:
 ```pxelinux.0```, ```menu.c32``` and ```memdisk``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
 
 ###Todo:
-- Do something about 80 char+ lines (assigned: PsychoMario)
 - Add --debug prints to dhcp/tftp/http (such as 404, Offer/ACKs w/ filename)
