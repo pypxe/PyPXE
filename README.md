@@ -5,49 +5,25 @@ This repository contains code that provides a working PXE server (via HTTP, TFTP
 
 ##Usage
 
-PyPXE supports iPXE chainloading and, therefore, iPXE scripts.
-
 Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. See ```server.py``` for example usage where all three are used in combination with the option of enabling/disabling them individually while also setting some options.
 
-Edit the ```server.py``` settings to your preferred network settings or run with ```--help``` 
+Edit the ```server.py``` settings to your preferred network settings or run with ```--help``` or ```-h```. Below is a list of the arguments that ```server.py``` takes, all of which are optional.
 
-```
-# python2 server.py --help
-usage: server.py [-h] [--ipxe] [--http] [--dhcp | --dhcp-proxy]
-                 [-s DHCP_SERVER_IP] [-f DHCP_FILESERVER_IP]
-                 [-b DHCP_OFFER_BEGIN] [-e DHCP_OFFER_END] [-n DHCP_SUBNET]
-                 [-r DHCP_ROUTER] [-d DHCP_DNS] [-a NETBOOT_DIR]
-                 [-i NETBOOT_FILE]
-
-Set options at runtime. Defaults are in server.py
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --ipxe                Enable iPXE ROM (default: False)
-  --http                Enable built-in HTTP server (default: False)
-  --dhcp                Enable built-in DHCP server (default: False)
-  --dhcp-proxy          Enable built-in DHCP server in proxy mode (implies
-                        --dhcp) (default: False)
-  -s DHCP_SERVER_IP, --dhcp-server-ip DHCP_SERVER_IP
-                        DHCP Server IP (default: 192.168.2.38)
-  -f DHCP_FILESERVER_IP, --dhcp-fileserver-ip DHCP_FILESERVER_IP
-                        DHCP fileserver IP (default: 192.168.2.38)
-  -b DHCP_OFFER_BEGIN, --dhcp-begin DHCP_OFFER_BEGIN
-                        DHCP lease range start (default: 192.168.2.100)
-  -e DHCP_OFFER_END, --dhcp-end DHCP_OFFER_END
-                        DHCP lease range end (default: 192.168.2.150)
-  -n DHCP_SUBNET, --dhcp-subnet DHCP_SUBNET
-                        DHCP lease subnet (default: 255.255.255.0)
-  -r DHCP_ROUTER, --dhcp-router DHCP_ROUTER
-                        DHCP lease router (default: 192.168.2.1)
-  -d DHCP_DNS, --dhcp-dns DHCP_DNS
-                        DHCP lease DNS server (default: 8.8.8.8)
-  -a NETBOOT_DIR, --netboot-dir NETBOOT_DIR
-                        Local file serve directory (default: netboot)
-  -i NETBOOT_FILE, --netboot-file NETBOOT_FILE
-                        PXE boot file name (after iPXE if not --no-ipxe)
-                        (default: )
-```
+Argument | Explanation
+--- | ---
+```--ipxe``` | Enable iPXE ROM (default: False)
+```--http``` | Enable built-in HTTP server (default: False) 
+```--dhcp``` | Enable built-in DHCP server (default: False)
+```--dhcp-proxy``` | Enable built-in DHCP server in proxy mode (implies ```--dhcp```) (default: False)
+```-s DHCP_SERVER_IP``` or ```--dhcp-server-ip DHCP_SERVER_IP``` | DHCP Server IP (default: 192.168.2.2) 
+```-f DHCP_FILESERVER_IP```or ```--dhcp-fileserver-ip DHCP_FILESERVER_IP``` | DHCP fileserver IP (default: 192.168.2.2)
+```-b DHCP_OFFER_BEGIN```or ```--dhcp-begin DHCP_OFFER_BEGIN``` | DHCP lease range start (default: 192.168.2.100)
+```-e DHCP_OFFER_END``` or ```--dhcp-end DHCP_OFFER_END``` | DHCP lease range end (default: 192.168.2.150)
+```-n DHCP_SUBNET``` or ```--dhcp-subnet DHCP_SUBNET``` | DHCP lease subnet (default: 255.255.255.0)
+```-r DHCP_ROUTER``` or ```--dhcp-router DHCP_ROUTER``` | DHCP lease router (default: 192.168.2.1)
+```-d DHCP_DNS``` or ```--dhcp-dns DHCP_DNS``` | DHCP lease DNS server (default: 8.8.8.8)
+```-a NETBOOT_DIR``` or ```--netboot-dir NETBOOT_DIR``` | Local file serve directory (default: netboot)
+```-i NETBOOT_FILE``` or ```--netboot-file NETBOOT_FILE``` | PXE boot file name (after iPXE if not ```--no-ipxe```) (default is automatically set )
 
 ##Additional Notes
 ```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
