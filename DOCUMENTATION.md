@@ -1,3 +1,5 @@
+**Unfinished, probably badly written**
+
 #PXE 
 *The Preboot eXecution Environment (PXE, also known as Pre-Execution
 Environment; sometimes pronounced "pixie") is an environment to boot computers
