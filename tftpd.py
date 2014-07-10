@@ -2,7 +2,10 @@ import socket, struct, os
 from collections import defaultdict
 
 class TFTPD:
-	'''This class implements a read-only TFTP server implemented from RFC1350 and RFC2348'''
+	'''
+		This class implements a read-only TFTP server
+		implemented from RFC1350 and RFC2348
+	'''
 	def __init__ ( self, ip = '0.0.0.0', port = 69, netbootDirectory = '.' ):
 		self.ip = ip
 		self.port = port
@@ -11,11 +14,20 @@ class TFTPD:
 		self.sock.bind( ( self.ip, self.port ) )
 
 		#key is (address, port) pair
-		self.ongoing = defaultdict( lambda : { 'filename' : '', 'handle' : None, 'block' : 1, 'blksize' : 512 } )
-		os.chdir ( netbootDirectory ) #start in network boot file directory
+		self.ongoing = defaultdict( lambda : { 'filename' : '',
+							'handle' : None,
+							'block' : 1,
+							'blksize' : 512 } )
+		#Start in network boot file directory
+		#chroot simplifies bootfiles, also slight security increase
+		os.chdir ( netbootDirectory )
 		os.chroot ( '.' )
 	def filename( self, message ):
-		'''The first null-delimited field after the OPCODE is the filename. This method returns the filename from the message.'''
+		'''
+			The first null-delimited field after the OPCODE
+			is the filename. This method returns the filename
+			from the message.
+		'''
 		return message[2:].split( '\x00' )[0]
 
 	def notFound( self, address ):
@@ -35,14 +47,17 @@ class TFTPD:
 			short int 3 -> Data Block
 		'''
 		descriptor = self.ongoing[ address ]
-		response =  struct.pack( '!H', 3 ) #data
-		response += struct.pack( '!H', descriptor[ 'block' ] ) #this block ID
+		#opcode 3 is DATA, also sent block number
+		response =  struct.pack( '!H', 3 )
+		response += struct.pack( '!H', descriptor[ 'block' ] )
 		data = descriptor[ 'handle' ].read( descriptor[ 'blksize' ] )
 		response += data
 		self.sock.sendto( response, address )
 		if len( data ) != descriptor[ 'blksize' ]:
 			descriptor[ 'handle' ].close()
-			print 'tftp://%s -> %s:%d' % ( descriptor[ 'filename' ], address[0], address[1] )
+			print 'tftp://%s -> %s:%d' % ( descriptor[ 'filename' ],
+							address[0],
+							address[1] )
 			self.ongoing.pop( address )
 		else:
 			descriptor[ 'block' ] += 1

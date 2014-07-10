@@ -53,3 +53,6 @@ optional arguments:
 ```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
 ```chainload.kpxe``` is the ```undionly.kpxe``` from the [iPXE Project](http://ipxe.org/)  
 ```pxelinux.0```, ```menu.c32``` and ```memdisk``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
+
+###Todo:
+- Add --debug prints to dhcp/tftp/http (such as 404, Offer/ACKs w/ filename)
