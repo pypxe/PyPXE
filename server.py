@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
 
 		parser.add_argument( '-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR )
-		parser.add_argument( '-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE )
+		parser.add_argument( '-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if not --no-ipxe)', default = NETBOOT_FILE )
 
 		#parse the arguments given in the command line
 		args = parser.parse_args()

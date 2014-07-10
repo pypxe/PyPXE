@@ -25,7 +25,8 @@ optional arguments:
   -h, --help            show this help message and exit
   --no-ipxe             Toggle iPXE ROM (default: True)
   --no-http             Toggle built-in HTTP server (default: True)
-  --no-dhcp             Toggle built-in DHCP server (default: True)
+  --no-dhcp             Toggle built-in DHCP server (implies --no-dhcp-proxy)
+                        (default: True)
   --no-dhcp-proxy       Toggle built-in DHCP server proxy mode (default: True)
   -s DHCP_SERVER_IP, --dhcp-server-ip DHCP_SERVER_IP
                         DHCP Server IP (default: 192.168.2.2)
@@ -44,7 +45,8 @@ optional arguments:
   -a NETBOOT_DIR, --netboot-dir NETBOOT_DIR
                         Local file serve directory (default: netboot)
   -i NETBOOT_FILE, --netboot-file NETBOOT_FILE
-                        PXE boot file name (after iPXE if --ipxe) (default: )
+                        PXE boot file name (after iPXE if not --no-ipxe)
+                        (default: )
 ```
 
 ##Additional Notes
