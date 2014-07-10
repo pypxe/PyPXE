@@ -32,8 +32,8 @@ if __name__ == '__main__':
 		#argument group for DHCP server
 		parser = argparse.ArgumentParser( description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter )
 		exclusive = parser.add_mutually_exclusive_group( required = False )
-		exclusive.add_argument( '--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Use built-in DHCP server', default = False )
-		exclusive.add_argument( '--dhcp-proxy', action = 'store_true', dest = 'DHCP_PROXY_MODE', help = 'Use builtin DHCP server in proxy mode (if specified, will start DHCP server)', default = False )
+		exclusive.add_argument( '--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Toggle built-in DHCP server', default = True )
+		exclusive.add_argument( '--no-dhcp-proxy', action = 'store_false', dest = 'DHCP_PROXY_MODE', help = 'Use builtin DHCP server in proxy mode (if specified, will start DHCP server)', default = True )
 		parser.add_argument( '-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP )
 		parser.add_argument( '-f', '--dhcp-fileserver-ip', action = 'store', dest = 'DHCP_FILESERVER_IP', help = 'DHCP fileserver IP', default = DHCP_FILESERVER_IP )
 		parser.add_argument( '-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = DHCP_OFFER_BEGIN )
