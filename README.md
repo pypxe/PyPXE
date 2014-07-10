@@ -16,7 +16,7 @@ Edit the ```server.py``` settings to your preferred network settings or run with
 usage: server.py [-h] [--dhcp | --dhcp-proxy] [-s DHCP_SERVER_IP]
                  [-f DHCP_FILESERVER_IP] [-b DHCP_OFFER_BEGIN]
                  [-e DHCP_OFFER_END] [-n DHCP_SUBNET] [-r DHCP_ROUTER]
-                 [-d DHCP_DNS] [--ipxe] [--http] [-a NETBOOT_DIR]
+                 [-d DHCP_DNS] [--no-ipxe] [--no-http] [-a NETBOOT_DIR]
                  [-i NETBOOT_FILE]
 
 Set options at runtime. Defaults are in server.py
@@ -40,8 +40,8 @@ optional arguments:
                         DHCP lease router (default: 192.168.2.1)
   -d DHCP_DNS, --dhcp-dns DHCP_DNS
                         DHCP lease DNS server (default: 8.8.8.8)
-  --ipxe                Chainload iPXE ROM (default: False)
-  --http                Do not use built-in HTTP server (default: False)
+  --no-ipxe             Do not chainload iPXE ROM (default: True)
+  --no-http             Do not use built-in HTTP server (default: True)
   -a NETBOOT_DIR, --netboot-dir NETBOOT_DIR
                         Local file serve directory (default: netboot)
   -i NETBOOT_FILE, --netboot-file NETBOOT_FILE
