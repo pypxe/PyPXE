@@ -13,30 +13,30 @@ Simply run ```sudo python server.py``` and you will have an out-of-the-box PXE-b
 
 ###TFTP/DHCP/HTTP/iPXE Arguments
 
-**Argument:** ```--ipxe```
+**Argument:** ```--ipxe``` 
 **Explanation:*** Enable iPXE ROM (default: False)
 
-**Argument:** ```--http```
+**Argument:** ```--http``` 
 **Explanation:** Enable built-in HTTP server (default: False) 
 
-**Argument:** ```--dhcp```
+**Argument:** ```--dhcp``` 
 **Explanation:** Enable built-in DHCP server (default: False)
 
-**Argument:** ```--dhcp-proxy```
+**Argument:** ```--dhcp-proxy``` 
 **Explanation:** Enable built-in DHCP server in proxy mode (implies ```--dhcp```) (default: False)
 
 ###DHCP Server Arguments
 
-**Argument:** ```-s``` or ```--dhcp-server-ip```
-**Variable:** DHCP_SERVER_IP
+**Argument:** ```-s``` or ```--dhcp-server-ip``` 
+**Variable:** DHCP_SERVER_IP 
 **Explanation:** DHCP Server IP (default: 192.168.2.2) 
 
-**Argument:** ```-f```or ```--dhcp-fileserver-ip```
-**Variable:** DHCP_FILESERVER_IP
+**Argument:** ```-f```or ```--dhcp-fileserver-ip``` 
+**Variable:** DHCP_FILESERVER_IP 
 **Explanation:** DHCP fileserver IP (default: 192.168.2.2)
 
-**Argument:** ```-b```or ```--dhcp-begin```
-**Variable:** DHCP_OFFER_BEGIN
+**Argument:** ```-b```or ```--dhcp-begin``` 
+**Variable:** DHCP_OFFER_BEGIN 
 **Explanation:** DHCP lease range start (default: 192.168.2.100)
 
 **Argument:** ```-e``` or ```--dhcp-end```
