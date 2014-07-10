@@ -12,25 +12,56 @@ Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can 
 Simply run ```sudo python server.py``` and you will have an out-of-the-box PXE-bootable server! If you require the ability to handle PXE requests then you can either enable the built-in DHCP server ```sudo python server.py --dhcp``` (after configuring, of course) or start ```server.py``` in ProxyDHCP rather than full DHCP ```sudo python server.py --dhcp-proxy```
 
 ###TFTP/DHCP/HTTP/iPXE Arguments
-Argument | Explanation
---- | ---
-```--ipxe``` | Enable iPXE ROM (default: False)
-```--http``` | Enable built-in HTTP server (default: False) 
-```--dhcp``` | Enable built-in DHCP server (default: False)
-```--dhcp-proxy``` | Enable built-in DHCP server in proxy mode (implies ```--dhcp```) (default: False)
+
+**Argument:** ```--ipxe```
+**Explanation:*** Enable iPXE ROM (default: False)
+
+**Argument:** ```--http```
+**Explanation:** Enable built-in HTTP server (default: False) 
+
+**Argument:** ```--dhcp```
+**Explanation:** Enable built-in DHCP server (default: False)
+
+**Argument:** ```--dhcp-proxy```
+**Explanation:** Enable built-in DHCP server in proxy mode (implies ```--dhcp```) (default: False)
 
 ###DHCP Server Arguments
-Argument | Variable | Explanation
---- | --- | ---
-```-s``` or ```--dhcp-server-ip``` | DHCP_SERVER_IP | DHCP Server IP (default: 192.168.2.2) 
-```-f```or ```--dhcp-fileserver-ip``` | DHCP_FILESERVER_IP | DHCP fileserver IP (default: 192.168.2.2)
-```-b```or ```--dhcp-begin``` | DHCP_OFFER_BEGIN | DHCP lease range start (default: 192.168.2.100)
-```-e``` or ```--dhcp-end``` | DHCP_OFFER_END | DHCP lease range end (default: 192.168.2.150)
-```-n``` or ```--dhcp-subnet``` | DHCP_SUBNET | DHCP lease subnet (default: 255.255.255.0)
-```-r``` or ```--dhcp-router``` | DHCP_ROUTER | DHCP lease router (default: 192.168.2.1)
-```-d``` or ```--dhcp-dns``` | DHCP_DNS | DHCP lease DNS server (default: 8.8.8.8)
-```-a``` or ```--netboot-dir``` | NETBOOT_DIR | Local file serve directory (default: netboot)
-```-i``` or ```--netboot-file``` | NETBOOT_FILE | PXE boot file name (after iPXE if not ```--no-ipxe```) (default is for it to automatically be set based on what services are enabled/disabled)
+
+**Argument:** ```-s``` or ```--dhcp-server-ip```
+**Variable:** DHCP_SERVER_IP
+**Explanation:** DHCP Server IP (default: 192.168.2.2) 
+
+**Argument:** ```-f```or ```--dhcp-fileserver-ip```
+**Variable:** DHCP_FILESERVER_IP
+**Explanation:** DHCP fileserver IP (default: 192.168.2.2)
+
+**Argument:** ```-b```or ```--dhcp-begin```
+**Variable:** DHCP_OFFER_BEGIN
+**Explanation:** DHCP lease range start (default: 192.168.2.100)
+
+**Argument:** ```-e``` or ```--dhcp-end```
+**Variable:** DHCP_OFFER_END
+**Explanation:** DHCP lease range end (default: 192.168.2.150)
+
+**Argument:** ```-n``` or ```--dhcp-subnet```
+**Variable:** DHCP_SUBNET
+**Explanation:** DHCP lease subnet (default: 255.255.255.0)
+
+**Argument:** ```-r``` or ```--dhcp-router```
+**Variable:** DHCP_ROUTER
+**Explanation:** DHCP lease router (default: 192.168.2.1)
+
+**Argument:** ```-d``` or ```--dhcp-dns```
+**Variable:** DHCP_DNS
+**Explanation:** DHCP lease DNS server (default: 8.8.8.8)
+
+**Argument:** ```-a``` or ```--netboot-dir```
+**Variable:** NETBOOT_DIR
+**Explanation:** Local file serve directory (default: 'netboot')
+
+**Argument:** ```-i``` or ```--netboot-file```
+**Variable:** NETBOOT_FILE
+**Explanation:** PXE boot file name (default is for it to automatically be set based on what services are enabled/disabled)
 
 ##Additional Notes
 ```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
