@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
 		#configure/start DHCP server
 		if args.USE_DHCP:
-			dhcpd = DHCPD( args.DHCP_FILESERVER_IP, args.DHCP_OFFER_BEGIN, args.DHCP_OFFER_END, args.DHCP_SUBNET, args.DHCP_ROUTER, args.DHCP_DNS, args.NETBOOT_FILE, args.DHCP_SERVER_IP, args.USE_IPXE, args.USE_HTTP, args.DHCP_PROXY_MODE )
+			dhcpd = DHCPD( args.DHCP_SERVER_IP, args.DHCP_FILESERVER_IP, args.DHCP_OFFER_BEGIN, args.DHCP_OFFER_END, args.DHCP_SUBNET, args.DHCP_ROUTER, args.DHCP_DNS, args.NETBOOT_FILE, args.USE_IPXE, args.USE_HTTP, args.DHCP_PROXY_MODE )
 			dhcpthread = threading.Thread( target = dhcpd.listen )
 			dhcpthread.daemon = True
 			dhcpthread.start()

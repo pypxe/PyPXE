@@ -7,7 +7,7 @@ class DHCPD:
 	 	This class implements a DHCP Server, limited to pxe options, where the subnet /24 is hard coded.
 	 	Implemented from RFC2131, RFC2132 and https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 	 '''
-	 def __init__( self, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename = '/pxelinux.0', ip = '0.0.0.0', useipxe = False, usehttp = False, proxydhcp = False, port = 67 ):
+	 def __init__( self, ip, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename = '/pxelinux.0', useipxe = False, usehttp = False, proxydhcp = False, port = 67 ):
 		self.ip = ip
 		self.port = port
 		self.fileserver = fileserver #TFTP OR HTTP
@@ -30,7 +30,7 @@ class DHCPD:
 		self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
-		self.sock.bind( ( self.ip, self.port ) )
+		self.sock.bind( ( '', self.port ) )
 		#key is mac
 		self.leases = defaultdict( lambda : { 'ip' : '', 'expire' : 0, 'ipxe' : self.ipxe } )
 
@@ -144,7 +144,7 @@ class DHCPD:
 		response = headerresponse + optionsresponse
 		self.sock.sendto( response, ( '<broadcast>', 68 ) )
 
-	 def listen(self):
+	 def listen( self ):
 		'''Main listen loop'''
 		while True:
 			message, address = self.sock.recvfrom( 1024 )
