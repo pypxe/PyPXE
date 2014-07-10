@@ -4,7 +4,7 @@ from collections import defaultdict
 class TFTPD:
     """tftp server, read only. Implemented from
     rfc1350 and rfc2348"""
-    def __init__(self, ip = '', port = 69):
+    def __init__(self, ip = '0.0.0.0', port = 69):
         self.ip = ip
         self.port = port
         

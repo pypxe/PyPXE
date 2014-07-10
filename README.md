@@ -1,16 +1,15 @@
-##Pure Python2 PXE (DHCP/TFTP/HTTP) Server
+#About
+This repository contains code that intends to provide a working PXE server (via HTTP, TFTP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
 
-Supports iPXE chainloading, and therefore iPXE scripts.
+**WARNING:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
-Edit the server.py settings to your preferred network settings or run with --help  
+##Usage
 
-Core.iso is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/)  
-chainload.kpxe is the undionly.kpxe from the [iPXE Project](http://ipxe.org/)  
-pxelinux.0, menu.c32 and memdisk are from the [SYSLINUX Project](http://www.syslinux.org/)  
+PyPXE supports iPXE chainloading and, therefore, iPXE scripts.
 
+Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. See ```server.py``` for example usage where all three are used in combination with the option of enabling/disabling them individually while also setting some options.
 
-Each server (TFTP/HTTP/DHCP) is in it's own class in it's own file. These can be used
-independently. See server.py for example usage
+Edit the ```server.py``` settings to your preferred network settings or run with ```--help``` 
 
 ```
 # python2 server.py --help
@@ -54,6 +53,7 @@ optional arguments:
                         /boot.http.ipxe)
 ```
 
-**WARNING:**
-None of these servers are fully compliant. They work for PXE.
-Any other uses are purely coincidental. Use at your own risk.
+##Additional Notes
+```Core.iso``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
+```chainload.kpxe``` is the ```undionly.kpxe``` from the [iPXE Project](http://ipxe.org/)  
+```pxelinux.0```, ```menu.c32``` and ```memdisk``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
