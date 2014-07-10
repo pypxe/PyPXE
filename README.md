@@ -13,13 +13,11 @@ Simply run ```sudo python server.py``` and you will have an out-of-the-box PXE-b
 
 ###TFTP/DHCP/HTTP/iPXE Arguments
 
-**Argument:** ```--ipxe```
+__Argument:__ ```--ipxe```
+__Explanation:__ Enable iPXE ROM (default: False)
 
-**Explanation:*** Enable iPXE ROM (default: False)
-
-**Argument:** ```--http```
-
-**Explanation:** Enable built-in HTTP server (default: False) 
+__Argument:__ ```--http```
+__Explanation:__Enable built-in HTTP server (default: False) 
 
 **Argument:** ```--dhcp```
 **Explanation:** Enable built-in DHCP server (default: False)
