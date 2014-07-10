@@ -13,7 +13,7 @@ Edit the ```server.py``` settings to your preferred network settings or run with
 
 ```
 # python2 server.py --help
-usage: server.py [-h] [--no-ipxe] [--no-http] [--no-dhcp | --no-dhcp-proxy]
+usage: server.py [-h] [--ipxe] [--http] [--dhcp | --dhcp-proxy]
                  [-s DHCP_SERVER_IP] [-f DHCP_FILESERVER_IP]
                  [-b DHCP_OFFER_BEGIN] [-e DHCP_OFFER_END] [-n DHCP_SUBNET]
                  [-r DHCP_ROUTER] [-d DHCP_DNS] [-a NETBOOT_DIR]
@@ -23,15 +23,15 @@ Set options at runtime. Defaults are in server.py
 
 optional arguments:
   -h, --help            show this help message and exit
-  --no-ipxe             Toggle iPXE ROM (default: True)
-  --no-http             Toggle built-in HTTP server (default: True)
-  --no-dhcp             Toggle built-in DHCP server (implies --no-dhcp-proxy)
-                        (default: True)
-  --no-dhcp-proxy       Toggle built-in DHCP server proxy mode (default: True)
+  --ipxe                Enable iPXE ROM (default: False)
+  --http                Enable built-in HTTP server (default: False)
+  --dhcp                Enable built-in DHCP server (default: False)
+  --dhcp-proxy          Enable built-in DHCP server in proxy mode (implies
+                        --dhcp) (default: False)
   -s DHCP_SERVER_IP, --dhcp-server-ip DHCP_SERVER_IP
-                        DHCP Server IP (default: 192.168.2.2)
+                        DHCP Server IP (default: 192.168.2.38)
   -f DHCP_FILESERVER_IP, --dhcp-fileserver-ip DHCP_FILESERVER_IP
-                        DHCP fileserver IP (default: 192.168.2.2)
+                        DHCP fileserver IP (default: 192.168.2.38)
   -b DHCP_OFFER_BEGIN, --dhcp-begin DHCP_OFFER_BEGIN
                         DHCP lease range start (default: 192.168.2.100)
   -e DHCP_OFFER_END, --dhcp-end DHCP_OFFER_END

@@ -8,10 +8,19 @@ class DHCPD:
 		where the subnet /24 is hard coded. Implemented from RFC2131,
 		RFC2132 and https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 	 '''
-	 def __init__( self, ip, fileserver, offerfrom, offerto, subnetmask, 
-			router, dnsserver, filename = '/pxelinux.0',
-			useipxe = False, usehttp = False,
-			proxydhcp = False, port = 67 ):
+	 def __init__( self,
+	 				ip,
+	 				fileserver,
+	 				offerfrom,
+	 				offerto,
+	 				subnetmask, 
+					router,
+					dnsserver,
+					filename = '/pxelinux.0',
+					useipxe = False,
+					usehttp = False,
+					proxydhcp = False,
+					port = 67 ):
 		self.ip = ip
 		self.port = port
 		self.fileserver = fileserver #TFTP OR HTTP
@@ -38,9 +47,7 @@ class DHCPD:
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
 		self.sock.bind( ( '', self.port ) )
 		#key is mac
-		self.leases = defaultdict( lambda : { 'ip' : '',
-							'expire' : 0,
-							'ipxe' : self.ipxe } )
+		self.leases = defaultdict( lambda : { 'ip' : '', 'expire' : 0, 'ipxe' : self.ipxe } )
 
 	 def nextip( self ):
 		'''
