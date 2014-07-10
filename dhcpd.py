@@ -4,10 +4,14 @@ from time import time
 
 class DHCPD:
 	 '''
-	 	This class implements a DHCP Server, limited to pxe options, where the subnet /24 is hard coded.
-	 	Implemented from RFC2131, RFC2132 and https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
+	 	This class implements a DHCP Server, limited to pxe options,
+		where the subnet /24 is hard coded. Implemented from RFC2131,
+		RFC2132 and https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 	 '''
-	 def __init__( self, ip, fileserver, offerfrom, offerto, subnetmask, router, dnsserver, filename = '/pxelinux.0', useipxe = False, usehttp = False, proxydhcp = False, port = 67 ):
+	 def __init__( self, ip, fileserver, offerfrom, offerto, subnetmask, 
+			router, dnsserver, filename = '/pxelinux.0',
+			useipxe = False, usehttp = False,
+			proxydhcp = False, port = 67 ):
 		self.ip = ip
 		self.port = port
 		self.fileserver = fileserver #TFTP OR HTTP
@@ -23,30 +27,43 @@ class DHCPD:
 		if usehttp and not self.ipxe:
 			print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
 		if useipxe and usehttp:
-			self.filename = 'http://%s%s' % ( self.fileserver, self.filename )
+			self.filename = 'http://%s%s' % ( self.fileserver,
+								self.filename )
 		if useipxe and not usehttp:
-			self.filename = 'tftp://%s%s' % ( self.fileserver, self.filename )
+			self.filename = 'tftp://%s%s' % ( self.fileserver,
+								self.filename )
 
 		self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEADDR, 1 )
 		self.sock.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
 		self.sock.bind( ( '', self.port ) )
 		#key is mac
-		self.leases = defaultdict( lambda : { 'ip' : '', 'expire' : 0, 'ipxe' : self.ipxe } )
+		self.leases = defaultdict( lambda : { 'ip' : '',
+							'expire' : 0,
+							'ipxe' : self.ipxe } )
 
 	 def nextip( self ):
-		'''This method returns the next unleased IP from range; also does lease expiry by overwrite.'''
+		'''
+			This method returns the next unleased IP from range;
+			also does lease expiry by overwrite.
+		'''
 		network = '.'.join( self.offerfrom.split ( '.' )[:-1] )
 		fromhost = int( self.offerfrom.split( '.' )[-1] )
 		tohost = int( self.offerto.split( '.' )[-1] )
-		leased = [ self.leases[i][ 'ip' ] for i in self.leases if self.leases[i][ 'expire' ] > time() ]
+		#get unused or expired lease list
+		leased = [ self.leases[i][ 'ip' ] for i in self.leases 
+				if self.leases[i][ 'expire' ] > time() ]
 		for host in xrange( fromhost, tohost + 1 ):
 			if network + '.' + str( host ) not in leased:
 				 return network + '.' + str( host )
 
 	 def printmac( self, mac ):
-		'''This method converts the MAC Address from binary to human-readable format for logging.'''
-		return ':'.join( map ( lambda x : hex( x )[2:].zfill( 2 ), struct.unpack( 'BBBBBB', mac) ) ).upper()
+		'''
+			This method converts the MAC Address from binary to
+			human-readable format for logging.
+		'''
+		return ':'.join( map ( lambda x : hex( x )[2:].zfill( 2 ),
+						struct.unpack( 'BBBBBB', mac) ) ).upper()
 
 	 def craftheader( self, message ):
 		'''This method crafts the DHCP header using parts of the message'''
