@@ -73,8 +73,11 @@ if __name__ == '__main__':
 			else:
 				args.NETBOOT_FILE = "/boot.http.ipxe"
 
+		#serve all files from one directory
+		os.chdir ( args.NETBOOT_DIR )
+
 		#configure/start TFTP server
-		tftpd = TFTPD( netbootDirectory = args.NETBOOT_DIR )
+		tftpd = TFTPD()
 		tftpthread = threading.Thread( target = tftpd.listen )
 		tftpthread.daemon = True
 		tftpthread.start()
@@ -93,7 +96,7 @@ if __name__ == '__main__':
 
 		#configure/start HTTP server
 		if args.USE_HTTP:
-			httpd = HTTPD( netbootDirectory = args.NETBOOT_DIR )
+			httpd = HTTPD()
 			httpdthread = threading.Thread( target = httpd.listen )
 			httpdthread.daemon = True
 			httpdthread.start()
