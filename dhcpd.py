@@ -83,8 +83,11 @@ class DHCPD:
 		response += chaddr
 		#bootp legacy pad
 		response += '\x00' * 64 #server name
-		response += self.filename
-		response += '\x00' * ( 128 - len( self.filename ) )
+		if self.proxydhcp:
+			response += self.filename
+			response += '\x00' * ( 128 - len( self.filename ) )
+		else:
+			response += '\x00'*128
 		#magic section
 		response += self.magic
 		return ( clientmac, response )
@@ -114,12 +117,9 @@ class DHCPD:
 		if not self.ipxe or not self.leases[ clientmac ][ 'ipxe' ]:
 			#Either we don't care about iPXE, or we've already chainloaded ipxe
 			response += struct.pack( '!BB', 67, len( self.filename ) + 1 ) + self.filename + '\x00'
-			if not self.leases[ clientmac ][ 'ipxe' ]:
-				 self.leases[ clientmac ][ 'ipxe' ] = True #fix reboot without restart server
 		else:
 			#chainload iPXE
 			response += struct.pack( '!BB', 67, 16 ) + '/chainload.kpxe' + '\x00'
-			self.leases[ clientmac ][ 'ipxe' ] = False
 		if self.proxydhcp:
 			response += struct.pack( '!BB', 60, 9 ) + 'PXEClient'
 			response += struct.pack( '!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, '\x00PXE', 0xff )
@@ -143,6 +143,7 @@ class DHCPD:
 
 		response = headerresponse + optionsresponse
 		self.sock.sendto( response, ( '<broadcast>', 68 ) )
+		self.leases[ clientmac ][ 'ipxe' ] = False
 
 	 def listen( self ):
 		'''Main listen loop'''

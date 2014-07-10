@@ -13,7 +13,7 @@ class TFTPD:
 		#key is (address, port) pair
 		self.ongoing = defaultdict( lambda : { 'filename' : '', 'handle' : None, 'block' : 1, 'blksize' : 512 } )
 		os.chdir ( netbootDirectory ) #start in network boot file directory
-
+		os.chroot ( '.' )
 	def filename( self, message ):
 		'''The first null-delimited field after the OPCODE is the filename. This method returns the filename from the message.'''
 		return message[2:].split( '\x00' )[0]

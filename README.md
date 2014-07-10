@@ -1,5 +1,5 @@
 #About
-This repository contains code that intends to provide a working PXE server (via HTTP, TFTP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
+This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
 
 **WARNING:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
@@ -13,19 +13,21 @@ Edit the ```server.py``` settings to your preferred network settings or run with
 
 ```
 # python2 server.py --help
-usage: server.py [-h] [--dhcp | --dhcp-proxy] [-s DHCP_SERVER_IP]
-                 [-f DHCP_FILESERVER_IP] [-b DHCP_OFFER_BEGIN]
-                 [-e DHCP_OFFER_END] [-n DHCP_SUBNET] [-r DHCP_ROUTER]
-                 [-d DHCP_DNS] [--ipxe] [--http] [-a NETBOOT_DIR]
+usage: server.py [-h] [--no-ipxe] [--no-http] [--no-dhcp | --no-dhcp-proxy]
+                 [-s DHCP_SERVER_IP] [-f DHCP_FILESERVER_IP]
+                 [-b DHCP_OFFER_BEGIN] [-e DHCP_OFFER_END] [-n DHCP_SUBNET]
+                 [-r DHCP_ROUTER] [-d DHCP_DNS] [-a NETBOOT_DIR]
                  [-i NETBOOT_FILE]
 
 Set options at runtime. Defaults are in server.py
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dhcp                Use built-in DHCP server (default: False)
-  --dhcp-proxy          Use builtin DHCP server in proxy mode (if specified,
-                        will start DHCP server) (default: False)
+  --no-ipxe             Toggle iPXE ROM (default: True)
+  --no-http             Toggle built-in HTTP server (default: True)
+  --no-dhcp             Toggle built-in DHCP server (implies --no-dhcp-proxy)
+                        (default: True)
+  --no-dhcp-proxy       Toggle built-in DHCP server proxy mode (default: True)
   -s DHCP_SERVER_IP, --dhcp-server-ip DHCP_SERVER_IP
                         DHCP Server IP (default: 192.168.2.2)
   -f DHCP_FILESERVER_IP, --dhcp-fileserver-ip DHCP_FILESERVER_IP
@@ -40,12 +42,11 @@ optional arguments:
                         DHCP lease router (default: 192.168.2.1)
   -d DHCP_DNS, --dhcp-dns DHCP_DNS
                         DHCP lease DNS server (default: 8.8.8.8)
-  --ipxe                Chainload iPXE ROM (default: False)
-  --http                Do not use built-in HTTP server (default: False)
   -a NETBOOT_DIR, --netboot-dir NETBOOT_DIR
                         Local file serve directory (default: netboot)
   -i NETBOOT_FILE, --netboot-file NETBOOT_FILE
-                        PXE boot file name (after iPXE if --ipxe) (default: )
+                        PXE boot file name (after iPXE if not --no-ipxe)
+                        (default: )
 ```
 
 ##Additional Notes

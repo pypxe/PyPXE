@@ -8,10 +8,11 @@ class HTTPD:
 		self.sock.bind( ( ip, port ) )
 		self.sock.listen( 1 )
 		os.chdir ( netbootDirectory ) #start in network boot file directory
+		os.chroot ( '.' )
 	def handlereq( self, connection, addr ):
 		'''Handle HTTP request'''
 		request = connection.recv( 1024 )
-		startline = request.split( '\r\n' )[0].split( '' )
+		startline = request.split( '\r\n' )[0].split( ' ' )
 		method = startline[0]
 		target = startline[1]
 
