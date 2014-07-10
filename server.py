@@ -31,6 +31,8 @@ if __name__ == '__main__':
 
 		#argument group for DHCP server
 		parser = argparse.ArgumentParser( description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter )
+		parser.add_argument( '--no-ipxe', action = 'store_false', dest = 'USE_IPXE', help = 'Toggle iPXE ROM', default = True )
+		parser.add_argument( '--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Toggle built-in HTTP server', default = True )
 		exclusive = parser.add_mutually_exclusive_group( required = False )
 		exclusive.add_argument( '--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Toggle built-in DHCP server', default = True )
 		exclusive.add_argument( '--no-dhcp-proxy', action = 'store_false', dest = 'DHCP_PROXY_MODE', help = 'Toggle built-in DHCP server proxy mode', default = True )
@@ -42,9 +44,6 @@ if __name__ == '__main__':
 		parser.add_argument( '-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = DHCP_ROUTER )
 		parser.add_argument( '-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = DHCP_DNS )
 
-		parser.add_argument( '--no-ipxe', action = 'store_false', dest = 'USE_IPXE', help = 'Toggle iPXE ROM', default = True )
-
-		parser.add_argument( '--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Toggle built-in HTTP server', default = True )
 
 		parser.add_argument( '-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR )
 		parser.add_argument( '-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE )
