@@ -9,9 +9,9 @@ This repository contains code that provides a working PXE server (via HTTP, TFTP
 Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. For more information on how each service works and how to manipulate them, see  ```DOCUMENTATION.md``` in the root of ```master```.
 
 ###QuickStart
-```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Treat the provided 'netboot' directory as '/tftpboot/' that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in 'pxelinux.cfg/default'.
+```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Treat the provided ```netboot``` directory as ```/tftpboot/``` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in ```pxelinux.cfg/default```.
 
-Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the 'netboot' directory!
+Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the ```netboot``` directory!
 ```shell
 sudo python server.py
 ```
@@ -27,107 +27,45 @@ sudo python server.py --dhcp-proxy
 **TFTP/DHCP/HTTP/iPXE Arguments**
 
 Enable iPXE ROM [Default: False]
-```
---ipxe
-```
+```--ipxe```
 
 Enable built-in HTTP server [Default: False]
-```
---http
-```
+```--http```
 
 Enable built-in DHCP server [Default: False]
-```
---dhcp
-```
+```--dhcp```
 
 Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False]
-```
---dhcp-proxy
-```
+```--dhcp-proxy```
 
 **DHCP Server Arguments**
 
 Specify DHCP server IP address [Default: 192.168.2.2]
-```
--s DHCP_SERVER_IP
-```
-or
-```
---dhcp-server-ip DHCP_SERVER_IP
-```
+```-s DHCP_SERVER_IP``` or ``` --dhcp-server-ip DHCP_SERVER_IP```
 
 Specify DHCP fileserver IP address [Default: 192.168.2.2]
-```
--f DHCP_FILESERVER_IP
-```
-or
-```
---dhcp-fileserver-ip DHCP_FILESERVER_IP
-```
+```-f DHCP_FILESERVER_IP``` or ```--dhcp-fileserver-ip DHCP_FILESERVER_IP```
 
 Specify DHCP lease range start [Default: 192.168.2.100]
-```
--b DHCP_OFFER_BEGIN
-```
-or
-```
---dhcp-begin DHCP_OFFER_BEGIN
-```
+```-b DHCP_OFFER_BEGIN``` or ```--dhcp-begin DHCP_OFFER_BEGIN```
 
 Specify DHCP lease range end [Default: 192.168.2.150]
-```
--e DHCP_OFFER_END
-```
-or
-```
---dhcp-end DHCP_OFFER_END
-```
+```-e DHCP_OFFER_END``` or ```--dhcp-end DHCP_OFFER_END```
 
 Specify DHCP subnet [Default: 255.255.255.0]
-```
--n DHCP_SUBNET
-```
-or
-```
---dhcp-subnet DHCP_SUBNET
-```
+```-n DHCP_SUBNET``` or ```--dhcp-subnet DHCP_SUBNET```
 
 Specify DHCP lease router [Default: 192.168.2.1]
-```
--r DHCP_ROUTER
-```
-or
-```
---dhcp-router DHCP_ROUTER
-```
+```-r DHCP_ROUTER``` or ```--dhcp-router DHCP_ROUTER```
 
 Specify DHCP lease DNS server [Default: 8.8.8.8]
-```
--d DHCP_DNS
-```
-or
-```
---dhcp-dns DHCP_DNS
-```
+```-d DHCP_DNS``` or ```--dhcp-dns DHCP_DNS```
 
 Specify the local directory where network boot files will be served [Default: 'netboot']
-```
--a NETBOOT_DIR
-```
-or
-```
---netboot-dir NETBOOT_DIR
-```
+```-a NETBOOT_DIR``` or ```--netboot-dir NETBOOT_DIR```
 
 Specify the PXE boot file name [Default: _automatically set based on what services are enabled or disabled, see documentation for further explanation_]
-```
--i NETBOOT_FILE
-```
-or
-```
---netboot-file NETBOOT_FILE
-```
+```-i NETBOOT_FILE``` or ```--netboot-file NETBOOT_FILE```
 
 ##Additional Information
 ```Core.iso``` located in ```netboot``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
