@@ -189,9 +189,9 @@ class DHCPD:
         response = headerResponse + optionsResponse
         if self.debug:
             print '[DEBUG] DHCPOFFER - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
-            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
-            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
+            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->\n'
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def dhcpack(self, message):
@@ -202,9 +202,9 @@ class DHCPD:
         response = headerResponse + optionsResponse
         if self.debug:
             print '[DEBUG] DHCPACK - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
-            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
-            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
+            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->\n'
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def listen(self):
@@ -214,7 +214,7 @@ class DHCPD:
             clientmac = struct.unpack('!28x6s', message[:34])
             if self.debug:
                 print '[DEBUG] Received message'
-                print '\t<--BEGIN MESSAGE-->\n\t' + message + '\n\t<--END MESSAGE-->\n'
+                print '\t<--BEGIN MESSAGE-->\n\t' + repr(message) + '\n\t<--END MESSAGE-->\n'
             if not 'PXEClient' in message: continue
             #see RFC2131 page 10
             type = struct.unpack('!BxB', message[240:240+3]) #options offset
