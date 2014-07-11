@@ -58,7 +58,8 @@ Specify DHCP server IP address [Default: 192.168.2.2]
 
 Specify DHCP fileserver IP address [Default: 192.168.2.2]
 ```
--f DHCP_FILESERVER_IP```
+-f DHCP_FILESERVER_IP
+```
 ```
 --dhcp-fileserver-ip DHCP_FILESERVER_IP
 ```
@@ -89,28 +90,32 @@ Specify DHCP subnet [Default: 255.255.255.0]
 
 Specify DHCP lease router [Default: 192.168.2.1]
 ```
--r DHCP_ROUTER```
+-r DHCP_ROUTER
+```
 ```
 --dhcp-router DHCP_ROUTER
 ```
 
 Specify DHCP lease DNS server [Default: 8.8.8.8]
 ```
--d DHCP_DNS```
+-d DHCP_DNS
+```
 ```
 --dhcp-dns DHCP_DNS
 ```
 
 Specify the local directory where network boot files will be served [Default: 'netboot']
 ```
--a NETBOOT_DIR```
+-a NETBOOT_DIR
+```
 ```
 --netboot-dir NETBOOT_DIR
 ```
 
 Specify the PXE boot file name [Default: automatically set based on what services are enabled or disabled, see documentation for further explanation]
 ```
--i NETBOOT_FILE```
+-i NETBOOT_FILE
+```
 ```
 --netboot-file NETBOOT_FILE
 ```
