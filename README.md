@@ -41,7 +41,7 @@ Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False
 **DHCP Server Arguments**
 
 Specify DHCP server IP address [Default: 192.168.2.2]
-```-s DHCP_SERVER_IP``` or ``` --dhcp-server-ip DHCP_SERVER_IP```
+```-s DHCP_SERVER_IP``` or ```--dhcp-server-ip DHCP_SERVER_IP```
 
 Specify DHCP fileserver IP address [Default: 192.168.2.2]
 ```-f DHCP_FILESERVER_IP``` or ```--dhcp-fileserver-ip DHCP_FILESERVER_IP```
@@ -64,7 +64,7 @@ Specify DHCP lease DNS server [Default: 8.8.8.8]
 Specify the local directory where network boot files will be served [Default: 'netboot']
 ```-a NETBOOT_DIR``` or ```--netboot-dir NETBOOT_DIR```
 
-Specify the PXE boot file name [Default: _automatically set based on what services are enabled or disabled, see documentation for further explanation_]
+Specify the PXE boot file name [Default: automatically set based on what services are enabled or disabled, see documentation for further explanation]
 ```-i NETBOOT_FILE``` or ```--netboot-file NETBOOT_FILE```
 
 ##Additional Information
