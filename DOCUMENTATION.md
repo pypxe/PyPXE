@@ -7,8 +7,6 @@
 
 PXE allows computers to boot from a binary image stored on a server, rather than the local hardware. Broadly speaking, a DHCP server informs a client of the TFTP server and filename from which to boot. 
 
-#PyPXE Services
-
 ##DHCP
 In the standard DHCP mode, the server has been implemented from [RFC2131](http://www.ietf.org/rfc/rfc2131.txt), [RFC2132](http://www.ietf.org/rfc/rfc2132.txt), and the [DHCP Wikipedia Entry](https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol).  
 
@@ -39,3 +37,12 @@ The HEAD method is used by some PXE ROMs to find the Content-Length before the G
 
 ##Additional Information
 The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
+
+#PyPXE Services
+Each different service implemented (TFTP, DHCP, and HTTP) resides in its own file in the root of the repository. You can call/configure them independently if you're like to use PyPXE as a library. See ```server.py``` in the root of the repo for example usage on how to call, define, and setup the services.
+
+##TFTP Server (tftpd.py)
+The TFTP server class, ```TFTPD()``` requires three optional parameters be set in order to be constructed:
+* ```ip``` - this is the IP address that the TFTP server will bind to, by default it is set to '0.0.0.0' so that it binds to all available interfaces.
+* ```port``` - this it the port that the TFTP server will run on, by default the port is 69 as that is the default port for TFTP.
+* ```netbootDirectory``` - this is the directory that the TFTP server will serve files from similarly to that of ```/tftpboot```, by default it is set to '.' (current directory)
