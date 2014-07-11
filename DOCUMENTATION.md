@@ -38,4 +38,4 @@ We have implemented GET and HEAD, as there is no requirement for any other metho
 The HEAD method is used by some PXE ROMs to find the Content-Length before the GET is sent.
 
 ##Additional Information
-The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a NULL byte, or ```\x00```
+The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
