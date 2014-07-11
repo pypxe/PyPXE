@@ -55,7 +55,7 @@ The TFTP server class, ```TFTPD()``` requires three optional parameters be set i
 
 ##DHCP Server (dhcpd.py)
 The DHCP server class, ```DHCPD()``` requires the following parameters be set in order to be constructed:
-* ```ip``` [Type: string]- this is the IP address that the DHCP server itself bind to
+* ```ip``` [Type: string] - this is the IP address that the DHCP server itself bind to
 * ```fileserver``` [Type: string] - this is the IP address of the file server containing network boot files that the DHCP server will specify to clients
 * ```offerfrom``` [Type: string] -  this specifies the beginning of the range of IP addreses that the DHCP server will hand out to clients
 * ```offerto``` [Type: string] - this specifies the end of the range of IP addresses that the DHCP server will hand out to clients
@@ -69,6 +69,10 @@ The DHCP server class, ```DHCPD()``` requires the following parameters be set in
 * ```port``` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 67 as that is the default port to listen for DHCP requests
 
 ##HTTP Server (httpd.py)
+The HTTP server class, ```HTTPD()``` requires three optional parameters be set in order to be constructed:
+* ```ip``` [Type: string; Optional] - this is the IP address that the HTTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
+* ```port``` [Type: int; Optional] - this it the port that the HTTP server will run on; by default the port is 80 as that is the default port for HTTP
+* ```netbootDirectory``` [Type: String; Optional] - this is the directory that the HTTP server will serve files from similarly to that of ```/tftpboot```; by default it is set to '.' (current directory)
 
 ##Additional Information
 The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
