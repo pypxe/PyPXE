@@ -12,15 +12,15 @@ Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can 
 ```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Treat the provided ```netboot``` directory as ```/tftpboot``` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in ```netboot/pxelinux.cfg/default```.
 
 Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the ```netboot``` directory!
-```shell
+```
 sudo python server.py
 ```
 If you require the ability to handle DHCP PXE requests then you can either enable the built-in DHCP server (after configuring, of course)...
-```shell
+```
 sudo python server.py --dhcp
 ```
 ...or start ```server.py``` in ProxyDHCP mode rather than a full DHCP server to prevent DHCP conflicts on your network...
-```shell
+```
 sudo python server.py --dhcp-proxy
 ```
 
