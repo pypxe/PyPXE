@@ -97,11 +97,8 @@ class DHCPD:
             response += socket.inet_aton(offer)
         else:
             response += socket.inet_aton('0.0.0.0')
-        if not self.proxydhcp:
-            #siaddr
-            response += socket.inet_aton(self.fileserver)
-        else:
-            response += socket.inet_aton('0.0.0.0')
+        #siaddr
+        response += socket.inet_aton(self.fileserver)
         #giaddr
         response += socket.inet_aton('0.0.0.0')
         #chaddr
