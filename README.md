@@ -5,8 +5,10 @@ This repository contains code that provides a working PXE server (via HTTP, TFTP
 
 ##Usage
 
+###Using PyPXE as a Library
 Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. For more information on how each service works and how to manipulate them, see  ```DOCUMENTATION.md``` in the root of ```master```.
 
+###QuickStart
 ```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Below is a list of the arguments that ```server.py``` takes, all of which are optional.
 
 Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP!
@@ -22,7 +24,7 @@ sudo python server.py --dhcp
 sudo python server.py --dhcp-proxy
 ```
 
-###TFTP/DHCP/HTTP/iPXE Arguments
+**TFTP/DHCP/HTTP/iPXE Arguments**
 
 Enable iPXE ROM: ```--ipxe``` [Default: False]
 
@@ -37,7 +39,7 @@ __Explanation:__ Enable built-in HTTP server (default: False)
 **Argument:** ```--dhcp-proxy```
 **Explanation:** Enable built-in DHCP server in proxy mode (implies ```--dhcp```) (default: False)
 
-###DHCP Server Arguments
+**DHCP Server Arguments**
 
 **Argument:** ```-s``` or ```--dhcp-server-ip```
 **Variable:** DHCP_SERVER_IP
