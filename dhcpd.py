@@ -24,7 +24,9 @@ class DHCPD:
         useipxe = False,
         usehttp = False,
         proxydhcp = False,
+        debug = False,
         port = 67):
+        
         self.ip = ip
         self.port = port
         self.fileserver = fileserver #TFTP or HTTP
@@ -36,13 +38,29 @@ class DHCPD:
         self.filename = filename
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
         self.ipxe = useipxe
-        self.proxydhcp = proxydhcp
+        self.proxydhcp = proxydhcp #ProxyDHCP mode
+        self.debug = debug #debug mode
+
         if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if useipxe and usehttp:
             self.filename = 'http://%s%s' % (self.fileserver, self.filename)
         if useipxe and not usehttp:
             self.filename = 'tftp://%s%s' % (self.fileserver, self.filename)
+
+        if self.debug:
+            print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
+            print '\tDHCP Sever IP: ' + self.ip
+            print '\tDHCP Server Port: ' + str (self.port)
+            print '\tDHCP File Server IP: ' + self.fileserver
+            print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
+            print '\tDHCP Subnet Mask: ' + self.subnetmask
+            print '\tDHCP Router: ' + self.router
+            print '\tDHCP DNS Server: ' + self.dnsserver
+            print '\tDHCP File Name: ' + self.filename
+            print '\tProxyDHCP: ' + str(self.proxydhcp)
+            print '\tUsing HTTP Server: ' + str(usehttp)
+            print '\tUsing iPXE: ' + str(useipxe)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -60,10 +78,12 @@ class DHCPD:
         #If we use ints, we don't have to deal with octet overflow
         #or nested loops (up to 3 with 10/8)
         #convert both to 32bit integers
+        
         #e.g '192.168.1.1' to 3232235777
-        encode = lambda x:struct.unpack("!I", socket.inet_aton(x))[0]
+        encode = lambda x: struct.unpack("!I", socket.inet_aton(x))[0]
         #e.g 3232235777 to '192.168.1.1'
-        decode = lambda x:socket.inet_ntoa(struct.pack("!I", x))
+        decode = lambda x: socket.inet_ntoa(struct.pack("!I", x))
+        
         fromhost = encode(self.offerfrom)
         tohost = encode(self.offerto)
         #pull out already leased ips.
@@ -72,10 +92,9 @@ class DHCPD:
         #convert to 32bit int
         leased = map(encode, leased)
         #loop through, make sure not already leased and not in form X.Y.Z.0
-        for offset in xrange(tohost-fromhost):
-            if (fromhost+offset)%256 and fromhost+offset not in leased:
-                return decode(fromhost+offset)
-
+        for offset in xrange(tohost - fromhost):
+            if (fromhost + offset) % 256 and fromhost + offset not in leased:
+                return decode(fromhost + offset)
 
     def printmac(self, mac):
         '''
@@ -84,7 +103,7 @@ class DHCPD:
         '''
         return ':'.join(map(lambda x: hex(x)[2:].zfill(2), struct.unpack('BBBBBB', mac))).upper()
 
-    def craftheader(self, message):
+    def craftHeader(self, message):
         '''This method crafts the DHCP header using parts of the message'''
         xid, flags, yiaddr, giaddr, chaddr = struct.unpack('!4x4s2x2s4x4s4x4s16s', message[:44])
         clientmac = chaddr[:6]
@@ -102,8 +121,7 @@ class DHCPD:
                 offer = self.nextip()
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
-                print self.printmac(clientmac), '->', self.leases[clientmac]['ip']
-        if not self.proxydhcp:
+                print 'MAC: ' + self.printmac(clientmac) + ' -> IP: ' + self.leases[clientmac]['ip']
             #yiaddr
             response += socket.inet_aton(offer)
         else:
@@ -125,7 +143,7 @@ class DHCPD:
         response += self.magic
         return (clientmac, response)
 
-    def craftoptions(self, opt53, clientmac):
+    def craftOptions(self, opt53, clientmac):
         '''This method crafts the DHCP option fields
             opt53:
                 2 - DHCPOFFER
@@ -143,8 +161,7 @@ class DHCPD:
             response += struct.pack('!BB', 3, 4 ) + socket.inet_aton(self.router)
             #Lease time
             response += struct.pack('!BBI', 51, 4, 86400)
-        #TFTP Server OR HTTP Server
-        #If iPXE need both
+        #TFTP Server OR HTTP Server; if iPXE, need both
         response += struct.pack('!BB', 66, len(self.fileserver)) + self.fileserver
         #Filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
@@ -166,18 +183,28 @@ class DHCPD:
 
     def dhcpoffer(self, message):
         '''This method responds to DHCP discovery with offer'''
-        clientmac, headerresponse = self.craftheader(message)
-        optionsresponse = self.craftoptions(2, clientmac) #DHCPOFFER
+        clientmac, headerResponse = self.craftHeader(message)
+        optionsResponse = self.craftOptions(2, clientmac) #DHCPOFFER
 
-        response = headerresponse + optionsresponse
+        response = headerResponse + optionsResponse
+        if self.debug:
+            print '[DEBUG] DHCPOFFER - Sending the following'
+            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def dhcpack(self, message):
         '''This method responds to DHCP request with acknowledge'''
-        clientmac, headerresponse = self.craftheader(message)
-        optionsresponse = self.craftoptions(5, clientmac) #DHCPACK
+        clientmac, headerResponse = self.craftHeader(message)
+        optionsResponse = self.craftOptions(5, clientmac) #DHCPACK
 
-        response = headerresponse + optionsresponse
+        response = headerResponse + optionsResponse
+        if self.debug:
+            print '[DEBUG] DHCPACK - Sending the following'
+            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def listen(self):
@@ -185,12 +212,21 @@ class DHCPD:
         while True:
             message, address = self.sock.recvfrom(1024)
             clientmac = struct.unpack('!28x6s', message[:34])
+            if self.debug:
+                print '[DEBUG] Received message'
+                print '\t<--BEGIN MESSAGE-->\n\t' + message + '\n\t<--END MESSAGE-->\n'
             if not 'PXEClient' in message: continue
             #see RFC2131 page 10
             type = struct.unpack('!BxB', message[240:240+3]) #options offset
             if type == (53, 1):
+                if self.debug:
+                    print '[DEBUG] Received DHCPOFFER'
                 self.dhcpoffer(message)
             elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
+                if self.debug:
+                    print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
             elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
+                if self.debug:
+                    print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
