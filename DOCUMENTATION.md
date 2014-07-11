@@ -39,7 +39,7 @@ The HEAD method is used by some PXE ROMs to find the Content-Length before the G
 The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
 
 #PyPXE Services
-Each different service implemented (TFTP, DHCP, and HTTP) resides in its own file in the root of the repository. You can call/configure them independently if you're like to use PyPXE as a library. See ```server.py``` in the root of the repo for example usage on how to call, define, and setup the services.
+Each different service implemented (TFTP, DHCP, and HTTP) resides in its own file in the root of the repository. You can call/configure them independently if you're like to use PyPXE as a library. See ```server.py``` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server (tftpd.py)
 The TFTP server class, ```TFTPD()``` requires three optional parameters be set in order to be constructed:
