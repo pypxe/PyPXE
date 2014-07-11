@@ -38,6 +38,7 @@ if __name__ == '__main__':
         exclusive = parser.add_mutually_exclusive_group(required = False)
         exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
         exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_PROXY_MODE', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = False)
+        parser.add_argument('--dhcp-debug', action = 'store_true', dest = 'DHCP_DEBUG', help = 'Adds verbosity to the DHCP server while it runs', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
         parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP)
         parser.add_argument('-f', '--dhcp-fileserver-ip', action = 'store', dest = 'DHCP_FILESERVER_IP', help = 'DHCP fileserver IP', default = DHCP_FILESERVER_IP)
@@ -89,7 +90,7 @@ if __name__ == '__main__':
                     args.DHCP_SUBNET, args.DHCP_ROUTER,
                     args.DHCP_DNS, args.NETBOOT_FILE,
                     args.USE_IPXE, args.USE_HTTP,
-                    args.DHCP_PROXY_MODE)
+                    args.DHCP_PROXY_MODE, args.DHCP_DEBUG)
             dhcpthread = threading.Thread(target = dhcpd.listen)
             dhcpthread.daemon = True
             dhcpthread.start()

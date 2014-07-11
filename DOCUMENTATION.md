@@ -66,6 +66,7 @@ The DHCP server class, ```DHCPD()``` requires the following parameters be set in
 * ```useipxe``` [Type: bool; Optional] - this indicates whether or not iPXE is being used and adjusts itself accordingly; by default this is set to 'False'
 * ```usehttp``` [Type: bool; Optional] - this indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly; by default this is set to 'False'
 * ```proxydhcp``` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in ProxyDHCP mode or not; by default this is set to 'False'
+* ```debug``` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in debug mode or not; by default it is set to 'False'
 * ```port``` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 67 as that is the default port to listen for DHCP requests
 
 ##HTTP Server (httpd.py)
