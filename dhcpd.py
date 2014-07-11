@@ -56,15 +56,26 @@ class DHCPD:
             This method returns the next unleased IP from range;
             also does lease expiry by overwrite.
         '''
-        network = '.'.join(self.offerfrom.split('.')[:-1])
-        fromhost = int(self.offerfrom.split('.')[-1])
-        tohost = int(self.offerto.split('.')[-1])
-        #get unused or expired lease list
-        leased = [self.leases[i]['ip'] for i in self.leases 
+        #Reasoning:
+        #If we use ints, we don't have to deal with octet overflow
+        #or nested loops (up to 3 with 10/8)
+        #convert both to 32bit integers
+        #e.g '192.168.1.1' to 3232235777
+        encode = lambda x:struct.unpack("!I", socket.inet_aton(x))[0]
+        #e.g 3232235777 to '192.168.1.1'
+        decode = lambda x:socket.inet_ntoa(struct.pack("!I", x))
+        fromhost = encode(self.offerfrom)
+        tohost = encode(self.offerto)
+        #pull out already leased ips.
+        leased = [self.leases[i]['ip'] for i in self.leases
                 if self.leases[i]['expire'] > time()]
-        for host in xrange(fromhost, tohost + 1):
-            if network + '.' + str(host) not in leased:
-                return network + '.' + str(host)
+        #convert to 32bit int
+        leased = map(encode, leased)
+        #loop through, make sure not already leased and not in form X.Y.Z.0
+        for offset in xrange(tohost-fromhost):
+            if (fromhost+offset)%256 and fromhost+offset not in leased:
+                return decode(fromhost+offset)
+
 
     def printmac(self, mac):
         '''
