@@ -1,7 +1,15 @@
-DEFAULT menu.c32
-TIMEOUT 300
+default menu.c32
+prompt 0
+timeout 300
+ONTIMEOUT local
+
 MENU TITLE PyPXE
 
 LABEL TinyCore
-KERNEL memdisk
-APPEND iso initrd=Core.iso
+    MENU LABEL TinyCore
+    KERNEL memdisk
+    APPEND iso initrd=Core.iso
+
+LABEL local
+        MENU LABEL Boot local hard drive
+        LOCALBOOT 0
