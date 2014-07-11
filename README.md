@@ -27,6 +27,7 @@ sudo python server.py --dhcp-proxy
 **TFTP/DHCP/HTTP/iPXE Arguments**
 
 Enable iPXE ROM [Default: False]
+
 ```--ipxe```
 
 Enable built-in HTTP server [Default: False]
@@ -70,7 +71,7 @@ Specify the PXE boot file name [Default: automatically set based on what service
 ##Additional Information
 ```Core.iso``` located in ```netboot``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
 ```chainload.kpxe``` located in ```netboot``` is the ```undionly.kpxe``` from the [iPXE Project](http://ipxe.org/)  
-```pxelinux.0```, ```menu.c32``` and ```memdisk``` located in ```netboot``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
+```pxelinux.0```, ```menu.c32```, and ```memdisk``` located in ```netboot``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
 
 ##ToDo
 - Add ```--debug``` prints to dhcp/tftp/http (such as 404, Offer/ACKs w/ filename)
