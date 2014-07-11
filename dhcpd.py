@@ -24,7 +24,6 @@ class DHCPD:
         useipxe = False,
         usehttp = False,
         proxydhcp = False,
-        usetftp = True;
         port = 67):
         self.ip = ip
         self.port = port
@@ -40,8 +39,6 @@ class DHCPD:
         self.proxydhcp = proxydhcp
         if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
-        if usetftp:
-            self.filename = 'tftp://%s%s' % (self.fileserver, self.filename)
         if useipxe and usehttp:
             self.filename = 'http://%s%s' % (self.fileserver, self.filename)
         if useipxe and not usehttp:
