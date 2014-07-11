@@ -1,11 +1,9 @@
 **NOTE:** This documentation is unfinished and is still a work in progress.
-
+---
 #Background
 >The Preboot eXecution Environment (PXE, also known as Pre-Execution Environment; sometimes pronounced "pixie") is an environment to boot computers using a network interface independently of data storage devices (like hard disks) or installed operating systems. -[Wikipedia](https://en.wikipedia.org/wiki/Preboot_Execution_Environment) 
 
 PXE allows computers to boot from a binary image stored on a server, rather than the local hardware. Broadly speaking, a DHCP server informs a client of the TFTP server and filename from which to boot. 
-
-___
 
 #PyPXE Services
 
