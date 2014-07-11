@@ -120,13 +120,7 @@ Specify the PXE boot file name [Default: automatically set based on what service
 --netboot-file NETBOOT_FILE
 ```
 
-##Additional Information
+##Notes
 ```Core.iso``` located in ```netboot``` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
 ```chainload.kpxe``` located in ```netboot``` is the ```undionly.kpxe``` from the [iPXE Project](http://ipxe.org/)  
 ```pxelinux.0```, ```menu.c32```, and ```memdisk``` located in ```netboot``` are from the [SYSLINUX Project](http://www.syslinux.org/)  
-
-##ToDo
-- Add ```--debug``` prints to dhcp/tftp/http (such as 404, Offer/ACKs w/ filename)
-- [PEP8](http://legacy.python.org/dev/peps/pep-0008/)
-- Turn longer functions to kwargs vs positional
-- Remove hardcoded /24 in dhcpd
