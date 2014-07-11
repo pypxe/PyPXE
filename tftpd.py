@@ -49,7 +49,7 @@ class TFTPD:
         #opcode 3 is DATA, also sent block number
         response =  struct.pack('!H', 3)
         response += struct.pack('!H', descriptor['block'])
-        data = descriptor['handle'].read(descriptor['blksize' ])
+        data = descriptor['handle'].read(descriptor['blksize'])
         response += data
         self.sock.sendto(response, address)
         if len( data ) != descriptor['blksize']:
