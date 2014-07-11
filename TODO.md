@@ -1,6 +1,6 @@
 #To Do
 
-- [ ] Add ```-debug``` prints to DHCP/TFT/HTTP (such as 404, OFFER/ACK, etc. w/ filename)
+- [ ] Add ```-debug``` prints to DHCP/TFT/HTTP (such as 404, OFFER/ACK, etc. w/ filename) (mmattioli)
   - [X] DHCP Server ```--dhcp-debug```
   - [ ] TFTP Server ```--tftp-debug```
   - [ ] HTTP Server ```-http-debug```
