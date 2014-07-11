@@ -9,15 +9,15 @@ Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can 
 
 ```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Below is a list of the arguments that ```server.py``` takes, all of which are optional.
 
-Simply run:
+Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP!
 ```shell
 sudo python server.py
 ```
-and you will have an out-of-the-box PXE-bootable server that runs TFTP! If you require the ability to handle DHCP PXE requests then you can either enable the built-in DHCP server:
+If you require the ability to handle DHCP PXE requests then you can either enable the built-in DHCP server (after configuring, of course)...
 ```shell
 sudo python server.py --dhcp
 ```
-(after configuring, of course) or start ```server.py``` in ProxyDHCP rather than full DHCP server:
+...or start ```server.py``` in ProxyDHCP mode rather than a full DHCP server to prevent DHCP conflicts on your network...
 ```shell
 sudo python server.py --dhcp-proxy
 ```
