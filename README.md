@@ -6,7 +6,7 @@ This repository contains code that provides a working PXE server (via HTTP, TFTP
 ##Usage
 
 ###Using PyPXE as a Library
-Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. For more information on how each service works and how to manipulate them, see  ```DOCUMENTATION.md``` in the root of ```master```.
+Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. For more information on how each service works and how to manipulate them, see  ```DOCUMENTATION.md```.
 
 ###QuickStart
 ```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Treat the provided ```netboot``` directory as ```/tftpboot``` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in ```netboot/pxelinux.cfg/default```.
@@ -46,8 +46,7 @@ Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False
 --dhcp-proxy
 ```
 
-####DHCP Server Arguments
-_each of the following can be set one of two ways, you can use either/or_
+**DHCP Server Arguments** _each of the following can be set one of two ways, you can use either/or_
 
 Specify DHCP server IP address [Default: 192.168.2.2]
 ```
