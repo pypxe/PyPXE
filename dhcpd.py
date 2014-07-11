@@ -91,7 +91,7 @@ class DHCPD:
         '''
         return ':'.join(map(lambda x: hex(x)[2:].zfill(2), struct.unpack('BBBBBB', mac))).upper()
 
-    def craftheader(self, message):
+    def craftHeader(self, message):
         '''This method crafts the DHCP header using parts of the message'''
         xid, flags, yiaddr, giaddr, chaddr = struct.unpack('!4x4s2x2s4x4s4x4s16s', message[:44])
         clientmac = chaddr[:6]
@@ -104,16 +104,12 @@ class DHCPD:
             response += struct.pack('!HHI', 0, 0x8000, 0)
         if not self.proxydhcp:
             if self.leases[clientmac]['ip']: #OFFER
-                if self.debug:
-                    print '[OFFER] offering IP ' + self.leases[clientmac]['ip'] + ' to MAC ' + self.printmac(clientmac)
                 offer = self.leases[clientmac]['ip']
             else: #ACK
                 offer = self.nextip()
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
-                if self.debug:
-                    print '[ACK] ' + self.printmac(clientmac) + ' acknowledged offer, sending ' + self.leases[clientmac]['ip']
-        if not self.proxydhcp:
+                print 'MAC: ' + self.printmac(clientmac) + ' -> IP: ' + self.leases[clientmac]['ip']
             #yiaddr
             response += socket.inet_aton(offer)
         else:
@@ -133,14 +129,9 @@ class DHCPD:
             response += chr(0) * 128
         #magic section
         response += self.magic
-        if self.debug:
-            print '\nSending the following header to ' + self.printmac(clientmac)
-            print '<--HEADER BEGIN-->'
-            print str(response)
-            print '<--HEADER END-->'
         return (clientmac, response)
 
-    def craftoptions(self, opt53, clientmac):
+    def craftOptions(self, opt53, clientmac):
         '''This method crafts the DHCP option fields
             opt53:
                 2 - DHCPOFFER
@@ -176,27 +167,32 @@ class DHCPD:
 
         #End options
         response += '\xff'
-        if self.debug:
-            print '\nSending the following options to ' + self.printmac(clientmac)
-            print '<--OPTIONS BEGIN-->'
-            print str(response)
-            print '<--OPTIONS END-->'
         return response
 
     def dhcpoffer(self, message):
         '''This method responds to DHCP discovery with offer'''
-        clientmac, headerresponse = self.craftheader(message)
-        optionsresponse = self.craftoptions(2, clientmac) #DHCPOFFER
+        clientmac, headerResponse = self.craftHeader(message)
+        optionsResponse = self.craftOptions(2, clientmac) #DHCPOFFER
 
-        response = headerresponse + optionsresponse
+        response = headerResponse + optionsResponse
+        if self.debug:
+            print '[DEBUG] DHCPOFFER - Sending the following'
+            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def dhcpack(self, message):
         '''This method responds to DHCP request with acknowledge'''
-        clientmac, headerresponse = self.craftheader(message)
-        optionsresponse = self.craftoptions(5, clientmac) #DHCPACK
+        clientmac, headerResponse = self.craftHeader(message)
+        optionsResponse = self.craftOptions(5, clientmac) #DHCPACK
 
-        response = headerresponse + optionsresponse
+        response = headerResponse + optionsResponse
+        if self.debug:
+            print '[DEBUG] DHCPACK - Sending the following'
+            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
         self.sock.sendto(response, ('<broadcast>', 68))
 
     def listen(self):
@@ -204,12 +200,21 @@ class DHCPD:
         while True:
             message, address = self.sock.recvfrom(1024)
             clientmac = struct.unpack('!28x6s', message[:34])
+            if self.debug:
+                print '[DEBUG] Received message'
+                print '\t<--BEGIN MESSAGE-->\n\t' + message + '\n\t<--END MESSAGE-->\n'
             if not 'PXEClient' in message: continue
             #see RFC2131 page 10
             type = struct.unpack('!BxB', message[240:240+3]) #options offset
             if type == (53, 1):
+                if self.debug:
+                    print '[DEBUG] Received DHCPOFFER'
                 self.dhcpoffer(message)
             elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
+                if self.debug:
+                    print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
             elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
+                if self.debug:
+                    print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
