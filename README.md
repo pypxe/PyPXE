@@ -1,23 +1,24 @@
 #About
 This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
 
-**WARNING:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
+**DISCLAIMER:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
 ##Usage
 
-Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired.
+Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. For more information on how each service works and how to manipulate them, see  ```DOCUMENTATION.md``` in the root of ```master```.
 
-```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred network settings or run with ```--help``` or ```-h```. Below is a list of the arguments that ```server.py``` takes, all of which are optional.
+```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Below is a list of the arguments that ```server.py``` takes, all of which are optional.
 
-Simply run ```sudo python server.py``` and you will have an out-of-the-box PXE-bootable server! If you require the ability to handle PXE requests then you can either enable the built-in DHCP server ```sudo python server.py --dhcp``` (after configuring, of course) or start ```server.py``` in ProxyDHCP rather than full DHCP ```sudo python server.py --dhcp-proxy```
+Simply run ```sudo python server.py``` and you will have an out-of-the-box PXE-bootable server that runs TFTP! If you require the ability to handle DHCP PXE requests then you can either enable the built-in DHCP server ```sudo python server.py --dhcp``` (after configuring, of course) or start ```server.py``` in ProxyDHCP rather than full DHCP ```sudo python server.py --dhcp-proxy```
 
 ###TFTP/DHCP/HTTP/iPXE Arguments
 
-__Argument:__ ```--ipxe```
-__Explanation:__ Enable iPXE ROM (default: False)
+Enable iPXE ROM: ```--ipxe``` [Default: False]
+
+Enable built-in HTTP server: ```--http``` [Default: False]
 
 __Argument:__ ```--http```
-__Explanation:__Enable built-in HTTP server (default: False) 
+__Explanation:__ Enable built-in HTTP server (default: False) 
 
 **Argument:** ```--dhcp```
 **Explanation:** Enable built-in DHCP server (default: False)
