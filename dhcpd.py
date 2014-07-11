@@ -50,7 +50,7 @@ class DHCPD:
 
         if self.debug:
             print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
-            print '\tDHCP Sever IP: ' + self.ip
+            print '\tDHCP Server IP: ' + self.ip
             print '\tDHCP Server Port: ' + str (self.port)
             print '\tDHCP File Server IP: ' + self.fileserver
             print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
