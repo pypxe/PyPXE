@@ -1,8 +1,7 @@
 **NOTE:** This documentation is unfinished and is still a work in progress.
 
 #Background
->The Preboot eXecution Environment (PXE, also known as Pre-Execution Environment; sometimes pronounced "pixie") is an environment to boot computers using a network interface independently of data storage devices (like hard disks) or installed operating systems.
--[Wikipedia](https://en.wikipedia.org/wiki/Preboot_Execution_Environment) 
+>The Preboot eXecution Environment (PXE, also known as Pre-Execution Environment; sometimes pronounced "pixie") is an environment to boot computers using a network interface independently of data storage devices (like hard disks) or installed operating systems. -[Wikipedia](https://en.wikipedia.org/wiki/Preboot_Execution_Environment) 
 
 PXE allows computers to boot from a binary image stored on a server, rather than the local hardware. Broadly speaking, a DHCP server informs a client of the TFTP server and filename from which to boot. 
 
@@ -10,19 +9,20 @@ ___
 
 #PyPXE Services
 
-##DHCP In the standard DHCP mode, the server has been implemented from [RFC2131](http://www.ietf.org/rfc/rfc2131.txt), [RFC2132](http://www.ietf.org/rfc/rfc2132.txt), and the [DHCP Wikipedia Entry](https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol).  
+##DHCP
+In the standard DHCP mode, the server has been implemented from [RFC2131](http://www.ietf.org/rfc/rfc2131.txt), [RFC2132](http://www.ietf.org/rfc/rfc2132.txt), and the [DHCP Wikipedia Entry](https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol).  
 
-The DHCP server is in charge of assigning new clients with IP addresses, and informing them of the location of the TFTP server and filename. The top half of the DHCP request, as seen on the Wikipedia entry consists of some network information, followed by 192 legacy null bytes, and then the magic cookie.  
+The DHCP server is in charge of assigning new clients with IP addresses, and informing them of the location of the TFTP server and filename they should look for. The top half of the DHCP request, as seen on the Wikipedia entry, consists of some network information, followed by 192 legacy null bytes, and then the magic cookie.  
 
-After the magic cookie there are optional fields. These fields are defined by the field ID, a length byte and then the option data. Every DHCP packet has an option 53 field. This field specifies the packet type, be it DISCOVERY, OFFER, REQUEST or ACKNOWLEDGEMENT.  
+After the magic cookie, there are optional fields. These fields are defined by the field ID, a length byte and then the option data. Every DHCP packet has an option 53 field. This field specifies the packet type, be it DISCOVERY, OFFER, REQUEST or ACKNOWLEDGEMENT.  
 
-The Discovery and Request packets are those sent by the client to the broadcast address (IPv4 255.255.255.255). The Offer and Acknowledgement packets are sent from the server to the broadcast address. These four packets make up the four way handshake.  
+The DISCOVERY and REQUEST packets are those sent by the client to the broadcast address (IPv4: 255.255.255.255) where the client sends this data on port 68 and the server receives it on port 68. The OFFER and ACKNOWLEDGEMENT packets are sent from the server to the broadcast address where the server sends this data on port 67 and the client receives it on port 68. These four packets make up the four-way handshake.  
 
-The Offer and Acknowledgement packets both contain the same option data for each client. This can include the router, subnet mask, lease time, and dhcp server.
+The OFFER and ACKNOWLEDGEMENT packets both contain the same option data for each client. This can include the router, subnet mask, lease time, and DHCP server IP address.
 
 Also included in these options are our PXE options. The minimum required option fields are option 66 and option 67. Option 66 denotes the IP of the TFTP server, and option 67 denotes the filename of the file to retrieve and boot.  
 
-Once the four way handshake is complete, the client will send a TFTP read request to the given IP address requesting the given filename.
+Once the four way handshake is complete, the client will send a TFTP read request to the given fileserver IP address requesting the given filename.
 
 ###ProxyDHCP
 
