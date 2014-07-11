@@ -88,7 +88,8 @@ if __name__ == '__main__':
                     args.DHCP_OFFER_BEGIN,args.DHCP_OFFER_END,
                     args.DHCP_SUBNET, args.DHCP_ROUTER,
                     args.DHCP_DNS, args.NETBOOT_FILE,
-                    args.USE_IPXE, args.USE_HTTP, args.DHCP_PROXY_MODE, args.USE_TFTP)
+                    args.USE_IPXE, args.USE_HTTP,
+                    args.DHCP_PROXY_MODE, args.USE_TFTP)
             dhcpthread = threading.Thread(target = dhcpd.listen)
             dhcpthread.daemon = True
             dhcpthread.start()
