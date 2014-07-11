@@ -46,6 +46,11 @@ Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False
 --dhcp-proxy
 ```
 
+Enable built-in DHCP server in DEBUG mode. This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with ```[DEBUG]``` and indented to distinguish between normal output that the server gives.
+```
+--dhcp-debug
+```
+
 Disable built-in TFTP server which is enabled by default [Default: True]
 ```
 --no-tftp
