@@ -24,7 +24,9 @@ class DHCPD:
         useipxe = False,
         usehttp = False,
         proxydhcp = False,
+        debug = False,
         port = 67):
+        
         self.ip = ip
         self.port = port
         self.fileserver = fileserver #TFTP or HTTP
@@ -36,13 +38,29 @@ class DHCPD:
         self.filename = filename
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
         self.ipxe = useipxe
-        self.proxydhcp = proxydhcp
+        self.proxydhcp = proxydhcp #ProxyDHCP mode
+        self.debug = debug #debug mode
+
         if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if useipxe and usehttp:
             self.filename = 'http://%s%s' % (self.fileserver, self.filename)
         if useipxe and not usehttp:
             self.filename = 'tftp://%s%s' % (self.fileserver, self.filename)
+
+        if self.debug:
+            print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
+            print '\tDHCP Sever IP: ' + self.ip
+            print '\tDHCP Server Port: ' + str (self.port)
+            print '\tDHCP File Server IP: ' + self.fileserver
+            print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
+            print '\tDHCP Subnet Mask: ' + self.subnetmask
+            print '\tDHCP Router: ' + self.router
+            print '\tDHCP DNS Server: ' + self.dnsserver
+            print '\tDHCP File Name: ' + self.filename
+            print '\tProxyDHCP: ' + str(self.proxydhcp)
+            print '\tUsing HTTP Server: ' + str(usehttp)
+            print '\tUsing iPXE: ' + str(useipxe)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -86,12 +104,15 @@ class DHCPD:
             response += struct.pack('!HHI', 0, 0x8000, 0)
         if not self.proxydhcp:
             if self.leases[clientmac]['ip']: #OFFER
+                if self.debug:
+                    print '[OFFER] offering IP ' + self.leases[clientmac]['ip'] + ' to MAC ' + self.printmac(clientmac)
                 offer = self.leases[clientmac]['ip']
             else: #ACK
                 offer = self.nextip()
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
-                print self.printmac(clientmac), '->', self.leases[clientmac]['ip']
+                if self.debug:
+                    print '[ACK] ' + self.printmac(clientmac) + ' acknowledged offer, sending ' + self.leases[clientmac]['ip']
         if not self.proxydhcp:
             #yiaddr
             response += socket.inet_aton(offer)
@@ -112,6 +133,11 @@ class DHCPD:
             response += chr(0) * 128
         #magic section
         response += self.magic
+        if self.debug:
+            print '\nSending the following header to ' + self.printmac(clientmac)
+            print '<--HEADER BEGIN-->'
+            print str(response)
+            print '<--HEADER END-->'
         return (clientmac, response)
 
     def craftoptions(self, opt53, clientmac):
@@ -132,8 +158,7 @@ class DHCPD:
             response += struct.pack('!BB', 3, 4 ) + socket.inet_aton(self.router)
             #Lease time
             response += struct.pack('!BBI', 51, 4, 86400)
-        #TFTP Server OR HTTP Server
-        #If iPXE need both
+        #TFTP Server OR HTTP Server; if iPXE, need both
         response += struct.pack('!BB', 66, len(self.fileserver)) + self.fileserver
         #Filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
@@ -151,6 +176,11 @@ class DHCPD:
 
         #End options
         response += '\xff'
+        if self.debug:
+            print '\nSending the following options to ' + self.printmac(clientmac)
+            print '<--OPTIONS BEGIN-->'
+            print str(response)
+            print '<--OPTIONS END-->'
         return response
 
     def dhcpoffer(self, message):
