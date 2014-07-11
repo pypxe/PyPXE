@@ -23,6 +23,13 @@ Also included in these options are our PXE options. The minimum required option 
 Once the four way handshake is complete, the client will send a TFTP read request to the given fileserver IP address requesting the given filename.
 
 ###ProxyDHCP
+ProxyDHCP mode is useful for when you either cannot, or do not want to change the main DHCP server on a network.  
+The bulk of ProxyDHCP information can be found in the [Intel PXE spec](http://www.pix.net/software/pxeboot/archive/pxespec.pdf)  
+The main idea behind proxyDHCP is that the main network DHCP server can hand out the IP allocations, but the proxyDHCP server hands out the PXE information. Therefore slightly different information is given in the proxyDHCP packets.  
+There are multiple ways to implement proxyDHCP, broadcast, multicast, unicast or lookback. Lookback is the simplest implementation and this is what we have chosen to use.  
+When we receive a DHCP Discover from a client, we respond with a DHCP Offer, but without a few fields we would have in standard DHCP mode. This includes an offered IP address, along with any other network information (such as router, dns servers etc). What we do include, which isn't in a normal DHCP packet, is a vendor class identifier of 'PXEClient'. This string identifies the packet as being relevant to PXE booting. There are a few vendor-specific options, under the DHCP option 43. The first of these options is PXE discovery control. This is a bitmask defined in the PXE spec. When bit 3 is set, the PXE client will look backwards in the packet for the filename. The filename is located in the standard DHCP Boot Filename area, previously referred to as legacy. This is a null terminated string located at offset 150 in the DHCP packet, before the DHCP magic cookie. The second vendor specific option that is used is the PXE menu prompt. Although not visible, this is required by the spec, and causes problems if this is missing. The main use for this is for the other discovery modes.  
+The client should receive two DHCP Offers in proxyDHCP mode, the first from the main DHCP server, and the second from the proxyDHCP server. Once these are received, the client will continue on with the DHCP handshake, and after it is complete the client will boot using the settings in the initial DHCP Offer from the proxyDCHP server.
+
 
 ##TFTP
 We have only implemented the read OPCODE for the TFTP server, as PXE does not use write. The main TFTP protocol is defined in [RFC1350](http://www.ietf.org/rfc/rfc1350.txt)
