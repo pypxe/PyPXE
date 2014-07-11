@@ -51,7 +51,7 @@ class DHCPD:
         #key is mac
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})
 
-     def nextip(self):
+    def nextip(self):
         '''
             This method returns the next unleased IP from range;
             also does lease expiry by overwrite.
@@ -66,14 +66,14 @@ class DHCPD:
             if network + '.' + str(host) not in leased:
                 return network + '.' + str(host)
 
-     def printmac(self, mac):
+    def printmac(self, mac):
         '''
             This method converts the MAC Address from binary to
             human-readable format for logging.
         '''
         return ':'.join(map(lambda x: hex(x)[2:].zfill(2), struct.unpack('BBBBBB', mac))).upper()
 
-     def craftheader(self, message):
+    def craftheader(self, message):
         '''This method crafts the DHCP header using parts of the message'''
         xid, flags, yiaddr, giaddr, chaddr = struct.unpack('!4x4s2x2s4x4s4x4s16s', message[:44])
         clientmac = chaddr[:6]
@@ -117,7 +117,7 @@ class DHCPD:
         response += self.magic
         return (clientmac, response)
 
-     def craftoptions(self, opt53, clientmac):
+    def craftoptions(self, opt53, clientmac):
         '''This method crafts the DHCP option fields
             opt53:
                 2 - DHCPOFFER
@@ -156,7 +156,7 @@ class DHCPD:
         response += '\xff'
         return response
 
-     def dhcpoffer(self, message):
+    def dhcpoffer(self, message):
         '''This method responds to DHCP discovery with offer'''
         clientmac, headerresponse = self.craftheader(message)
         optionsresponse = self.craftoptions(2, clientmac) #DHCPOFFER
@@ -164,7 +164,7 @@ class DHCPD:
         response = headerresponse + optionsresponse
         self.sock.sendto(response, ('<broadcast>', 68))
 
-     def dhcpack(self, message):
+    def dhcpack(self, message):
         '''This method responds to DHCP request with acknowledge'''
         clientmac, headerresponse = self.craftheader(message)
         optionsresponse = self.craftoptions(5, clientmac) #DHCPACK
@@ -172,7 +172,7 @@ class DHCPD:
         response = headerresponse + optionsresponse
         self.sock.sendto(response, ('<broadcast>', 68))
 
-     def listen(self):
+    def listen(self):
         '''Main listen loop'''
         while True:
             message, address = self.sock.recvfrom(1024)
