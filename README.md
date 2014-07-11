@@ -46,7 +46,7 @@ Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False
 --dhcp-proxy
 ```
 
-Enable built-in DHCP server in DEBUG mode
+Enable built-in DHCP server in DEBUG mode [Default: False]
 ```
 --dhcp-debug
 ```
