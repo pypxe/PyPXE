@@ -5,26 +5,26 @@ from collections import defaultdict
 from time import time
 
 class DHCPD:
-     '''
+    '''
         This class implements a DHCP Server, limited to pxe options,
         where the subnet /24 is hard coded. Implemented from RFC2131,
         RFC2132, https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
         and http://www.pix.net/software/pxeboot/archive/pxespec.pdf
-     '''
-     def __init__(
-            self,
-            ip,
-            fileserver,
-            offerfrom,
-            offerto,
-            subnetmask,
-            router,
-            dnsserver,
-            filename = 'pxelinux.0',
-            useipxe = False,
-            usehttp = False,
-            proxydhcp = False,
-            port = 67):
+    '''
+    def __init__(
+        self,
+        ip,
+        fileserver,
+        offerfrom,
+        offerto,
+        subnetmask,
+        router,
+        dnsserver,
+        filename = 'pxelinux.0',
+        useipxe = False,
+        usehttp = False,
+        proxydhcp = False,
+        port = 67):
         self.ip = ip
         self.port = port
         self.fileserver = fileserver #TFTP OR HTTP
@@ -64,7 +64,7 @@ class DHCPD:
                 if self.leases[i]['expire'] > time()]
         for host in xrange(fromhost, tohost + 1):
             if network + '.' + str(host) not in leased:
-                 return network + '.' + str(host)
+                return network + '.' + str(host)
 
      def printmac(self, mac):
         '''
@@ -86,12 +86,12 @@ class DHCPD:
             response += struct.pack('!HHI', 0, 0x8000, 0)
         if not self.proxydhcp:
             if self.leases[clientmac]['ip']: #OFFER
-                 offer = self.leases[clientmac]['ip']
+                offer = self.leases[clientmac]['ip']
             else: #ACK
-                 offer = self.nextip()
-                 self.leases[clientmac]['ip'] = offer
-                 self.leases[clientmac]['expire'] = time() + 86400
-                 print self.printmac(clientmac), '->', self.leases[clientmac]['ip']
+                offer = self.nextip()
+                self.leases[clientmac]['ip'] = offer
+                self.leases[clientmac]['expire'] = time() + 86400
+                print self.printmac(clientmac), '->', self.leases[clientmac]['ip']
         if not self.proxydhcp:
             #yiaddr
             response += socket.inet_aton(offer)
@@ -181,8 +181,8 @@ class DHCPD:
             #see RFC2131 page 10
             type = struct.unpack('!BxB', message[240:240+3]) #options offset
             if type == (53, 1):
-                 self.dhcpoffer(message)
+                self.dhcpoffer(message)
             elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
-                 self.dhcpack(message)
+                self.dhcpack(message)
             elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
-                 self.dhcpack(message)
+                self.dhcpack(message)

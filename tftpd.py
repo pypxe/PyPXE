@@ -61,9 +61,9 @@ class TFTPD:
 
     def read(self, address, message):
         '''
-        On RRQ OPCODE:
-            file exists -> reply with file
-            file does not exist -> reply with error
+            On RRQ OPCODE:
+                file exists -> reply with file
+                file does not exist -> reply with error
         '''
         filename = self.filename(message)
         if not os.path.exists(filename):
@@ -94,7 +94,7 @@ class TFTPD:
             message, address = self.sock.recvfrom(1024)
             opcode = struct.unpack('!H', message[:2])[0]
             if opcode == 1: #read the request
-                 self.read(address, message)
+                self.read(address, message)
             if opcode == 4:
                  if self.ongoing.has_key(address):
-                      self.sendBlock(address)
+                    self.sendBlock(address)

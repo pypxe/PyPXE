@@ -35,9 +35,6 @@ We have implemented GET and HEAD, as there is no requirement for any other metho
 
 The HEAD method is used by some PXE ROMs to find the Content-Length before the GET is sent.
 
-##Additional Information
-The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
-
 #PyPXE Services
 Each different service implemented (TFTP, DHCP, and HTTP) resides in its own file in the root of the repository. You can call/configure them independently if you're like to use PyPXE as a library. See ```server.py``` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
@@ -46,3 +43,6 @@ The TFTP server class, ```TFTPD()``` requires three optional parameters be set i
 * ```ip``` - this is the IP address that the TFTP server will bind to, by default it is set to '0.0.0.0' so that it binds to all available interfaces.
 * ```port``` - this it the port that the TFTP server will run on, by default the port is 69 as that is the default port for TFTP.
 * ```netbootDirectory``` - this is the directory that the TFTP server will serve files from similarly to that of ```/tftpboot```, by default it is set to '.' (current directory)
+
+##Additional Information
+The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
