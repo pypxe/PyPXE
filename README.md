@@ -46,7 +46,8 @@ Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False
 --dhcp-proxy
 ```
 
-**DHCP Server Arguments** _each of the following can be set one of two ways, you can use either/or_
+####DHCP Server Arguments
+_each of the following can be set one of two ways, you can use either/or_
 
 Specify DHCP server IP address [Default: 192.168.2.2]
 ```
