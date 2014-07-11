@@ -99,11 +99,11 @@ class DHCPD:
             response += socket.inet_aton('0.0.0.0')
         if not self.proxydhcp:
             #siaddr
-            response += socket.inet_aton(self.ip)
+            response += socket.inet_aton(self.fileserver)
         else:
             response += socket.inet_aton('0.0.0.0')
         #giaddr
-        response += struct.pack('!I', 0)
+        response += socket.inet_aton('0.0.0.0')
         #chaddr
         response += chaddr
         #bootp legacy pad
