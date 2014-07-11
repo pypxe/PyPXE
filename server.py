@@ -106,7 +106,7 @@ if __name__ == '__main__':
         print 'PyPXE successfully initialized and running!'
 
         while tftpthread.isAlive() or dhcpthread.isAlive() or httpdthread.isAlive():
-            sleep( 1 )
+            sleep(1)
 
     except KeyboardInterrupt:
         print '\nShutting down PyPXE...\n'
