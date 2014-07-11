@@ -9,9 +9,9 @@ This repository contains code that provides a working PXE server (via HTTP, TFTP
 Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can be used independently if so desired. For more information on how each service works and how to manipulate them, see  ```DOCUMENTATION.md``` in the root of ```master```.
 
 ###QuickStart
-```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Below is a list of the arguments that ```server.py``` takes, all of which are optional.
+```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Treat the provided 'netboot' directory as '/tftpboot/' that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in 'pxelinux.cfg/default'.
 
-Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP!
+Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the 'netboot' directory!
 ```shell
 sudo python server.py
 ```
@@ -26,18 +26,25 @@ sudo python server.py --dhcp-proxy
 
 **TFTP/DHCP/HTTP/iPXE Arguments**
 
-Enable iPXE ROM: ```--ipxe``` [Default: False]
+Enable iPXE ROM [Default: False]
+```
+--ipxe
+```
 
-Enable built-in HTTP server: ```--http``` [Default: False]
+Enable built-in HTTP server [Default: False]
+```
+--http
+```
 
-__Argument:__ ```--http```
-__Explanation:__ Enable built-in HTTP server (default: False) 
+Enable built-in DHCP server [Default: False]
+```
+--dhcp
+```
 
-**Argument:** ```--dhcp```
-**Explanation:** Enable built-in DHCP server (default: False)
-
-**Argument:** ```--dhcp-proxy```
-**Explanation:** Enable built-in DHCP server in proxy mode (implies ```--dhcp```) (default: False)
+Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False]
+```
+--dhcp-proxy
+```
 
 **DHCP Server Arguments**
 
