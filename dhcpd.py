@@ -27,7 +27,7 @@ class DHCPD:
         port = 67):
         self.ip = ip
         self.port = port
-        self.fileserver = fileserver #TFTP OR HTTP
+        self.fileserver = fileserver #TFTP or HTTP
         self.offerfrom = offerfrom
         self.offerto = offerto
         self.subnetmask = subnetmask
@@ -37,7 +37,7 @@ class DHCPD:
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
         self.ipxe = useipxe
         self.proxydhcp = proxydhcp
-        if usehttp and not self.ipxe:
+        if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if useipxe and usehttp:
             self.filename = 'http://%s%s' % (self.fileserver, self.filename)
