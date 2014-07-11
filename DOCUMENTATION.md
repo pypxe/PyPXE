@@ -49,9 +49,26 @@ Each different service implemented (TFTP, DHCP, and HTTP) resides in its own fil
 
 ##TFTP Server (tftpd.py)
 The TFTP server class, ```TFTPD()``` requires three optional parameters be set in order to be constructed:
-* ```ip``` - this is the IP address that the TFTP server will bind to, by default it is set to '0.0.0.0' so that it binds to all available interfaces.
-* ```port``` - this it the port that the TFTP server will run on, by default the port is 69 as that is the default port for TFTP.
-* ```netbootDirectory``` - this is the directory that the TFTP server will serve files from similarly to that of ```/tftpboot```, by default it is set to '.' (current directory)
+* ```ip``` [Type: string; Optional] - this is the IP address that the TFTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
+* ```port``` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 69 as that is the default port for TFTP
+* ```netbootDirectory``` [Type: String; Optional] - this is the directory that the TFTP server will serve files from similarly to that of ```/tftpboot```; by default it is set to '.' (current directory)
+
+##DHCP Server (dhcpd.py)
+The DHCP server class, ```DHCPD()``` requires the following parameters be set in order to be constructed:
+* ```ip``` [Type: string]- this is the IP address that the DHCP server itself bind to
+* ```fileserver``` [Type: string] - this is the IP address of the file server containing network boot files that the DHCP server will specify to clients
+* ```offerfrom``` [Type: string] -  this specifies the beginning of the range of IP addreses that the DHCP server will hand out to clients
+* ```offerto``` [Type: string] - this specifies the end of the range of IP addresses that the DHCP server will hand out to clients
+* ```subnetmask``` [Type: string] - this specifies the subnet mask that the DHCP server will specify to clients
+* ```router``` [Type: string] - this specifies the IP address of the router that the DHCP server will specify to clients
+* ```dnsserver``` [Type: string] - this specifies the DNS server that the DHCP server will specify to clients; only one DNS server can be set
+* ```filename``` [Type: string; Optional] - this specifies the file name that the client should look for on the remote server; by default the value is 'pxelinux.0'
+* ```useipxe``` [Type: bool; Optional] - this indicates whether or not iPXE is being used and adjusts itself accordingly; by default this is set to 'False'
+* ```usehttp``` [Type: bool; Optional] - this indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly; by default this is set to 'False'
+* ```proxydhcp``` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in ProxyDHCP mode or not; by default this is set to 'False'
+* ```port``` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 67 as that is the default port to listen for DHCP requests
+
+##HTTP Server (httpd.py)
 
 ##Additional Information
 The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
