@@ -46,7 +46,7 @@ Enable built-in DHCP server in proxy mode (implies ```--dhcp```) [Default: False
 --dhcp-proxy
 ```
 
-Disable built-in TFTP server [Default: False]
+Disable built-in TFTP server which is enabled by default [Default: True]
 ```
 --no-tftp
 ```
