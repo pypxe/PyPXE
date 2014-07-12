@@ -62,6 +62,7 @@ The DHCP server class, ```DHCPD()``` requires the following parameters be set in
 * ```subnetmask``` [Type: string] - this specifies the subnet mask that the DHCP server will specify to clients
 * ```router``` [Type: string] - this specifies the IP address of the router that the DHCP server will specify to clients
 * ```dnsserver``` [Type: string] - this specifies the DNS server that the DHCP server will specify to clients; only one DNS server can be set
+* ```broadcast``` [Type: string; Optional] - this specifies the broadcast address the DHCP will broadcast packets to; by default it is set to '<broadcast>'
 * ```filename``` [Type: string; Optional] - this specifies the file name that the client should look for on the remote server; by default the value is 'pxelinux.0'
 * ```useipxe``` [Type: bool; Optional] - this indicates whether or not iPXE is being used and adjusts itself accordingly; by default this is set to 'False'
 * ```usehttp``` [Type: bool; Optional] - this indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly; by default this is set to 'False'

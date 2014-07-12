@@ -51,7 +51,7 @@ if __name__ == '__main__':
         parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = DHCP_BROADCAST)
 
         parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR)
-        parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if not --no-ipxe)', default = NETBOOT_FILE)
+        parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE)
 
         #parse the arguments given in the command line
         args = parser.parse_args()
@@ -88,17 +88,17 @@ if __name__ == '__main__':
         if args.USE_DHCP:
             dhcpd = DHCPD(
                     args.DHCP_SERVER_IP, args.DHCP_FILESERVER_IP,
-                    args.DHCP_OFFER_BEGIN,args.DHCP_OFFER_END,
+                    args.DHCP_OFFER_BEGIN, args.DHCP_OFFER_END,
                     args.DHCP_SUBNET, args.DHCP_ROUTER,
-                    args.DHCP_DNS, args.NETBOOT_FILE,
-                    args.USE_IPXE, args.USE_HTTP,
-                    args.DHCP_PROXY_MODE, args.DHCP_DEBUG,
-                    broadcast=args.DHCP_BROADCAST)
+                    args.DHCP_DNS, args.DHCP_BROADCAST,
+                    args.NETBOOT_FILE, args.USE_IPXE,
+                    args.USE_HTTP, args.DHCP_PROXY_MODE,
+                    args.DHCP_DEBUG)
             dhcpthread = threading.Thread(target = dhcpd.listen)
             dhcpthread.daemon = True
             dhcpthread.start()
             if args.DHCP_PROXY_MODE:
-                print 'Starting DHCP server in proxy mode...'
+                print 'Starting DHCP server in ProxyDHCP mode...'
             else:
                 print 'Starting DHCP server...'
 

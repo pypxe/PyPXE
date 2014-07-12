@@ -115,6 +115,14 @@ Specify DHCP lease DNS server [Default: 8.8.8.8]
 --dhcp-dns DHCP_DNS
 ```
 
+Specify DHCP broadcast address [Default: '<broadcast>']
+```
+-c DHCP_BROADCAST
+```
+```
+--dhcp-broadcast DHCP_BROADCAST
+```
+
 Specify the local directory where network boot files will be served [Default: 'netboot']
 ```
 -a NETBOOT_DIR
