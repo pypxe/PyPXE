@@ -1,5 +1,5 @@
 #About
-This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python2 is supported.
+This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported.
 
 **DISCLAIMER:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
@@ -10,6 +10,8 @@ Each server type (TFTP/HTTP/DHCP) is in it's own class in it's own file and can 
 
 ###QuickStart
 ```server.py``` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the ```server.py``` settings to your preferred settings or run with ```--help``` or ```-h``` to see what command line arguments you can pass. Treat the provided ```netboot``` directory as ```/tftpboot``` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in ```netboot/pxelinux.cfg/default```.
+
+**Note:** Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `server.py` will not run without it.
 
 Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the ```netboot``` directory!
 ```

@@ -78,3 +78,5 @@ The HTTP server class, ```HTTPD()``` requires three optional parameters be set i
 
 ##Additional Information
 The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
+
+**Note:** Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `server.py` will not run without it.

@@ -1,6 +1,12 @@
 import threading
 import os
-import argparse
+import sys
+
+try:
+    import argparse
+except ImportError:
+    sys.exit("ImportError: You do not have the Python 'argparse' module installed. Please install the 'argparse' module and try again.")
+
 from time import sleep
 from httpd import HTTPD
 from tftpd import TFTPD
@@ -116,4 +122,4 @@ if __name__ == '__main__':
             sleep(1)
 
     except KeyboardInterrupt:
-        print '\nShutting down PyPXE...\n'
+        sys.exit('\nShutting down PyPXE...\n')
