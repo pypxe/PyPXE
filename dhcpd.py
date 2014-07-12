@@ -98,6 +98,12 @@ class DHCPD:
             if (fromhost + offset) % 256 and fromhost + offset not in leased:
                 return decode(fromhost + offset)
 
+    def tlvencode(self, tag, value):
+        '''
+            Encode a TLV option
+        '''
+        return struct.pack("BB", tag, len(value)) + value
+
     def printmac(self, mac):
         '''
             This method converts the MAC Address from binary to
@@ -153,30 +159,30 @@ class DHCPD:
             (See RFC2132 9.6)
         '''
         #Message type, offer
-        response = struct.pack('!BBB', 53, 1, opt53)
+        response = self.tlvencode(53, chr(opt53))
         #DHCP Server
-        response += struct.pack('!BB', 54, 4) + socket.inet_aton(self.ip)
+        response += self.tlvencode(54, socket.inet_aton(self.ip))
         if not self.proxydhcp:
             #SubnetMask
-            response += struct.pack('!BB', 1, 4 ) + socket.inet_aton(self.subnetmask)
+            response += self.tlvencode(1, socket.inet_aton(self.subnetmask))
             #Router
-            response += struct.pack('!BB', 3, 4 ) + socket.inet_aton(self.router)
+            response += self.tlvencode(3, socket.inet_aton(self.router))
             #Lease time
-            response += struct.pack('!BBI', 51, 4, 86400)
+            response += self.tlvencode(51, struct.pack("!I", 86400))
         #TFTP Server OR HTTP Server; if iPXE, need both
-        response += struct.pack('!BB', 66, len(self.fileserver)) + self.fileserver
+        response += self.tlvencode(66, self.fileserver)
         #Filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
             #Either we don't care about iPXE, or we've already chainloaded ipxe
-            response += struct.pack('!BB', 67, len(self.filename) + 1) + self.filename + chr(0)
+            response += self.tlvencode(67, self.filename + chr(0))
         else:
             #chainload iPXE
-            response += struct.pack('!BB', 67, 16) + '/chainload.kpxe' + chr(0)
+            response += self.tlvencode(67, '/chainload.kpxe' + chr(0))
             #don't boot-loop once we've sent the two first packets
             if opt53 == 5: #ack
                 self.leases[clientmac]['ipxe'] = False
         if self.proxydhcp:
-            response += struct.pack('!BB', 60, 9) + 'PXEClient'
+            response += self.tlvencode(60, 'PXEClient')
             response += struct.pack('!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, chr(0) + 'PXE', 0xff)
 
         #End options
