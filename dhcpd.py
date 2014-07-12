@@ -44,9 +44,9 @@ class DHCPD:
         if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if useipxe and usehttp:
-            self.filename = 'http://%s%s' % (self.fileserver, self.filename)
+            self.filename = 'http://%s/%s' % (self.fileserver, self.filename)
         if useipxe and not usehttp:
-            self.filename = 'tftp://%s%s' % (self.fileserver, self.filename)
+            self.filename = 'tftp://%s/%s' % (self.fileserver, self.filename)
 
         if self.debug:
             print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
