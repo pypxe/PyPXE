@@ -20,13 +20,13 @@ class DHCPD:
         subnetmask,
         router,
         dnsserver,
+        broadcast = '<broadcast>',
         filename = 'pxelinux.0',
         useipxe = False,
         usehttp = False,
         proxydhcp = False,
         debug = False,
-        port = 67,
-        broadcast = '<broadcast>'):
+        port = 67):
         
         self.ip = ip
         self.port = port
@@ -54,6 +54,7 @@ class DHCPD:
             print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
             print '\tDHCP Server IP: ' + self.ip
             print '\tDHCP Server Port: ' + str (self.port)
+            print '\tDHCP Broadcast Address: ' + self.broadcast
             print '\tDHCP File Server IP: ' + self.fileserver
             print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
             print '\tDHCP Subnet Mask: ' + self.subnetmask
