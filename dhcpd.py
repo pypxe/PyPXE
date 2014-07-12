@@ -83,9 +83,9 @@ class DHCPD:
         #convert both to 32bit integers
         
         #e.g '192.168.1.1' to 3232235777
-        encode = lambda x: struct.unpack("!I", socket.inet_aton(x))[0]
+        encode = lambda x: struct.unpack('!I', socket.inet_aton(x))[0]
         #e.g 3232235777 to '192.168.1.1'
-        decode = lambda x: socket.inet_ntoa(struct.pack("!I", x))
+        decode = lambda x: socket.inet_ntoa(struct.pack('!I', x))
         
         fromhost = encode(self.offerfrom)
         tohost = encode(self.offerto)
@@ -111,15 +111,15 @@ class DHCPD:
         '''
         ret = {}
         while(raw):
-            tag = struct.unpack("B", raw[0])[0]
+            tag = struct.unpack('B', raw[0])[0]
             if tag == 0:  # Padding
                 raw = raw[1:]
                 continue
             if tag == 255:  # End marker
                 break
-            length = struct.unpack("B", raw[1])[0]
-            value = raw[2:2+length]
-            raw = raw[2+length:]
+            length = struct.unpack('B', raw[1])[0]
+            value = raw[2:2 + length]
+            raw = raw[2 + length:]
             if tag in ret:
                 ret[tag].append(value)
             else:
@@ -190,7 +190,7 @@ class DHCPD:
             #Router
             response += self.tlvencode(3, socket.inet_aton(self.router))
             #Lease time
-            response += self.tlvencode(51, struct.pack("!I", 86400))
+            response += self.tlvencode(51, struct.pack('!I', 86400))
         #TFTP Server OR HTTP Server; if iPXE, need both
         response += self.tlvencode(66, self.fileserver)
         #Filename null terminated
