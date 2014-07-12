@@ -99,6 +99,33 @@ class DHCPD:
             if (fromhost + offset) % 256 and fromhost + offset not in leased:
                 return decode(fromhost + offset)
 
+    def tlvencode(self, tag, value):
+        '''
+            Encode a TLV option
+        '''
+        return struct.pack("BB", tag, len(value)) + value
+
+    def tlvparse(self, raw):
+        '''
+            Parse a string of TLV encoded options.
+        '''
+        ret = {}
+        while(raw):
+            tag = struct.unpack("B", raw[0])[0]
+            if tag == 0:  # Padding
+                raw = raw[1:]
+                continue
+            if tag == 255:  # End marker
+                break
+            length = struct.unpack("B", raw[1])[0]
+            value = raw[2:2+length]
+            raw = raw[2+length:]
+            if tag in ret:
+                ret[tag].append(value)
+            else:
+                ret[tag] = [value]
+        return ret
+
     def printmac(self, mac):
         '''
             This method converts the MAC Address from binary to
@@ -154,30 +181,30 @@ class DHCPD:
             (See RFC2132 9.6)
         '''
         #Message type, offer
-        response = struct.pack('!BBB', 53, 1, opt53)
+        response = self.tlvencode(53, chr(opt53))
         #DHCP Server
-        response += struct.pack('!BB', 54, 4) + socket.inet_aton(self.ip)
+        response += self.tlvencode(54, socket.inet_aton(self.ip))
         if not self.proxydhcp:
             #SubnetMask
-            response += struct.pack('!BB', 1, 4 ) + socket.inet_aton(self.subnetmask)
+            response += self.tlvencode(1, socket.inet_aton(self.subnetmask))
             #Router
-            response += struct.pack('!BB', 3, 4 ) + socket.inet_aton(self.router)
+            response += self.tlvencode(3, socket.inet_aton(self.router))
             #Lease time
-            response += struct.pack('!BBI', 51, 4, 86400)
+            response += self.tlvencode(51, struct.pack("!I", 86400))
         #TFTP Server OR HTTP Server; if iPXE, need both
-        response += struct.pack('!BB', 66, len(self.fileserver)) + self.fileserver
+        response += self.tlvencode(66, self.fileserver)
         #Filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
             #Either we don't care about iPXE, or we've already chainloaded ipxe
-            response += struct.pack('!BB', 67, len(self.filename) + 1) + self.filename + chr(0)
+            response += self.tlvencode(67, self.filename + chr(0))
         else:
             #chainload iPXE
-            response += struct.pack('!BB', 67, 16) + '/chainload.kpxe' + chr(0)
+            response += self.tlvencode(67, '/chainload.kpxe' + chr(0))
             #don't boot-loop once we've sent the two first packets
             if opt53 == 5: #ack
                 self.leases[clientmac]['ipxe'] = False
         if self.proxydhcp:
-            response += struct.pack('!BB', 60, 9) + 'PXEClient'
+            response += self.tlvencode(60, 'PXEClient')
             response += struct.pack('!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, chr(0) + 'PXE', 0xff)
 
         #End options
@@ -218,18 +245,22 @@ class DHCPD:
             if self.debug:
                 print '[DEBUG] Received message'
                 print '\t<--BEGIN MESSAGE-->\n\t' + repr(message) + '\n\t<--END MESSAGE-->\n'
-            if not 'PXEClient' in message: continue
+            options = self.tlvparse(message[240:])
+            if self.debug:
+                print '[DEBUG] Parsed received options'
+                print '\t<--BEGIN OPTIONS-->\n\t' + repr(options) + '\n\t<--END OPTIONS-->\n'
+            if not (60 in options and 'PXEClient' in options[60][0]) : continue
             #see RFC2131 page 10
-            type = struct.unpack('!BxB', message[240:240+3]) #options offset
-            if type == (53, 1):
+            type = ord(options[53][0])
+            if type == 1:
                 if self.debug:
                     print '[DEBUG] Received DHCPOFFER'
                 self.dhcpoffer(message)
-            elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
+            elif type == 3 and address[0] == '0.0.0.0' and not self.proxydhcp:
                 if self.debug:
                     print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
-            elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
+            elif type == 3 and address[0] != '0.0.0.0' and self.proxydhcp:
                 if self.debug:
                     print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
