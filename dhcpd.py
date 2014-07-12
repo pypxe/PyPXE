@@ -25,7 +25,8 @@ class DHCPD:
         usehttp = False,
         proxydhcp = False,
         debug = False,
-        port = 67):
+        port = 67,
+        broadcast = '<broadcast>'):
         
         self.ip = ip
         self.port = port
@@ -40,13 +41,14 @@ class DHCPD:
         self.ipxe = useipxe
         self.proxydhcp = proxydhcp #ProxyDHCP mode
         self.debug = debug #debug mode
+        self.broadcast = broadcast
 
         if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if useipxe and usehttp:
-            self.filename = 'http://%s%s' % (self.fileserver, self.filename)
+            self.filename = 'http://%s/%s' % (self.fileserver, self.filename)
         if useipxe and not usehttp:
-            self.filename = 'tftp://%s%s' % (self.fileserver, self.filename)
+            self.filename = 'tftp://%s/%s' % (self.fileserver, self.filename)
 
         if self.debug:
             print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
@@ -192,7 +194,7 @@ class DHCPD:
             print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->\n'
             print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->\n'
             print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->\n'
-        self.sock.sendto(response, ('<broadcast>', 68))
+        self.sock.sendto(response, (self.broadcast, 68))
 
     def dhcpack(self, message):
         '''This method responds to DHCP request with acknowledge'''
@@ -205,7 +207,7 @@ class DHCPD:
             print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->\n'
             print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->\n'
             print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->\n'
-        self.sock.sendto(response, ('<broadcast>', 68))
+        self.sock.sendto(response, (self.broadcast, 68))
 
     def listen(self):
         '''Main listen loop'''
