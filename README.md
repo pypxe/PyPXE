@@ -1,5 +1,5 @@
 #About
-This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported.
+This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported. Please read `Documentation.md` for further explanation of the PyPXE project as well as recommended use. See the [issues page](https://github.com/psychomario/PyPXE/issues) for open issues, bugs, and enhancements/improvements.
 
 **DISCLAIMER:** None of these servers are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
