@@ -20,6 +20,7 @@ class DHCPD:
         subnetmask,
         router,
         dnsserver,
+        broadcast = '<broadcast>',
         filename = 'pxelinux.0',
         useipxe = False,
         usehttp = False,
@@ -40,18 +41,20 @@ class DHCPD:
         self.ipxe = useipxe
         self.proxydhcp = proxydhcp #ProxyDHCP mode
         self.debug = debug #debug mode
+        self.broadcast = broadcast
 
         if usehttp and not useipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if useipxe and usehttp:
-            self.filename = 'http://%s%s' % (self.fileserver, self.filename)
+            self.filename = 'http://%s/%s' % (self.fileserver, self.filename)
         if useipxe and not usehttp:
-            self.filename = 'tftp://%s%s' % (self.fileserver, self.filename)
+            self.filename = 'tftp://%s/%s' % (self.fileserver, self.filename)
 
         if self.debug:
             print '\nNOTICE: DHCP server started in debug mode. DHCP server is using the following:\n'
-            print '\tDHCP Sever IP: ' + self.ip
+            print '\tDHCP Server IP: ' + self.ip
             print '\tDHCP Server Port: ' + str (self.port)
+            print '\tDHCP Broadcast Address: ' + self.broadcast
             print '\tDHCP File Server IP: ' + self.fileserver
             print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
             print '\tDHCP Subnet Mask: ' + self.subnetmask
@@ -78,10 +81,12 @@ class DHCPD:
         #If we use ints, we don't have to deal with octet overflow
         #or nested loops (up to 3 with 10/8)
         #convert both to 32bit integers
+        
         #e.g '192.168.1.1' to 3232235777
-        encode = lambda x: struct.unpack("!I", socket.inet_aton(x))[0]
+        encode = lambda x: struct.unpack('!I', socket.inet_aton(x))[0]
         #e.g 3232235777 to '192.168.1.1'
-        decode = lambda x: socket.inet_ntoa(struct.pack("!I", x))
+        decode = lambda x: socket.inet_ntoa(struct.pack('!I', x))
+        
         fromhost = encode(self.offerfrom)
         tohost = encode(self.offerto)
         #pull out already leased ips.
@@ -93,6 +98,33 @@ class DHCPD:
         for offset in xrange(tohost - fromhost):
             if (fromhost + offset) % 256 and fromhost + offset not in leased:
                 return decode(fromhost + offset)
+
+    def tlvencode(self, tag, value):
+        '''
+            Encode a TLV option
+        '''
+        return struct.pack("BB", tag, len(value)) + value
+
+    def tlvparse(self, raw):
+        '''
+            Parse a string of TLV encoded options.
+        '''
+        ret = {}
+        while(raw):
+            tag = struct.unpack('B', raw[0])[0]
+            if tag == 0:  # Padding
+                raw = raw[1:]
+                continue
+            if tag == 255:  # End marker
+                break
+            length = struct.unpack('B', raw[1])[0]
+            value = raw[2:2 + length]
+            raw = raw[2 + length:]
+            if tag in ret:
+                ret[tag].append(value)
+            else:
+                ret[tag] = [value]
+        return ret
 
     def printmac(self, mac):
         '''
@@ -149,30 +181,30 @@ class DHCPD:
             (See RFC2132 9.6)
         '''
         #Message type, offer
-        response = struct.pack('!BBB', 53, 1, opt53)
+        response = self.tlvencode(53, chr(opt53))
         #DHCP Server
-        response += struct.pack('!BB', 54, 4) + socket.inet_aton(self.ip)
+        response += self.tlvencode(54, socket.inet_aton(self.ip))
         if not self.proxydhcp:
             #SubnetMask
-            response += struct.pack('!BB', 1, 4 ) + socket.inet_aton(self.subnetmask)
+            response += self.tlvencode(1, socket.inet_aton(self.subnetmask))
             #Router
-            response += struct.pack('!BB', 3, 4 ) + socket.inet_aton(self.router)
+            response += self.tlvencode(3, socket.inet_aton(self.router))
             #Lease time
-            response += struct.pack('!BBI', 51, 4, 86400)
+            response += self.tlvencode(51, struct.pack('!I', 86400))
         #TFTP Server OR HTTP Server; if iPXE, need both
-        response += struct.pack('!BB', 66, len(self.fileserver)) + self.fileserver
+        response += self.tlvencode(66, self.fileserver)
         #Filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
             #Either we don't care about iPXE, or we've already chainloaded ipxe
-            response += struct.pack('!BB', 67, len(self.filename) + 1) + self.filename + chr(0)
+            response += self.tlvencode(67, self.filename + chr(0))
         else:
             #chainload iPXE
-            response += struct.pack('!BB', 67, 16) + '/chainload.kpxe' + chr(0)
+            response += self.tlvencode(67, '/chainload.kpxe' + chr(0))
             #don't boot-loop once we've sent the two first packets
             if opt53 == 5: #ack
                 self.leases[clientmac]['ipxe'] = False
         if self.proxydhcp:
-            response += struct.pack('!BB', 60, 9) + 'PXEClient'
+            response += self.tlvencode(60, 'PXEClient')
             response += struct.pack('!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, chr(0) + 'PXE', 0xff)
 
         #End options
@@ -187,10 +219,10 @@ class DHCPD:
         response = headerResponse + optionsResponse
         if self.debug:
             print '[DEBUG] DHCPOFFER - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
-            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
-            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
-        self.sock.sendto(response, ('<broadcast>', 68))
+            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->\n'
+        self.sock.sendto(response, (self.broadcast, 68))
 
     def dhcpack(self, message):
         '''This method responds to DHCP request with acknowledge'''
@@ -200,10 +232,10 @@ class DHCPD:
         response = headerResponse + optionsResponse
         if self.debug:
             print '[DEBUG] DHCPACK - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + str(headerResponse) + '\n\t<--END HEADER-->\n'
-            print '\t<--BEGIN OPTIONS-->\n\t' + str(optionsResponse) + '\n\t<--END OPTIONS-->\n'
-            print '\t<--BEGIN RESPONSE-->\n\t' + str(response) + '\n\t<--END RESPONSE-->\n'
-        self.sock.sendto(response, ('<broadcast>', 68))
+            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->\n'
+            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->\n'
+            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->\n'
+        self.sock.sendto(response, (self.broadcast, 68))
 
     def listen(self):
         '''Main listen loop'''
@@ -212,19 +244,23 @@ class DHCPD:
             clientmac = struct.unpack('!28x6s', message[:34])
             if self.debug:
                 print '[DEBUG] Received message'
-                print '\t<--BEGIN MESSAGE-->\n\t' + message + '\n\t<--END MESSAGE-->\n'
-            if not 'PXEClient' in message: continue
+                print '\t<--BEGIN MESSAGE-->\n\t' + repr(message) + '\n\t<--END MESSAGE-->\n'
+            options = self.tlvparse(message[240:])
+            if self.debug:
+                print '[DEBUG] Parsed received options'
+                print '\t<--BEGIN OPTIONS-->\n\t' + repr(options) + '\n\t<--END OPTIONS-->\n'
+            if not (60 in options and 'PXEClient' in options[60][0]) : continue
             #see RFC2131 page 10
-            type = struct.unpack('!BxB', message[240:240+3]) #options offset
-            if type == (53, 1):
+            type = ord(options[53][0])
+            if type == 1:
                 if self.debug:
                     print '[DEBUG] Received DHCPOFFER'
                 self.dhcpoffer(message)
-            elif type == (53, 3) and address[0] == '0.0.0.0' and not self.proxydhcp:
+            elif type == 3 and address[0] == '0.0.0.0' and not self.proxydhcp:
                 if self.debug:
                     print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)
-            elif type == (53, 3) and address[0] != '0.0.0.0' and self.proxydhcp:
+            elif type == 3 and address[0] != '0.0.0.0' and self.proxydhcp:
                 if self.debug:
                     print '[DEBUG] Received DHCPACK'
                 self.dhcpack(message)

@@ -1,6 +1,12 @@
 import threading
 import os
-import argparse
+import sys
+
+try:
+    import argparse
+except ImportError:
+    sys.exit("ImportError: You do not have the Python 'argparse' module installed. Please install the 'argparse' module and try again.")
+
 from time import sleep
 from httpd import HTTPD
 from tftpd import TFTPD
@@ -20,6 +26,7 @@ DHCP_OFFER_END = '192.168.2.150'
 DHCP_SUBNET = '255.255.255.0'
 DHCP_ROUTER = '192.168.2.1'
 DHCP_DNS = '8.8.8.8'
+DHCP_BROADCAST = '<broadcast>'
 
 if __name__ == '__main__':
     try:
@@ -47,9 +54,10 @@ if __name__ == '__main__':
         parser.add_argument('-n', '--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = DHCP_SUBNET)
         parser.add_argument('-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = DHCP_ROUTER)
         parser.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = DHCP_DNS)
+        parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = DHCP_BROADCAST)
 
         parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR)
-        parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if not --no-ipxe)', default = NETBOOT_FILE)
+        parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE)
 
         #parse the arguments given in the command line
         args = parser.parse_args()
@@ -86,16 +94,17 @@ if __name__ == '__main__':
         if args.USE_DHCP:
             dhcpd = DHCPD(
                     args.DHCP_SERVER_IP, args.DHCP_FILESERVER_IP,
-                    args.DHCP_OFFER_BEGIN,args.DHCP_OFFER_END,
+                    args.DHCP_OFFER_BEGIN, args.DHCP_OFFER_END,
                     args.DHCP_SUBNET, args.DHCP_ROUTER,
-                    args.DHCP_DNS, args.NETBOOT_FILE,
-                    args.USE_IPXE, args.USE_HTTP,
-                    args.DHCP_PROXY_MODE, args.DHCP_DEBUG)
+                    args.DHCP_DNS, args.DHCP_BROADCAST,
+                    args.NETBOOT_FILE, args.USE_IPXE,
+                    args.USE_HTTP, args.DHCP_PROXY_MODE,
+                    args.DHCP_DEBUG)
             dhcpthread = threading.Thread(target = dhcpd.listen)
             dhcpthread.daemon = True
             dhcpthread.start()
             if args.DHCP_PROXY_MODE:
-                print 'Starting DHCP server in proxy mode...'
+                print 'Starting DHCP server in ProxyDHCP mode...'
             else:
                 print 'Starting DHCP server...'
 
@@ -113,4 +122,4 @@ if __name__ == '__main__':
             sleep(1)
 
     except KeyboardInterrupt:
-        print '\nShutting down PyPXE...\n'
+        sys.exit('\nShutting down PyPXE...\n')

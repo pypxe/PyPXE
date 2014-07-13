@@ -45,35 +45,38 @@ We have implemented GET and HEAD, as there is no requirement for any other metho
 The HEAD method is used by some PXE ROMs to find the Content-Length before the GET is sent.
 
 #PyPXE Services
-Each different service implemented (TFTP, DHCP, and HTTP) resides in its own file in the root of the repository. You can call/configure them independently if you're like to use PyPXE as a library. See ```server.py``` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
+Each different service implemented (TFTP, DHCP, and HTTP) resides in its own file in the root of the repository. You can call/configure them independently if you're like to use PyPXE as a library. See `server.py` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server (tftpd.py)
-The TFTP server class, ```TFTPD()``` requires three optional parameters be set in order to be constructed:
-* ```ip``` [Type: string; Optional] - this is the IP address that the TFTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
-* ```port``` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 69 as that is the default port for TFTP
-* ```netbootDirectory``` [Type: String; Optional] - this is the directory that the TFTP server will serve files from similarly to that of ```/tftpboot```; by default it is set to '.' (current directory)
+The TFTP server class, `TFTPD()` requires three optional parameters be set in order to be constructed:
+* `ip` [Type: string; Optional] - this is the IP address that the TFTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
+* `port` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 69 as that is the default port for TFTP
+* `netbootDirectory` [Type: String; Optional] - this is the directory that the TFTP server will serve files from similarly to that of `/tftpboot`; by default it is set to '.' (current directory)
 
 ##DHCP Server (dhcpd.py)
-The DHCP server class, ```DHCPD()``` requires the following parameters be set in order to be constructed:
-* ```ip``` [Type: string] - this is the IP address that the DHCP server itself bind to
-* ```fileserver``` [Type: string] - this is the IP address of the file server containing network boot files that the DHCP server will specify to clients
-* ```offerfrom``` [Type: string] -  this specifies the beginning of the range of IP addreses that the DHCP server will hand out to clients
-* ```offerto``` [Type: string] - this specifies the end of the range of IP addresses that the DHCP server will hand out to clients
-* ```subnetmask``` [Type: string] - this specifies the subnet mask that the DHCP server will specify to clients
-* ```router``` [Type: string] - this specifies the IP address of the router that the DHCP server will specify to clients
-* ```dnsserver``` [Type: string] - this specifies the DNS server that the DHCP server will specify to clients; only one DNS server can be set
-* ```filename``` [Type: string; Optional] - this specifies the file name that the client should look for on the remote server; by default the value is 'pxelinux.0'
-* ```useipxe``` [Type: bool; Optional] - this indicates whether or not iPXE is being used and adjusts itself accordingly; by default this is set to 'False'
-* ```usehttp``` [Type: bool; Optional] - this indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly; by default this is set to 'False'
-* ```proxydhcp``` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in ProxyDHCP mode or not; by default this is set to 'False'
-* ```debug``` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in debug mode or not; by default it is set to 'False'
-* ```port``` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 67 as that is the default port to listen for DHCP requests
+The DHCP server class, `DHCPD()` requires the following parameters be set in order to be constructed:
+* `ip` [Type: string] - this is the IP address that the DHCP server itself bind to
+* `fileserver` [Type: string] - this is the IP address of the file server containing network boot files that the DHCP server will specify to clients
+* `offerfrom` [Type: string] -  this specifies the beginning of the range of IP addreses that the DHCP server will hand out to clients
+* `offerto` [Type: string] - this specifies the end of the range of IP addresses that the DHCP server will hand out to clients
+* `subnetmask` [Type: string] - this specifies the subnet mask that the DHCP server will specify to clients
+* `router` [Type: string] - this specifies the IP address of the router that the DHCP server will specify to clients
+* `dnsserver` [Type: string] - this specifies the DNS server that the DHCP server will specify to clients; only one DNS server can be set
+* `broadcast` [Type: string; Optional] - this specifies the broadcast address the DHCP will broadcast packets to; by default it is set to '<broadcast>'
+* `filename` [Type: string; Optional] - this specifies the file name that the client should look for on the remote server; by default the value is 'pxelinux.0'
+* `useipxe` [Type: bool; Optional] - this indicates whether or not iPXE is being used and adjusts itself accordingly; by default this is set to 'False'
+* `usehttp` [Type: bool; Optional] - this indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly; by default this is set to 'False'
+* `proxydhcp` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in ProxyDHCP mode or not; by default this is set to 'False'
+* `debug` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in debug mode or not; by default it is set to 'False'
+* `port` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 67 as that is the default port to listen for DHCP requests
 
 ##HTTP Server (httpd.py)
-The HTTP server class, ```HTTPD()``` requires three optional parameters be set in order to be constructed:
-* ```ip``` [Type: string; Optional] - this is the IP address that the HTTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
-* ```port``` [Type: int; Optional] - this it the port that the HTTP server will run on; by default the port is 80 as that is the default port for HTTP
-* ```netbootDirectory``` [Type: String; Optional] - this is the directory that the HTTP server will serve files from similarly to that of ```/tftpboot```; by default it is set to '.' (current directory)
+The HTTP server class, `HTTPD()` requires three optional parameters be set in order to be constructed:
+* `ip` [Type: string; Optional] - this is the IP address that the HTTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
+* `port` [Type: int; Optional] - this it the port that the HTTP server will run on; by default the port is 80 as that is the default port for HTTP
+* `netbootDirectory` [Type: String; Optional] - this is the directory that the HTTP server will serve files from similarly to that of `/tftpboot`; by default it is set to '.' (current directory)
 
 ##Additional Information
-The function ```chr(0)``` is used in multiple places throughout the servers. This denotes a ```NULL``` byte, or ```\x00```
+* The function `chr(0)` is used in multiple places throughout the servers. This denotes a `NULL` byte, or `\x00`
+* Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `server.py` will not run without it.
+* The TFTP server currently does not support transfer of large files, this is a known issue (see #35). Instead of using TFTP to transfer large files (roughly 33MB or greater) it is recommended that you use the HTTP server to do so. iPXE supports direct boot from HTTP and certain kernels (once you've booted into `pxelinux.0` via TFTP) support fetching files via HTTP as well.
