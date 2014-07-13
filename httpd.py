@@ -10,7 +10,7 @@ class HTTPD:
     def __init__(self, ip = '0.0.0.0', port = 80, netbootDirectory = '.'):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((ip, port ))
+        self.sock.bind((ip, port))
         self.sock.listen(1)
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase

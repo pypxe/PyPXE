@@ -144,4 +144,4 @@ Specify the PXE boot file name [Default: automatically set based on what service
 ##Notes
 * `Core.iso` located in `netboot` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
 * `chainload.kpxe` located in `netboot` is the `undionly.kpxe` from the [iPXE Project](http://ipxe.org/)  
-* `pxelinux.0`, `menu.c32`, and `memdisk` located in `netboot` are from the [SYSLINUX Project](http://www.syslinux.org/)  
+* `ldlinux.c32`, `libutil.c32`, `pxelinux.0`, `menu.c32`, and `memdisk` located in `netboot` are from the [SYSLINUX Project](http://www.syslinux.org/) version [6.02](http://www.syslinux.org/wiki/index.php/Syslinux_6_Changelog#Changes_in_6.02)

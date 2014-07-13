@@ -48,7 +48,7 @@ class TFTPD:
         descriptor = self.ongoing[address]
         #opcode 3 is DATA, also sent block number
         response =  struct.pack('!H', 3)
-        response += struct.pack('!H', descriptor['block'] % 2**16)
+        response += struct.pack('!H', descriptor['block'] % 2 ** 16)
         data = descriptor['handle'].read(descriptor['blksize'])
         response += data
         self.sock.sendto(response, address)
@@ -81,9 +81,8 @@ class TFTPD:
             self.ongoing[address]['blksize'] = int(options['blksize'])
         filesize = os.path.getsize(self.ongoing[address]['filename'])
         if filesize > (2**16 * self.ongoing[address]['blksize']):
-            print "WARNING: TFTP request too big. Attempting transfer anyway."
-            print("\tFilesize %s is too big for blksize %s."
-                  % (filesize, self.ongoing[address]['blksize']))
+            print '\nWARNING: TFTP request too big, attempting transfer anyway.'
+            print '\tFilesize %s is too big for blksize %s.\n' % (filesize, self.ongoing[address]['blksize'])
         if 'tsize' in options:
             response += 'tsize' + chr(0)
             response += str(filesize)
