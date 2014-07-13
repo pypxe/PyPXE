@@ -46,6 +46,7 @@ if __name__ == '__main__':
         exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
         exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_PROXY_MODE', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = False)
         parser.add_argument('--dhcp-debug', action = 'store_true', dest = 'DHCP_DEBUG', help = 'Adds verbosity to the DHCP server while it runs', default = False)
+        parser.add_argument('--http-debug', action = 'store_true', dest = 'HTTP_DEBUG', help = 'Adds verbosity to the HTTP server while it runs', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
         parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP)
         parser.add_argument('-f', '--dhcp-fileserver-ip', action = 'store', dest = 'DHCP_FILESERVER_IP', help = 'DHCP fileserver IP', default = DHCP_FILESERVER_IP)
@@ -81,13 +82,14 @@ if __name__ == '__main__':
 
         #serve all files from one directory
         os.chdir (args.NETBOOT_DIR)
-
+        threads = []
         #configure/start TFTP server
         if args.USE_TFTP:
             tftpd = TFTPD()
             tftpthread = threading.Thread(target = tftpd.listen)
             tftpthread.daemon = True
             tftpthread.start()
+            threads.append(tftpthread)
             print 'Starting TFTP server...'
 
         #configure/start DHCP server
@@ -103,6 +105,7 @@ if __name__ == '__main__':
             dhcpthread = threading.Thread(target = dhcpd.listen)
             dhcpthread.daemon = True
             dhcpthread.start()
+            threads.append(dhcpthread)
             if args.DHCP_PROXY_MODE:
                 print 'Starting DHCP server in ProxyDHCP mode...'
             else:
@@ -110,15 +113,16 @@ if __name__ == '__main__':
 
         #configure/start HTTP server
         if args.USE_HTTP:
-            httpd = HTTPD()
-            httpdthread = threading.Thread(target = httpd.listen)
-            httpdthread.daemon = True
-            httpdthread.start()
+            httpd = HTTPD(debug = args.HTTP_DEBUG)
+            httpthread = threading.Thread(target = httpd.listen)
+            httpthread.daemon = True
+            httpthread.start()
+            threads.append(httpthread)
             print 'Starting HTTP server...'
 
         print 'PyPXE successfully initialized and running!'
 
-        while tftpthread.isAlive() or dhcpthread.isAlive() or httpdthread.isAlive():
+        while map(lambda x:x.isAlive(), threads):
             sleep(1)
 
     except KeyboardInterrupt:
