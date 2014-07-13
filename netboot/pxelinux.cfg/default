@@ -13,3 +13,7 @@ LABEL TinyCore
 LABEL local
         MENU LABEL Boot local hard drive
         LOCALBOOT 0
+LABEL Clonezilla-live
+    MENU LABEL Clonezilla Live (Ramdisk)
+    KERNEL vmlinuz
+    APPEND initrd=initrd.img boot=live config noswap nolocales edd=on nomodeset ocs_live_run="ocs-live-general" ocs_live_extra_param="" keyboard-layouts="" ocs_live_batch="no" locales="" vga=788 nosplash noprompt fetch=http://192.168.2.2/filesystem.squashfs

@@ -1,5 +1,6 @@
 #To Do
 
+- [ ] Create V1.0 as something stable, tag it, then branch off into dev for development
 - [ ] Add `-debug` prints to DHCP/TFT/HTTP (such as 404, OFFER/ACK, etc. w/ filename) [ @mmattioli ]
   - [X] DHCP Server `--dhcp-debug`
   - [ ] TFTP Server `--tftp-debug`
