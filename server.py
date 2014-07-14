@@ -42,8 +42,9 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
-        parser.add_argument('--http-debug', action = 'store_true', dest = 'HTTP_DEBUG', help = 'Adds verbosity to the HTTP server while it runs', default = False)
+        parser.add_argument('--http-debug', action = 'store_true', dest = 'HTTP_MODE_DEBUG', help = 'Adds verbosity to the HTTP server while it runs', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
+        parser.add_argument('--tftp-debug', action = 'store_true', dest = 'TFTP_MODE_DEBUG', help = 'Adds verbosity to the TFTP server while it runs', default = False)
         
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
@@ -88,7 +89,7 @@ if __name__ == '__main__':
         threads = []
         #configure/start TFTP server
         if args.USE_TFTP:
-            tftpd = TFTPD()
+            tftpd = TFTPD(mode_debug = args.HTTP_MODE_DEBUG)
             tftpthread = threading.Thread(target = tftpd.listen)
             tftpthread.daemon = True
             tftpthread.start()
@@ -123,7 +124,7 @@ if __name__ == '__main__':
 
         #configure/start HTTP server
         if args.USE_HTTP:
-            httpd = HTTPD(mode_debug = args.HTTP_DEBUG)
+            httpd = HTTPD(mode_debug = args.HTTP_MODE_DEBUG)
             httpthread = threading.Thread(target = httpd.listen)
             httpthread.daemon = True
             httpthread.start()

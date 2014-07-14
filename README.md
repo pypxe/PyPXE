@@ -63,6 +63,10 @@ Disable built-in TFTP server which is enabled by default [Default: True]
 ```
 --no-tftp
 ```
+Enable built-in TFTP server in DEBUG mode [Default: False]
+```
+--tftp-debug
+```
 
 **DHCP Server Arguments** _each of the following can be set one of two ways, you can use either/or_
 
