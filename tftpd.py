@@ -8,12 +8,19 @@ class TFTPD:
         This class implements a read-only TFTP server
         implemented from RFC1350 and RFC2348
     '''
-    def __init__ (self, ip = '0.0.0.0', port = 69, netbootDirectory = '.'):
+    def __init__ (self, ip = '0.0.0.0', port = 69, netbootDirectory = '.', mode_debug = False):
         self.ip = ip
         self.port = port
+        self.mode_debug = mode_debug
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
+
+        if self.mode_debug:
+            print '\nNOTICE: TFTP server started in debug mode. TFTP server is using the following:\n'
+            print '\tTFTP Server IP: ' + self.ip
+            print '\tTFTP Server Port: ' + str(self.port)
+            print '\tTFTP Network Boot Directory: ' + netbootDirectory
 
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512})
@@ -21,6 +28,7 @@ class TFTPD:
         # this simplifies target later as well as offers a slight security increase
         os.chdir (netbootDirectory)
         os.chroot ('.')
+
     def filename(self, message):
         '''
             The first null-delimited field after the OPCODE
@@ -39,6 +47,8 @@ class TFTPD:
         response =  struct.pack('!H', 5) #error code
         response += struct.pack('!H', 1) #file not found
         response += 'File Not Found'
+        if self.mode_debug:
+            print "[DEBUG] TFTP Sending 'File Not Found'"
         self.sock.sendto(response, address)
 
     def sendBlock(self, address):
@@ -52,11 +62,13 @@ class TFTPD:
         data = descriptor['handle'].read(descriptor['blksize'])
         response += data
         self.sock.sendto(response, address)
-        if len( data ) != descriptor['blksize']:
+        if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
             print 'tftp://%s -> %s:%d' % (descriptor['filename'], address[0], address[1])
             self.ongoing.pop(address)
         else:
+            if self.mode_debug:
+                print '[DEBUG] TFTP Sending block ' + repr(descriptor['block'])
             descriptor['block'] += 1
 
     def read(self, address, message):
@@ -98,6 +110,8 @@ class TFTPD:
             message, address = self.sock.recvfrom(1024)
             opcode = struct.unpack('!H', message[:2])[0]
             if opcode == 1: #read the request
+                if self.mode_debug:
+                    print '[DEBUG] TFTP receiving request'
                 self.read(address, message)
             if opcode == 4:
                  if self.ongoing.has_key(address):

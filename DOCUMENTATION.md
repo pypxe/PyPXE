@@ -52,6 +52,7 @@ The TFTP server class, `TFTPD()` requires three optional parameters be set in or
 * `ip` [Type: string; Optional] - this is the IP address that the TFTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
 * `port` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 69 as that is the default port for TFTP
 * `netbootDirectory` [Type: String; Optional] - this is the directory that the TFTP server will serve files from similarly to that of `/tftpboot`; by default it is set to '.' (current directory)
+* `mode_debug` [Type: bool; Optional] - this indicates whether or not the TFTP server should be started in debug mode or not; by default it is set to 'False'
 
 ##DHCP Server (dhcpd.py)
 The DHCP server class, `DHCPD()` requires the following parameters be set in order to be constructed:
