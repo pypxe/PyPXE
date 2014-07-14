@@ -61,7 +61,7 @@ class DHCPD:
             print '\tDHCP Broadcast Address: ' + self.broadcast
             print '\tDHCP File Server IP: ' + self.fileserver
             print '\tDHCP File Name: ' + self.filename
-            print '\tProxyDHCP: ' + str(self.mode_proxy)
+            print '\tProxyDHCP Mode: ' + str(self.mode_proxy)
             print '\tUsing iPXE: ' + str(useipxe)
             print '\tUsing HTTP Server: ' + str(usehttp)
 
