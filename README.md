@@ -38,6 +38,11 @@ Enable built-in HTTP server [Default: False]
 --http
 ```
 
+Enable built-in HTTP server in DEBUG mode [Default: False]
+```
+--http-debug
+```
+
 Enable built-in DHCP server [Default: False]
 ```
 --dhcp
@@ -69,12 +74,12 @@ Specify DHCP server IP address [Default: 192.168.2.2]
 --dhcp-server-ip DHCP_SERVER_IP
 ```
 
-Specify DHCP fileserver IP address [Default: 192.168.2.2]
+Specify DHCP server IP address [Default: 192.168.2.2]
 ```
--f DHCP_FILESERVER_IP
+-p DHCP_SERVER_PORT
 ```
 ```
---dhcp-fileserver-ip DHCP_FILESERVER_IP
+--dhcp-server-port DHCP_SERVER_PORT
 ```
 
 Specify DHCP lease range start [Default: 192.168.2.100]
@@ -123,6 +128,14 @@ Specify DHCP broadcast address [Default: '<broadcast>']
 ```
 ```
 --dhcp-broadcast DHCP_BROADCAST
+```
+
+Specify DHCP fileserver IP address [Default: 192.168.2.2]
+```
+-f DHCP_FILESERVER_IP
+```
+```
+--dhcp-fileserver-ip DHCP_FILESERVER_IP
 ```
 
 Specify the local directory where network boot files will be served [Default: 'netboot']
