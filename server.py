@@ -89,7 +89,7 @@ if __name__ == '__main__':
         threads = []
         #configure/start TFTP server
         if args.USE_TFTP:
-            tftpd = TFTPD(mode_debug = args.HTTP_MODE_DEBUG)
+            tftpd = TFTPD(mode_debug = args.TFTP_MODE_DEBUG)
             tftpthread = threading.Thread(target = tftpd.listen)
             tftpthread.daemon = True
             tftpthread.start()
