@@ -10,6 +10,10 @@ PyPXE implements the following services for the purpose of creating a Python-bas
 ```python
 from pypxe import tftp
 ```
+or, if you prefer, you can use:
+```python
+import pypxe.tftp
+```
 For more information on how each service works and how to manipulate them, see  `DOCUMENTATION.md`.
 
 ###QuickStart
@@ -18,16 +22,16 @@ For more information on how each service works and how to manipulate them, see  
 **Note:** Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `server.py` will not run without it.
 
 Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the `netboot` directory!
-```
-sudo python server.py
+```bash
+$sudo python server.py
 ```
 If you require the ability to handle DHCP PXE requests then you can either enable the built-in DHCP server (after configuring, of course)...
-```
-sudo python server.py --dhcp
+```bash
+$sudo python server.py --dhcp
 ```
 ...or start `server.py` in ProxyDHCP mode rather than a full DHCP server to prevent DHCP conflicts on your network...
-```
-sudo python server.py --dhcp-proxy
+```bash
+$sudo python server.py --dhcp-proxy
 ```
 
 **TFTP/DHCP/HTTP/iPXE Arguments**
