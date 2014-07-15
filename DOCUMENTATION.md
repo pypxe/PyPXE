@@ -1,7 +1,3 @@
-**NOTE:** This documentation is unfinished and is still a work in progress.
-
----
-
 #Background
 >The Preboot eXecution Environment (PXE, also known as Pre-Execution Environment; sometimes pronounced "pixie") is an environment to boot computers using a network interface independently of data storage devices (like hard disks) or installed operating systems. -[Wikipedia](https://en.wikipedia.org/wiki/Preboot_Execution_Environment) 
 
@@ -58,6 +54,7 @@ The TFTP service can be imported one of two ways:
 ```python
 from pypxe import tftp
 ```
+or
 ```python
 import pypxe.tftp
 ```
@@ -65,7 +62,7 @@ import pypxe.tftp
 The TFTP server class, `TFTPD()` requires three optional parameters be set in order to be constructed:
 * `ip` [Type: string; Optional] - this is the IP address that the TFTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
 * `port` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 69 as that is the default port for TFTP
-* `netbootDirectory` [Type: String; Optional] - this is the directory that the TFTP server will serve files from similarly to that of `/tftpboot`; by default it is set to '.' (current directory)
+* `netbootDirectory` [Type: String; Optional] - this is the directory that the TFTP server will serve files from similarly to that of `tftpboot`; by default it is set to '.' (current directory)
 * `mode_debug` [Type: bool; Optional] - this indicates whether or not the TFTP server should be started in debug mode or not; by default it is set to 'False'
 
 ##DHCP Server `pypxe.dhcp`
@@ -73,6 +70,7 @@ The DHCP service can be imported one of two ways:
 ```python
 from pypxe import dhcp
 ```
+or
 ```python
 import pypxe.dhcp
 ```
@@ -98,6 +96,7 @@ The HTTP service can be imported one of two ways:
 ```python
 from pypxe import http
 ```
+or
 ```python
 import pypxe.http
 ```
