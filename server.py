@@ -88,16 +88,16 @@ if __name__ == '__main__':
         os.chdir (args.NETBOOT_DIR)
         
         #make a list of running threads for each service
-        threads = []
+        runningServices = []
 
         #configure/start TFTP server
         if args.USE_TFTP:
             print 'Starting TFTP server...'
-            tftpd = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
-            tftpthread = threading.Thread(target = tftpd.listen)
-            tftpthread.daemon = True
-            tftpthread.start()
-            threads.append(tftpthread)
+            tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
+            tftpServerThread = threading.Thread(target = tftpServer.listen)
+            tftpServerThread.daemon = True
+            tftpServerThread.start()
+            runningServices.append(tftpServerThread)
 
         #configure/start DHCP server
         if args.USE_DHCP:
@@ -105,7 +105,7 @@ if __name__ == '__main__':
                 print 'Starting DHCP server in ProxyDHCP mode...'
             else:
                 print 'Starting DHCP server...'
-            dhcpd = dhcp.DHCPD(
+            dhcpServer = dhcp.DHCPD(
                     args.DHCP_SERVER_IP,
                     args.DHCP_SERVER_PORT,
                     args.DHCP_OFFER_BEGIN,
@@ -120,24 +120,24 @@ if __name__ == '__main__':
                     args.USE_HTTP,
                     args.DHCP_MODE_PROXY,
                     args.MODE_DEBUG)
-            dhcpthread = threading.Thread(target = dhcpd.listen)
-            dhcpthread.daemon = True
-            dhcpthread.start()
-            threads.append(dhcpthread)
+            dhcpServerThread = threading.Thread(target = dhcpServer.listen)
+            dhcpServerThread.daemon = True
+            dhcpServerThread.start()
+            runningServices.append(dhcpServerThread)
 
 
         #configure/start HTTP server
         if args.USE_HTTP:
             print 'Starting HTTP server...'
-            httpd = http.HTTPD(mode_debug = args.MODE_DEBUG)
-            httpthread = threading.Thread(target = httpd.listen)
-            httpthread.daemon = True
-            httpthread.start()
-            threads.append(httpthread)
+            httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG)
+            httpServerThread = threading.Thread(target = httpServer.listen)
+            httpServerThread.daemon = True
+            httpServerThread.start()
+            runningServices.append(httpServerThread)
 
         print 'PyPXE successfully initialized and running!'
 
-        while map(lambda x: x.isAlive(), threads):
+        while map(lambda x: x.isAlive(), runningServices):
             sleep(1)
 
     except KeyboardInterrupt:
