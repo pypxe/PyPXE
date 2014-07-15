@@ -8,9 +8,9 @@ except ImportError:
     sys.exit("ImportError: You do not have the Python 'argparse' module installed. Please install the 'argparse' module and try again.")
 
 from time import sleep
-from httpd import HTTPD
-from tftpd import TFTPD
-from dhcpd import DHCPD
+from pypxe.httpd import HTTPD
+from pypxe.tftpd import TFTPD
+from pypxe.dhcpd import DHCPD
 
 #Default Network Boot File Directory
 NETBOOT_DIR = 'netboot'
@@ -42,15 +42,13 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
-        parser.add_argument('--http-debug', action = 'store_true', dest = 'HTTP_MODE_DEBUG', help = 'Adds verbosity to the HTTP server while it runs', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
-        parser.add_argument('--tftp-debug', action = 'store_true', dest = 'TFTP_MODE_DEBUG', help = 'Adds verbosity to the TFTP server while it runs', default = False)
+        parser.add_argument('--debug', action = 'store_true', dest = 'MODE_DEBUG', help = 'Adds verbosity to the selected services while they run', default = False)
         
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
         exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
         exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = False)
-        parser.add_argument('--dhcp-debug', action = 'store_true', dest = 'DHCP_MODE_DEBUG', help = 'Adds verbosity to the DHCP server while it runs', default = False)
         parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP)
         parser.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = DHCP_SERVER_PORT)
         parser.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = DHCP_OFFER_BEGIN)
@@ -68,7 +66,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
 
         #pass warning to user regarding starting HTTP server without iPXE
-        if args.USE_HTTP and not args.USE_IPXE:
+        if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         
         #if the argument was pased to enabled DHCP proxy mode then enable the DHCP server as well
@@ -89,7 +87,7 @@ if __name__ == '__main__':
         threads = []
         #configure/start TFTP server
         if args.USE_TFTP:
-            tftpd = TFTPD(mode_debug = args.TFTP_MODE_DEBUG)
+            tftpd = TFTPD(mode_debug = args.MODE_DEBUG)
             tftpthread = threading.Thread(target = tftpd.listen)
             tftpthread.daemon = True
             tftpthread.start()
@@ -112,7 +110,7 @@ if __name__ == '__main__':
                     args.USE_IPXE,
                     args.USE_HTTP,
                     args.DHCP_MODE_PROXY,
-                    args.DHCP_MODE_DEBUG)
+                    args.MODE_DEBUG)
             dhcpthread = threading.Thread(target = dhcpd.listen)
             dhcpthread.daemon = True
             dhcpthread.start()
@@ -124,7 +122,7 @@ if __name__ == '__main__':
 
         #configure/start HTTP server
         if args.USE_HTTP:
-            httpd = HTTPD(mode_debug = args.HTTP_MODE_DEBUG)
+            httpd = HTTPD(mode_debug = args.MODE_DEBUG)
             httpthread = threading.Thread(target = httpd.listen)
             httpthread.daemon = True
             httpthread.start()
