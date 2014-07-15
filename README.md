@@ -1,5 +1,5 @@
 #About
-This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported. Please read `Documentation.md` for further explanation of the PyPXE project as well as recommended use. See the [issues page](https://github.com/psychomario/PyPXE/issues) for open issues, bugs, and enhancements/improvements.
+This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported. Please read [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation of the PyPXE project as well as recommended use. See the [issues page](https://github.com/psychomario/PyPXE/issues) for open issues, bugs, and enhancements/improvements.
 
 **DISCLAIMER:** None of thes implemented services are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
@@ -14,7 +14,7 @@ or, if you prefer, you can use:
 ```python
 import pypxe.tftp
 ```
-For more information on how each service works and how to manipulate them, see  `DOCUMENTATION.md`.
+For more information on how each service works and how to manipulate them, see  [`DOCUMENTATION.md`](DOCUMENTATION.md).
 
 ###QuickStart
 `pypxe-server.py` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the `pypxe-server.py` settings to your preferred settings or run with `--help` or `-h` to see what command line arguments you can pass. Treat the provided `netboot` directory as `tftpboot` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in `netboot/pxelinux.cfg/default`.
@@ -56,8 +56,8 @@ The following are arguments that can be passed to `pypxe-server.py` when running
     * Default: False
   * __`--debug`__
     * Description: Enable selected services in DEBUG mode
+      * Note: This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give.
     * Default: False
-    * _Note: This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give._
 * __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
   * __`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__
     * Description: Specify DHCP server IP address
