@@ -34,7 +34,11 @@ $ sudo python pypxe-server.py --dhcp
 $ sudo python pypxe-server.py --dhcp-proxy
 ```
 
-* __PyPXE Server Main Arguments__
+**PyPXE Server Arguments**
+
+The following are arguments that can be passed to `pypxe-server.py` when running from the command line
+
+* __Main Arguments__
   * __`--ipxe`__
     * Description: Enable iPXE ROM
     * Default: False
@@ -54,7 +58,7 @@ $ sudo python pypxe-server.py --dhcp-proxy
     * Description: Enable selected services in DEBUG mode
     * Default: False
     * _Note: This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give._
-* __PyPXE Server DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
+* __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
   * __`-s DHCP_SERVER_IP` or `--dhcp-server-ip DHCP_SERVER_IP`__
     * Description: Specify DHCP server IP address
     * Default: 192.168.2.2
@@ -82,7 +86,7 @@ $ sudo python pypxe-server.py --dhcp-proxy
   * __`-f DHCP_FILESERVER_IP` or `--dhcp-fileserver-ip DHCP_FILESERVER_IP`__
     * Description: Specify DHCP file server IP address
     * Default: 192.168.2.2
-* __PyPXE Server File Name/Directory Arguments__
+* __File Name/Directory Arguments__
   * __`-a NETBOOT_DIR` or `--netboot-dir NETBOOT_DIR`__
     * Description: Specify the local directory where network boot files will be served 
     * Default: 'netboot'
