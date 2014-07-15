@@ -17,43 +17,29 @@ class DHCPD:
         RFC2132, https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
         and http://www.pix.net/software/pxeboot/archive/pxespec.pdf
     '''
-    def __init__(
-        self,
-        ip = '192.168.2.2',
-        port = 67,
-        offerfrom = '192.168.2.100',
-        offerto = '192.168.2.150',
-        subnetmask = '255.255.255.0',
-        router = '192.168.2.1',
-        dnsserver = '8.8.8.8',
-        broadcast = '<broadcast>',
-        fileserver = '192.168.2.2',
-        filename = 'pxelinux.0',
-        useipxe = False,
-        usehttp = False,
-        mode_proxy = False,
-        mode_debug = False):
+    def __init__(self, **dhcpServerSettings):
         
-        self.ip = ip
-        self.port = port
-        self.offerfrom = offerfrom
-        self.offerto = offerto
-        self.subnetmask = subnetmask
-        self.router = router
-        self.dnsserver = dnsserver
-        self.broadcast = broadcast
-        self.fileserver = fileserver
-        self.filename = filename
+        self.ip = dhcpServerSettings.get('ip', '192.168.2.2')
+        self.port = dhcpServerSettings.get('port', 67)
+        self.offerfrom = dhcpServerSettings.get('offerfrom', '192.168.2.100')
+        self.offerto = dhcpServerSettings.get('offerto', '192.168.2.150')
+        self.subnetmask = dhcpServerSettings.get('subnetmask', '255.255.255.0')
+        self.router = dhcpServerSettings.get('router', '192.168.2.1')
+        self.dnsserver = dhcpServerSettings.get('dnsserver', '8.8.8.8')
+        self.broadcast = dhcpServerSettings.get('broadcast', '<broadcast>')
+        self.fileserver = dhcpServerSettings.get('fileserver', '192.168.2.2')
+        self.filename = dhcpServerSettings.get('filename', 'pxelinux.0')
+        self.ipxe = dhcpServerSettings.get('useipxe', False)
+        self.http = dhcpServerSettings.get('usehttp', False)
+        self.mode_proxy = dhcpServerSettings.get('mode_proxy', False) #ProxyDHCP mode
+        self.mode_debug = dhcpServerSettings.get('mode_debug', False) #debug mode
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
-        self.ipxe = useipxe
-        self.mode_proxy = mode_proxy #ProxyDHCP mode
-        self.mode_debug = mode_debug #debug mode
 
-        if usehttp and not useipxe:
+        if self.http and not self.ipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
-        if useipxe and usehttp:
+        if self.ipxe and self.http:
             self.filename = 'http://%s/%s' % (self.fileserver, self.filename)
-        if useipxe and not usehttp:
+        if self.ipxe and not self.http:
             self.filename = 'tftp://%s/%s' % (self.fileserver, self.filename)
 
         if self.mode_debug:
@@ -68,8 +54,8 @@ class DHCPD:
             print '\tDHCP File Server IP: ' + self.fileserver
             print '\tDHCP File Name: ' + self.filename
             print '\tProxyDHCP Mode: ' + str(self.mode_proxy)
-            print '\tUsing iPXE: ' + str(useipxe)
-            print '\tUsing HTTP Server: ' + str(usehttp)
+            print '\tUsing iPXE: ' + str(self.ipxe)
+            print '\tUsing HTTP Server: ' + str(self.http)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

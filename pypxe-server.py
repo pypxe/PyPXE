@@ -106,20 +106,20 @@ if __name__ == '__main__':
             else:
                 print 'Starting DHCP server...'
             dhcpServer = dhcp.DHCPD(
-                    args.DHCP_SERVER_IP,
-                    args.DHCP_SERVER_PORT,
-                    args.DHCP_OFFER_BEGIN,
-                    args.DHCP_OFFER_END,
-                    args.DHCP_SUBNET,
-                    args.DHCP_ROUTER,
-                    args.DHCP_DNS,
-                    args.DHCP_BROADCAST,
-                    args.DHCP_FILESERVER,
-                    args.NETBOOT_FILE,
-                    args.USE_IPXE,
-                    args.USE_HTTP,
-                    args.DHCP_MODE_PROXY,
-                    args.MODE_DEBUG)
+                    ip = args.DHCP_SERVER_IP,
+                    port = args.DHCP_SERVER_PORT,
+                    offerfrom = args.DHCP_OFFER_BEGIN,
+                    offerto = args.DHCP_OFFER_END,
+                    subnet = args.DHCP_SUBNET,
+                    router = args.DHCP_ROUTER,
+                    dnsserver = args.DHCP_DNS,
+                    broadcast = args.DHCP_BROADCAST,
+                    fileserver = args.DHCP_FILESERVER,
+                    filename = args.NETBOOT_FILE,
+                    useipxe = args.USE_IPXE,
+                    usehttp = args.USE_HTTP,
+                    mode_proxy = args.DHCP_MODE_PROXY,
+                    mode_debug = args.MODE_DEBUG)
             dhcpd = threading.Thread(target = dhcpServer.listen)
             dhcpd.daemon = True
             dhcpd.start()
