@@ -8,9 +8,9 @@ except ImportError:
     sys.exit("ImportError: You do not have the Python 'argparse' module installed. Please install the 'argparse' module and try again.")
 
 from time import sleep
-from pypxe import tftp
-from pypxe import dhcp
-from pypxe import http
+from pypxe import tftp #PyPXE TFTP service
+from pypxe import dhcp #PyPXE DHCP service
+from pypxe import http #PyPXE HTTP service
 
 #Default Network Boot File Directory
 NETBOOT_DIR = 'netboot'
