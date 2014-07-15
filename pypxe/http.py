@@ -13,23 +13,27 @@ class HTTPD:
         This class implements a HTTP Server, limited to GET and HEAD,
         from RFC2616, RFC7230
     '''
-    def __init__(self, ip = '0.0.0.0', port = 80, netbootDirectory = '.', mode_debug = False):
+    def __init__(self, **serverSettings):
+        
+        self.ip = serverSettings.get('ip', '0.0.0.0')
+        self.port = serverSettings.get('port', 80)
+        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
+        self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((ip, port))
+        self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
-        self.mode_debug = mode_debug #debug mode
 
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
-        os.chdir (netbootDirectory)
+        os.chdir (self.netbootDirectory)
         os.chroot ('.')
 
         if self.mode_debug:
             print 'NOTICE: HTTP server started in debug mode. HTTP server is using the following:'
-            print '\tHTTP Server IP: ' + ip
-            print '\tHTTP Server Port: ' + str(port)
-            print '\tHTTP Network Boot Directory: ' + netbootDirectory
+            print '\tHTTP Server IP: ' + self.ip
+            print '\tHTTP Server Port: ' + str(self.port)
+            print '\tHTTP Network Boot Directory: ' + self.netbootDirectory
 
     def handleRequest(self, connection, addr):
         '''This method handles HTTP request'''

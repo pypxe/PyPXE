@@ -17,22 +17,22 @@ class DHCPD:
         RFC2132, https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
         and http://www.pix.net/software/pxeboot/archive/pxespec.pdf
     '''
-    def __init__(self, **dhcpServerSettings):
+    def __init__(self, **serverSettings):
         
-        self.ip = dhcpServerSettings.get('ip', '192.168.2.2')
-        self.port = dhcpServerSettings.get('port', 67)
-        self.offerfrom = dhcpServerSettings.get('offerfrom', '192.168.2.100')
-        self.offerto = dhcpServerSettings.get('offerto', '192.168.2.150')
-        self.subnetmask = dhcpServerSettings.get('subnetmask', '255.255.255.0')
-        self.router = dhcpServerSettings.get('router', '192.168.2.1')
-        self.dnsserver = dhcpServerSettings.get('dnsserver', '8.8.8.8')
-        self.broadcast = dhcpServerSettings.get('broadcast', '<broadcast>')
-        self.fileserver = dhcpServerSettings.get('fileserver', '192.168.2.2')
-        self.filename = dhcpServerSettings.get('filename', 'pxelinux.0')
-        self.ipxe = dhcpServerSettings.get('useipxe', False)
-        self.http = dhcpServerSettings.get('usehttp', False)
-        self.mode_proxy = dhcpServerSettings.get('mode_proxy', False) #ProxyDHCP mode
-        self.mode_debug = dhcpServerSettings.get('mode_debug', False) #debug mode
+        self.ip = serverSettings.get('ip', '192.168.2.2')
+        self.port = serverSettings.get('port', 67)
+        self.offerfrom = serverSettings.get('offerfrom', '192.168.2.100')
+        self.offerto = serverSettings.get('offerto', '192.168.2.150')
+        self.subnetmask = serverSettings.get('subnetmask', '255.255.255.0')
+        self.router = serverSettings.get('router', '192.168.2.1')
+        self.dnsserver = serverSettings.get('dnsserver', '8.8.8.8')
+        self.broadcast = serverSettings.get('broadcast', '<broadcast>')
+        self.fileserver = serverSettings.get('fileserver', '192.168.2.2')
+        self.filename = serverSettings.get('filename', 'pxelinux.0')
+        self.ipxe = serverSettings.get('useipxe', False)
+        self.http = serverSettings.get('usehttp', False)
+        self.mode_proxy = serverSettings.get('mode_proxy', False) #ProxyDHCP mode
+        self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
 
         if self.http and not self.ipxe:
@@ -60,7 +60,7 @@ class DHCPD:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.sock.bind( ('', self.port ))
+        self.sock.bind(('', self.port ))
         
         #key is mac
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})
