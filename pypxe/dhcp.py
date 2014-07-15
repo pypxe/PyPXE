@@ -1,3 +1,9 @@
+'''
+
+This file contains classes and functions that implement the PyPXE DHCP service
+
+'''
+
 import socket
 import struct
 import os
