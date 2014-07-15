@@ -34,137 +34,67 @@ $ sudo python pypxe-server.py --dhcp
 $ sudo python pypxe-server.py --dhcp-proxy
 ```
 
-**TFTP/DHCP/HTTP/iPXE Arguments**
+**PyPXE Server Main Arguments**
 
-Enable iPXE ROM [Default: False]
-```
---ipxe
-```
+* Enable iPXE ROM
+  * Default: False
+  * `--ipxe`
+* Enable built-in HTTP server
+  * Default: False
+  * `--http`
+* Enable built-in DHCP server
+  * Default: False
+  * `--dhcp`
+* Enable built-in DHCP server in proxy mode (implies `--dhcp`)
+  * Default: False
+  * `--dhcp-proxy`
+* Disable built-in TFTP server which is enabled by default
+  * Default: True
+  * `--no-tftp`
+* Enable selected services in DEBUG mode
+  * Default: False
+  * `--debug`
+  * __Note:__This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give.
 
-Enable built-in HTTP server [Default: False]
-```
---http
-```
+**PyPXE Server DHCP Service Arguments** _each of the following can be set one of two ways, you can use either/or_
+* Specify DHCP server IP address
+  * Default: 192.168.2.2
+  * `-s DHCP_SERVER_IP` or `--dhcp-server-ip DHCP_SERVER_IP`
+* Specify DHCP server IP address
+  * Default: 192.168.2.2
+  * `-p DHCP_SERVER_PORT` or `--dhcp-server-port DHCP_SERVER_PORT`
+* Specify DHCP server IP address
+  * Default: 192.168.2.2
+  * `-p DHCP_SERVER_PORT` or `--dhcp-server-port DHCP_SERVER_PORT`
+* Specify DHCP lease range start
+  * Default: 192.168.2.100
+  * `-b DHCP_OFFER_BEGIN` or `--dhcp-begin DHCP_OFFER_BEGIN`
+* Specify DHCP lease range end
+  * Default: 192.168.2.150
+  * `-e DHCP_OFFER_END` or `--dhcp-end DHCP_OFFER_END`
+* Specify DHCP subnet
+  * Default: 255.255.255.0
+  * `-n DHCP_SUBNET` or `--dhcp-subnet DHCP_SUBNET`
+* Specify DHCP lease router
+  * Default: 192.168.2.1
+  * `-r DHCP_ROUTER` or `--dhcp-router DHCP_ROUTER`
+* Specify DHCP lease DNS server
+  * Default: 8.8.8.8
+  * `-d DHCP_DNS` or `--dhcp-dns DHCP_DNS`
+* Specify DHCP broadcast address
+  * Default: '<broadcast>'
+  * `-c DHCP_BROADCAST` or `--dhcp-broadcast DHCP_BROADCAST`
+* Specify DHCP file server IP address
+  * Default: 192.168.2.2
+  * `-f DHCP_FILESERVER_IP` or `--dhcp-fileserver-ip DHCP_FILESERVER_IP`
 
-Enable built-in HTTP server in DEBUG mode [Default: False]
-```
---http-debug
-```
-
-Enable built-in DHCP server [Default: False]
-```
---dhcp
-```
-
-Enable built-in DHCP server in proxy mode (implies `--dhcp`) [Default: False]
-```
---dhcp-proxy
-```
-
-Enable built-in DHCP server in DEBUG mode [Default: False]
-```
---dhcp-debug
-```
-This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the server gives.
-
-Disable built-in TFTP server which is enabled by default [Default: True]
-```
---no-tftp
-```
-Enable built-in TFTP server in DEBUG mode [Default: False]
-```
---tftp-debug
-```
-
-**DHCP Server Arguments** _each of the following can be set one of two ways, you can use either/or_
-
-Specify DHCP server IP address [Default: 192.168.2.2]
-```
--s DHCP_SERVER_IP
-```
-```
---dhcp-server-ip DHCP_SERVER_IP
-```
-
-Specify DHCP server IP address [Default: 192.168.2.2]
-```
--p DHCP_SERVER_PORT
-```
-```
---dhcp-server-port DHCP_SERVER_PORT
-```
-
-Specify DHCP lease range start [Default: 192.168.2.100]
-```
--b DHCP_OFFER_BEGIN
-```
-```
---dhcp-begin DHCP_OFFER_BEGIN
-```
-
-Specify DHCP lease range end [Default: 192.168.2.150]
-```
--e DHCP_OFFER_END
-```
-```
---dhcp-end DHCP_OFFER_END
-```
-
-Specify DHCP subnet [Default: 255.255.255.0]
-```
--n DHCP_SUBNET
-```
-```
---dhcp-subnet DHCP_SUBNET
-```
-
-Specify DHCP lease router [Default: 192.168.2.1]
-```
--r DHCP_ROUTER
-```
-```
---dhcp-router DHCP_ROUTER
-```
-
-Specify DHCP lease DNS server [Default: 8.8.8.8]
-```
--d DHCP_DNS
-```
-```
---dhcp-dns DHCP_DNS
-```
-
-Specify DHCP broadcast address [Default: '<broadcast>']
-```
--c DHCP_BROADCAST
-```
-```
---dhcp-broadcast DHCP_BROADCAST
-```
-
-Specify DHCP fileserver IP address [Default: 192.168.2.2]
-```
--f DHCP_FILESERVER_IP
-```
-```
---dhcp-fileserver-ip DHCP_FILESERVER_IP
-```
-
-Specify the local directory where network boot files will be served [Default: 'netboot']
-```
--a NETBOOT_DIR
-```
-```
---netboot-dir NETBOOT_DIR
-```
-
-Specify the PXE boot file name [Default: automatically set based on what services are enabled or disabled, see documentation for further explanation]
-```
--i NETBOOT_FILE
-```
-```
---netboot-file NETBOOT_FILE
-```
+**PyPXE Server File Name/Directory Arguments**
+* Specify the local directory where network boot files will be served 
+  * Default: 'netboot'
+  * `-a NETBOOT_DIR` or `--netboot-dir NETBOOT_DIR`
+* Specify the PXE boot file name
+  * Default: automatically set based on what services are enabled or disabled, see documentation for further explanation
+  * `-i NETBOOT_FILE` or `--netboot-file NETBOOT_FILE`
 
 ##Notes
 * `Core.iso` located in `netboot` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
