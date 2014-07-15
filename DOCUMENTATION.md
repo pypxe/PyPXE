@@ -58,7 +58,7 @@ from pypxe import tftp
 import pypxe.tftp
 ```
 
-The TFTP server class, __`TFTPD()`__, requires three optional parameters be set in order to be constructed:
+The TFTP server class, __`TFTPD()`__, is constructed with keyword arguments. The following is a list of keyword arguments that __`TFTPD()`__ takes in order to be constructed:
 * __`ip`__
   * Description: This is the IP address that the TFTP server will bind to.
   * Default: `'0.0.0.0'` (so that it binds to all available interfaces)
@@ -85,7 +85,7 @@ from pypxe import dhcp
 import pypxe.dhcp
 ```
 
-The DHCP server class, __`DHCPD()`__, requires the following parameters be set in order to be constructed:
+The DHCP server class, __`DHCPD()`__, is constructed with keyword arguments. The following is a list of keyword arguments that __`DHCPD()`__ takes in order to be constructed:
 * __`ip`__
   * Description: This is the IP address that the DHCP server itself binds to.
   * Default: `'192.168.2.2'`
@@ -152,7 +152,7 @@ from pypxe import http
 import pypxe.http
 ```
 
-The HTTP server class, __`HTTPD()`__, requires three optional parameters be set in order to be constructed:
+The HTTP server class, __`HTTPD()`__, is constructed with keyword arguments. The following is a list of keyword arguments that __`HTTPD()`__ takes in order to be constructed:
 * __`ip`__
   * Description: This is the IP address that the HTTP server will bind to.
   * Default: `'0.0.0.0'` (so that it binds to all available interfaces)
