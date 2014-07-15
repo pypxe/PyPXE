@@ -50,6 +50,8 @@ The PyPXE library provies the following services for the purpose of creating a P
 **See [`pypxe-server.py`](pypxe-server.py) in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server `pypxe.tftp`
+
+###Importing
 The TFTP service can be imported _one_ of the following two ways:
 ```python
 from pypxe import tftp
@@ -58,7 +60,8 @@ from pypxe import tftp
 import pypxe.tftp
 ```
 
-The TFTP server class, __`TFTPD()`__, is constructed with keyword arguments. The following is a list of keyword arguments that __`TFTPD()`__ takes in order to be constructed:
+###Constructing
+The TFTP server class, __`TFTPD()`__, is constructed with the following keyword arguments:
 * __`ip`__
   * Description: This is the IP address that the TFTP server will bind to.
   * Default: `'0.0.0.0'` (so that it binds to all available interfaces)
@@ -77,6 +80,8 @@ The TFTP server class, __`TFTPD()`__, is constructed with keyword arguments. The
   * Type: bool
 
 ##DHCP Server `pypxe.dhcp`
+
+###Importing
 The DHCP service can be imported _one_ of the following two ways:
 ```python
 from pypxe import dhcp
@@ -85,7 +90,8 @@ from pypxe import dhcp
 import pypxe.dhcp
 ```
 
-The DHCP server class, __`DHCPD()`__, is constructed with keyword arguments. The following is a list of keyword arguments that __`DHCPD()`__ takes in order to be constructed:
+###Constructing
+The DHCP server class, __`DHCPD()`__, is constructed with the following keyword arguments:
 * __`ip`__
   * Description: This is the IP address that the DHCP server itself binds to.
   * Default: `'192.168.2.2'`
@@ -144,6 +150,8 @@ The DHCP server class, __`DHCPD()`__, is constructed with keyword arguments. The
   * Type: _bool_
 
 ##HTTP Server `pypxe.http`
+
+###Importing
 The HTTP service can be imported _one_ of the following two ways:
 ```python
 from pypxe import http
@@ -152,7 +160,8 @@ from pypxe import http
 import pypxe.http
 ```
 
-The HTTP server class, __`HTTPD()`__, is constructed with keyword arguments. The following is a list of keyword arguments that __`HTTPD()`__ takes in order to be constructed:
+###Constructing
+The HTTP server class, __`HTTPD()`__, is constructed with the following keyword arguments:
 * __`ip`__
   * Description: This is the IP address that the HTTP server will bind to.
   * Default: `'0.0.0.0'` (so that it binds to all available interfaces)
