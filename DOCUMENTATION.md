@@ -60,7 +60,7 @@ from pypxe import tftp
 import pypxe.tftp
 ```
 
-###Constructing
+###Usage
 The TFTP server class, __`TFTPD()`__, is constructed with the following keyword arguments:
 * __`ip`__
   * Description: This is the IP address that the TFTP server will bind to.
@@ -90,7 +90,7 @@ from pypxe import dhcp
 import pypxe.dhcp
 ```
 
-###Constructing
+###Usage
 The DHCP server class, __`DHCPD()`__, is constructed with the following keyword arguments:
 * __`ip`__
   * Description: This is the IP address that the DHCP server itself binds to.
@@ -160,7 +160,7 @@ from pypxe import http
 import pypxe.http
 ```
 
-###Constructing
+###Usage
 The HTTP server class, __`HTTPD()`__, is constructed with the following keyword arguments:
 * __`ip`__
   * Description: This is the IP address that the HTTP server will bind to.
