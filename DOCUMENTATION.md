@@ -51,9 +51,17 @@ The PyPXE library provies the following services for the purpose of creating a P
 * `from pypxe import dhcp` or `import pypxe.dhcp` imports the DHCP service
 * `from pypxe import http` or `import pypxe.http` imports the HTTP service
 
-See `pypxe-server.py` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
+**See `pypxe-server.py` in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server `pypxe.tftp`
+The TFTP service can be imported one of two ways:
+```python
+from pypxe import tftp
+```
+```python
+import pypxe.tftp
+```
+
 The TFTP server class, `TFTPD()` requires three optional parameters be set in order to be constructed:
 * `ip` [Type: string; Optional] - this is the IP address that the TFTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
 * `port` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 69 as that is the default port for TFTP
@@ -61,6 +69,14 @@ The TFTP server class, `TFTPD()` requires three optional parameters be set in or
 * `mode_debug` [Type: bool; Optional] - this indicates whether or not the TFTP server should be started in debug mode or not; by default it is set to 'False'
 
 ##DHCP Server `pypxe.dhcp`
+The DHCP service can be imported one of two ways:
+```python
+from pypxe import dhcp
+```
+```python
+import pypxe.dhcp
+```
+
 The DHCP server class, `DHCPD()` requires the following parameters be set in order to be constructed:
 * `ip` [Type: string; Optional] - this is the IP address that the DHCP server itself bind to; by default the DHCP server will start with an IP of '192.168.2.2'
 * `port` [Type: int; Optional] - this it the port that the TFTP server will run on; by default the port is 67 as that is the default port to listen for DHCP requests
@@ -78,10 +94,18 @@ The DHCP server class, `DHCPD()` requires the following parameters be set in ord
 * `mode_debug` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in debug mode or not; by default it is set to 'False'
 
 ##HTTP Server `pypxe.http`
+The HTTP service can be imported one of two ways:
+```python
+from pypxe import http
+```
+```python
+import pypxe.http
+```
+
 The HTTP server class, `HTTPD()` requires three optional parameters be set in order to be constructed:
 * `ip` [Type: string; Optional] - this is the IP address that the HTTP server will bind to; by default it is set to '0.0.0.0' so that it binds to all available interfaces
 * `port` [Type: int; Optional] - this it the port that the HTTP server will run on; by default the port is 80 as that is the default port for HTTP
-* `netbootDirectory` [Type: string; Optional] - this is the directory that the HTTP server will serve files from similarly to that of `/tftpboot`; by default it is set to '.' (current directory)
+* `netbootDirectory` [Type: string; Optional] - this is the directory that the HTTP server will serve files from similarly to that of `tftpboot`; by default it is set to '.' (current directory)
 * `mode_debug` [Type: bool; Optional] - this indicates whether or not the HTTP server should be started in debug mode or not; by default it is set to 'False'
 
 ##Additional Information
