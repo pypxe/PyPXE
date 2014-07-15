@@ -92,7 +92,7 @@ The following are arguments that can be passed to `pypxe-server.py` when running
     * Default: `'netboot'`
   * __`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__
     * Description: Specify the PXE boot file name
-    * Default: _automatically set based on what services are enabled or disabled, see [DOCUMENTATION.md](DOCUMENTATION.md) for further explanation_
+    * Default: _automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_
 
 ##Notes
 * `Core.iso` located in `netboot` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
