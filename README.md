@@ -57,7 +57,8 @@ $ sudo python pypxe-server.py --dhcp-proxy
   * __Note:__ This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give.
 
 **PyPXE Server DHCP Service Arguments**
-_each of the following can be set one of two ways, you can use either/or_
+
+_**Note:** each of the following can be set one of two ways, you can use either/or_
 * Specify DHCP server IP address
   * Default: 192.168.2.2
   * `-s DHCP_SERVER_IP` or `--dhcp-server-ip DHCP_SERVER_IP`
