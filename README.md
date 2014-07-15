@@ -17,21 +17,21 @@ import pypxe.tftp
 For more information on how each service works and how to manipulate them, see  `DOCUMENTATION.md`.
 
 ###QuickStart
-`server.py` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the `server.py` settings to your preferred settings or run with `--help` or `-h` to see what command line arguments you can pass. Treat the provided `netboot` directory as `/tftpboot` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in `netboot/pxelinux.cfg/default`.
+`pypxe-server.py` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the `pypxe-server.py` settings to your preferred settings or run with `--help` or `-h` to see what command line arguments you can pass. Treat the provided `netboot` directory as `tftpboot` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in `netboot/pxelinux.cfg/default`.
 
-**Note:** Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `server.py` will not run without it.
+**Note:** Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `pypxe-server.py` will not run without it.
 
 Simply run the following command and you will have an out-of-the-box PXE-bootable server that runs TFTP and serves files out of the `netboot` directory!
 ```bash
-$sudo python server.py
+$ sudo python pypxe-server.py
 ```
 If you require the ability to handle DHCP PXE requests then you can either enable the built-in DHCP server (after configuring, of course)...
 ```bash
-$sudo python server.py --dhcp
+$ sudo python pypxe-server.py --dhcp
 ```
-...or start `server.py` in ProxyDHCP mode rather than a full DHCP server to prevent DHCP conflicts on your network...
+...or start `pypxe-server.py` in ProxyDHCP mode rather than a full DHCP server to prevent DHCP conflicts on your network...
 ```bash
-$sudo python server.py --dhcp-proxy
+$ sudo python pypxe-server.py --dhcp-proxy
 ```
 
 **TFTP/DHCP/HTTP/iPXE Arguments**

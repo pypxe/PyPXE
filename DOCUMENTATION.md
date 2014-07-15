@@ -51,7 +51,7 @@ The PyPXE library provies the following services for the purpose of creating a P
 * `from pypxe import dhcp` or `import pypxe.dhcp` imports the DHCP service
 * `from pypxe import http` or `import pypxe.http` imports the HTTP service
 
-See `server.py` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
+See `pypxe-server.py` in the root of the repo for example usage on how to call, define, and setup the services. When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server `pypxe.tftp`
 The TFTP server class, `TFTPD()` requires three optional parameters be set in order to be constructed:
@@ -86,5 +86,5 @@ The HTTP server class, `HTTPD()` requires three optional parameters be set in or
 
 ##Additional Information
 * The function `chr(0)` is used in multiple places throughout the servers. This denotes a `NULL` byte, or `\x00`
-* Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `server.py` will not run without it.
+* Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `pypxe-server.py` will not run without it.
 * The TFTP server currently does not support transfer of large files, this is a known issue (see #35). Instead of using TFTP to transfer large files (roughly 33MB or greater) it is recommended that you use the HTTP server to do so. iPXE supports direct boot from HTTP and certain kernels (once you've booted into `pxelinux.0` via TFTP) support fetching files via HTTP as well.
