@@ -94,10 +94,10 @@ if __name__ == '__main__':
         if args.USE_TFTP:
             print 'Starting TFTP server...'
             tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
-            tftpServerThread = threading.Thread(target = tftpServer.listen)
-            tftpServerThread.daemon = True
-            tftpServerThread.start()
-            runningServices.append(tftpServerThread)
+            tftpd = threading.Thread(target = tftpServer.listen)
+            tftpd.daemon = True
+            tftpd.start()
+            runningServices.append(tftpd)
 
         #configure/start DHCP server
         if args.USE_DHCP:
@@ -120,20 +120,20 @@ if __name__ == '__main__':
                     args.USE_HTTP,
                     args.DHCP_MODE_PROXY,
                     args.MODE_DEBUG)
-            dhcpServerThread = threading.Thread(target = dhcpServer.listen)
-            dhcpServerThread.daemon = True
-            dhcpServerThread.start()
-            runningServices.append(dhcpServerThread)
+            dhcpd = threading.Thread(target = dhcpServer.listen)
+            dhcpd.daemon = True
+            dhcpd.start()
+            runningServices.append(dhcpd)
 
 
         #configure/start HTTP server
         if args.USE_HTTP:
             print 'Starting HTTP server...'
             httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG)
-            httpServerThread = threading.Thread(target = httpServer.listen)
-            httpServerThread.daemon = True
-            httpServerThread.start()
-            runningServices.append(httpServerThread)
+            httpd = threading.Thread(target = httpServer.listen)
+            httpd.daemon = True
+            httpd.start()
+            runningServices.append(httpd)
 
         print 'PyPXE successfully initialized and running!'
 
