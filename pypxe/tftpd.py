@@ -17,7 +17,7 @@ class TFTPD:
         self.sock.bind((self.ip, self.port))
 
         if self.mode_debug:
-            print '\nNOTICE: TFTP server started in debug mode. TFTP server is using the following:\n'
+            print 'NOTICE: TFTP server started in debug mode. TFTP server is using the following:'
             print '\tTFTP Server IP: ' + self.ip
             print '\tTFTP Server Port: ' + str(self.port)
             print '\tTFTP Network Boot Directory: ' + netbootDirectory
@@ -64,7 +64,8 @@ class TFTPD:
         self.sock.sendto(response, address)
         if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
-            print 'tftp://%s -> %s:%d' % (descriptor['filename'], address[0], address[1])
+            if self.mode_debug:
+                print '[DEBUG] TFTP File Sent - tftp://%s -> %s:%d' % (descriptor['filename'], address[0], address[1])
             self.ongoing.pop(address)
         else:
             if self.mode_debug:
@@ -93,8 +94,8 @@ class TFTPD:
             self.ongoing[address]['blksize'] = int(options['blksize'])
         filesize = os.path.getsize(self.ongoing[address]['filename'])
         if filesize > (2**16 * self.ongoing[address]['blksize']):
-            print '\nWARNING: TFTP request too big, attempting transfer anyway.'
-            print '\tFilesize %s is too big for blksize %s.\n' % (filesize, self.ongoing[address]['blksize'])
+            print '\nWARNING: TFTP request too big, attempting transfer anyway.\n'
+            print '\tDetails: Filesize %s is too big for blksize %s.\n' % (filesize, self.ongoing[address]['blksize'])
         if 'tsize' in options:
             response += 'tsize' + chr(0)
             response += str(filesize)

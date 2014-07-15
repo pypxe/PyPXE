@@ -18,7 +18,7 @@ class HTTPD:
         os.chdir (netbootDirectory)
         os.chroot ('.')
         if self.mode_debug:
-            print '\nNOTICE: HTTP server started in debug mode. HTTP server is using the following:\n'
+            print 'NOTICE: HTTP server started in debug mode. HTTP server is using the following:'
             print '\tHTTP Server IP: ' + ip
             print '\tHTTP Server Port: ' + str(port)
             print '\tHTTP Network Boot Directory: ' + netbootDirectory
@@ -28,7 +28,7 @@ class HTTPD:
         request = connection.recv(1024)
         if self.mode_debug:
             print '[DEBUG] HTTP Recieved message from ' + repr(addr)
-            print '\t<--BEGIN MESSAGE-->\n\t' + repr(request) + '\n\t<--END MESSAGE-->\n'
+            print '\t<--BEGIN MESSAGE-->\n\t' + repr(request) + '\n\t<--END MESSAGE-->'
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
         target = startline[1]
@@ -46,7 +46,7 @@ class HTTPD:
             connection.close()
             if self.mode_debug:
                 print '[DEBUG] HTTP Sending message to ' + repr(addr)
-                print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->\n'
+                print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->'
             return
 
         response += 'Content-Length: %d\r\n' % os.path.getsize(target)
@@ -56,7 +56,7 @@ class HTTPD:
             connection.close()
             if self.mode_debug:
                 print '[DEBUG] HTTP Sending message to ' + repr(addr)
-                print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->\n'
+                print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->'
             return
 
         handle = open(target)
@@ -66,8 +66,8 @@ class HTTPD:
         connection.close()
         if self.mode_debug:
             print '[DEBUG] HTTP Sending message to ' + repr(addr)
-            print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->\n'
-        print 'http://%s -> %s:%d' % (target, addr[0], addr[1])
+            print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->'
+            print '\tHTTP File Sent - http://%s -> %s:%d' % (target, addr[0], addr[1])
 
     def listen(self):
         '''This method is the main loop that listens for requests'''
