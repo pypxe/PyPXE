@@ -39,6 +39,7 @@ if __name__ == '__main__':
         # Define Command Line Arguments
         #
 
+        #main service arguments
         parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
@@ -59,17 +60,18 @@ if __name__ == '__main__':
         parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = DHCP_BROADCAST)
         parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = DHCP_FILESERVER)
 
+        #network boot directory and file name arguments
         parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR)
         parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE)
 
-        #parse the arguments given in the command line
+        #parse the arguments given
         args = parser.parse_args()
 
         #pass warning to user regarding starting HTTP server without iPXE
         if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         
-        #if the argument was pased to enabled DHCP proxy mode then enable the DHCP server as well
+        #if the argument was pased to enabled ProxyDHCP then enable the DHCP server
         if args.DHCP_MODE_PROXY:
             args.USE_DHCP = True
 
@@ -84,7 +86,10 @@ if __name__ == '__main__':
 
         #serve all files from one directory
         os.chdir (args.NETBOOT_DIR)
+        
+        #make a list of running threads for each service
         threads = []
+
         #configure/start TFTP server
         if args.USE_TFTP:
             print 'Starting TFTP server...'

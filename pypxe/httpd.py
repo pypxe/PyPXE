@@ -13,10 +13,12 @@ class HTTPD:
         self.sock.bind((ip, port))
         self.sock.listen(1)
         self.mode_debug = mode_debug #debug mode
+
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
         os.chdir (netbootDirectory)
         os.chroot ('.')
+
         if self.mode_debug:
             print 'NOTICE: HTTP server started in debug mode. HTTP server is using the following:'
             print '\tHTTP Server IP: ' + ip
@@ -32,7 +34,6 @@ class HTTPD:
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
         target = startline[1]
-
         if not os.path.exists(target) or not os.path.isfile(target):
             status = '404 Not Found'
         elif method not in ('GET', 'HEAD'):
@@ -40,15 +41,13 @@ class HTTPD:
         else:
             status = '200 OK'
         response = 'HTTP/1.1 %s\r\n' % status
-        if status[:3] in ('404', '501'):
-            #fail out
+        if status[:3] in ('404', '501'): #fail out
             connection.send(response)
             connection.close()
             if self.mode_debug:
                 print '[DEBUG] HTTP Sending message to ' + repr(addr)
                 print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->'
             return
-
         response += 'Content-Length: %d\r\n' % os.path.getsize(target)
         response += '\r\n'
         if method == 'HEAD':
@@ -58,7 +57,6 @@ class HTTPD:
                 print '[DEBUG] HTTP Sending message to ' + repr(addr)
                 print '\t<--BEING MESSAGE-->\n\t' + repr(response) + '\n\t<--END MESSAGE-->'
             return
-
         handle = open(target)
         response += handle.read()
         handle.close()

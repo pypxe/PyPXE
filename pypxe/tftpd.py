@@ -24,6 +24,7 @@ class TFTPD:
 
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512})
+
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
         os.chdir (netbootDirectory)
@@ -56,8 +57,7 @@ class TFTPD:
             short int 3 -> Data Block
         '''
         descriptor = self.ongoing[address]
-        #opcode 3 is DATA, also sent block number
-        response =  struct.pack('!H', 3)
+        response =  struct.pack('!H', 3) #opcode 3 is DATA, also sent block number
         response += struct.pack('!H', descriptor['block'] % 2 ** 16)
         data = descriptor['handle'].read(descriptor['blksize'])
         response += data
