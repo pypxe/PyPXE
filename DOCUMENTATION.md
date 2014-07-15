@@ -51,7 +51,7 @@ The PyPXE library provies the following services for the purpose of creating a P
 * `from pypxe import dhcp` or `import pypxe.dhcp` imports the DHCP service
 * `from pypxe import http` or `import pypxe.http` imports the HTTP service
 
-**See `pypxe-server.py` in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
+**See [`pypxe-server.py`](../pypxe-server.py) in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server `pypxe.tftp`
 The TFTP service can be imported one of two ways:
