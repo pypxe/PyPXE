@@ -59,38 +59,38 @@ The following are arguments that can be passed to `pypxe-server.py` when running
     * Default: False
     * _Note: This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give._
 * __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
-  * __`-s DHCP_SERVER_IP` or `--dhcp-server-ip DHCP_SERVER_IP`__
+  * __`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__
     * Description: Specify DHCP server IP address
     * Default: 192.168.2.2
-  * __`-p DHCP_SERVER_PORT` or `--dhcp-server-port DHCP_SERVER_PORT`__
+  * __`-p DHCP_SERVER_PORT`__ or __`--dhcp-server-port DHCP_SERVER_PORT`__
     * Description: Specify DHCP server port
     * Default: 67
-  * __`-b DHCP_OFFER_BEGIN` or `--dhcp-begin DHCP_OFFER_BEGIN`__
+  * __`-b DHCP_OFFER_BEGIN`__ or __`--dhcp-begin DHCP_OFFER_BEGIN`__
     * Description: Specify DHCP lease range start
     * Default: 192.168.2.100
-  * __`-e DHCP_OFFER_END` or `--dhcp-end DHCP_OFFER_END`__
+  * __`-e DHCP_OFFER_END`__ or __`--dhcp-end DHCP_OFFER_END`__
     * Description: Specify DHCP lease range end
     * Default: 192.168.2.150
-  * __`-n DHCP_SUBNET` or `--dhcp-subnet DHCP_SUBNET`__
+  * __`-n DHCP_SUBNET`__ or __`--dhcp-subnet DHCP_SUBNET`__
     * Description: Specify DHCP subnet
     * Default: 255.255.255.0
-  * __`-r DHCP_ROUTER` or `--dhcp-router DHCP_ROUTER`__
+  * __`-r DHCP_ROUTER`__ or __`--dhcp-router DHCP_ROUTER`__
     * Description: Specify DHCP lease router
     * Default: 192.168.2.1
-  * __`-d DHCP_DNS` or `--dhcp-dns DHCP_DNS`__
+  * __`-d DHCP_DNS`__ or __`--dhcp-dns DHCP_DNS`__
     * Description: Specify DHCP lease DNS server 
     * Default: 8.8.8.8
-  * __`-c DHCP_BROADCAST` or `--dhcp-broadcast DHCP_BROADCAST`__
+  * __`-c DHCP_BROADCAST`__ or __`--dhcp-broadcast DHCP_BROADCAST`__
     * Description: Specify DHCP broadcast address
     * Default: '<broadcast>'
-  * __`-f DHCP_FILESERVER_IP` or `--dhcp-fileserver-ip DHCP_FILESERVER_IP`__
+  * __`-f DHCP_FILESERVER_IP`__ or __`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__
     * Description: Specify DHCP file server IP address
     * Default: 192.168.2.2
 * __File Name/Directory Arguments__
-  * __`-a NETBOOT_DIR` or `--netboot-dir NETBOOT_DIR`__
+  * __`-a NETBOOT_DIR`__ or __`--netboot-dir NETBOOT_DIR`__
     * Description: Specify the local directory where network boot files will be served 
     * Default: 'netboot'
-  * __`-i NETBOOT_FILE` or `--netboot-file NETBOOT_FILE`__
+  * __`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__
     * Description: Specify the PXE boot file name
     * Default: automatically set based on what services are enabled or disabled, see documentation for further explanation
 
