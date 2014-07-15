@@ -8,9 +8,9 @@ except ImportError:
     sys.exit("ImportError: You do not have the Python 'argparse' module installed. Please install the 'argparse' module and try again.")
 
 from time import sleep
-from pypxe.httpd import HTTPD
-from pypxe.tftpd import TFTPD
-from pypxe.dhcpd import DHCPD
+from pypxe import tftp
+from pypxe import dhcp
+from pypxe import http
 
 #Default Network Boot File Directory
 NETBOOT_DIR = 'netboot'
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         #configure/start TFTP server
         if args.USE_TFTP:
             print 'Starting TFTP server...'
-            tftpd = TFTPD(mode_debug = args.MODE_DEBUG)
+            tftpd = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
             tftpthread = threading.Thread(target = tftpd.listen)
             tftpthread.daemon = True
             tftpthread.start()
@@ -105,7 +105,7 @@ if __name__ == '__main__':
                 print 'Starting DHCP server in ProxyDHCP mode...'
             else:
                 print 'Starting DHCP server...'
-            dhcpd = DHCPD(
+            dhcpd = dhcp.DHCPD(
                     args.DHCP_SERVER_IP,
                     args.DHCP_SERVER_PORT,
                     args.DHCP_OFFER_BEGIN,
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         #configure/start HTTP server
         if args.USE_HTTP:
             print 'Starting HTTP server...'
-            httpd = HTTPD(mode_debug = args.MODE_DEBUG)
+            httpd = http.HTTPD(mode_debug = args.MODE_DEBUG)
             httpthread = threading.Thread(target = httpd.listen)
             httpthread.daemon = True
             httpthread.start()
