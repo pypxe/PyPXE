@@ -50,11 +50,10 @@ The PyPXE library provies the following services for the purpose of creating a P
 **See [`pypxe-server.py`](pypxe-server.py) in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ##TFTP Server `pypxe.tftp`
-The TFTP service can be imported one of two ways:
+The TFTP service can be imported _one_ of the following two ways:
 ```python
 from pypxe import tftp
 ```
-or
 ```python
 import pypxe.tftp
 ```
@@ -66,11 +65,10 @@ The TFTP server class, `TFTPD()` requires three optional parameters be set in or
 * `mode_debug` [Type: bool; Optional] - this indicates whether or not the TFTP server should be started in debug mode or not; by default it is set to 'False'
 
 ##DHCP Server `pypxe.dhcp`
-The DHCP service can be imported one of two ways:
+The DHCP service can be imported _one_ of the following two ways:
 ```python
 from pypxe import dhcp
 ```
-or
 ```python
 import pypxe.dhcp
 ```
@@ -92,11 +90,10 @@ The DHCP server class, `DHCPD()` requires the following parameters be set in ord
 * `mode_debug` [Type: bool; Optional] - this indicates whether or not the DHCP server should be started in debug mode or not; by default it is set to 'False'
 
 ##HTTP Server `pypxe.http`
-The HTTP service can be imported one of two ways:
+The HTTP service can be imported _one_ of the following two ways:
 ```python
 from pypxe import http
 ```
-or
 ```python
 import pypxe.http
 ```
