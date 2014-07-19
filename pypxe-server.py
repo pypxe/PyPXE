@@ -8,9 +8,9 @@ except ImportError:
     sys.exit("ImportError: You do not have the Python 'argparse' module installed. Please install the 'argparse' module and try again.")
 
 from time import sleep
-from httpd import HTTPD
-from tftpd import TFTPD
-from dhcpd import DHCPD
+from pypxe import tftp #PyPXE TFTP service
+from pypxe import dhcp #PyPXE DHCP service
+from pypxe import http #PyPXE HTTP service
 
 #Default Network Boot File Directory
 NETBOOT_DIR = 'netboot'
@@ -39,18 +39,17 @@ if __name__ == '__main__':
         # Define Command Line Arguments
         #
 
+        #main service arguments
         parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
-        parser.add_argument('--http-debug', action = 'store_true', dest = 'HTTP_MODE_DEBUG', help = 'Adds verbosity to the HTTP server while it runs', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
-        parser.add_argument('--tftp-debug', action = 'store_true', dest = 'TFTP_MODE_DEBUG', help = 'Adds verbosity to the TFTP server while it runs', default = False)
+        parser.add_argument('--debug', action = 'store_true', dest = 'MODE_DEBUG', help = 'Adds verbosity to the selected services while they run', default = False)
         
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
         exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
         exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = False)
-        parser.add_argument('--dhcp-debug', action = 'store_true', dest = 'DHCP_MODE_DEBUG', help = 'Adds verbosity to the DHCP server while it runs', default = False)
         parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP)
         parser.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = DHCP_SERVER_PORT)
         parser.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = DHCP_OFFER_BEGIN)
@@ -61,17 +60,18 @@ if __name__ == '__main__':
         parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = DHCP_BROADCAST)
         parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = DHCP_FILESERVER)
 
+        #network boot directory and file name arguments
         parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR)
         parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE)
 
-        #parse the arguments given in the command line
+        #parse the arguments given
         args = parser.parse_args()
 
         #pass warning to user regarding starting HTTP server without iPXE
-        if args.USE_HTTP and not args.USE_IPXE:
+        if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         
-        #if the argument was pased to enabled DHCP proxy mode then enable the DHCP server as well
+        #if the argument was pased to enabled ProxyDHCP then enable the DHCP server
         if args.DHCP_MODE_PROXY:
             args.USE_DHCP = True
 
@@ -86,54 +86,58 @@ if __name__ == '__main__':
 
         #serve all files from one directory
         os.chdir (args.NETBOOT_DIR)
-        threads = []
+        
+        #make a list of running threads for each service
+        runningServices = []
+
         #configure/start TFTP server
         if args.USE_TFTP:
-            tftpd = TFTPD(mode_debug = args.TFTP_MODE_DEBUG)
-            tftpthread = threading.Thread(target = tftpd.listen)
-            tftpthread.daemon = True
-            tftpthread.start()
-            threads.append(tftpthread)
             print 'Starting TFTP server...'
+            tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
+            tftpd = threading.Thread(target = tftpServer.listen)
+            tftpd.daemon = True
+            tftpd.start()
+            runningServices.append(tftpd)
 
         #configure/start DHCP server
         if args.USE_DHCP:
-            dhcpd = DHCPD(
-                    args.DHCP_SERVER_IP,
-                    args.DHCP_SERVER_PORT,
-                    args.DHCP_OFFER_BEGIN,
-                    args.DHCP_OFFER_END,
-                    args.DHCP_SUBNET,
-                    args.DHCP_ROUTER,
-                    args.DHCP_DNS,
-                    args.DHCP_BROADCAST,
-                    args.DHCP_FILESERVER,
-                    args.NETBOOT_FILE,
-                    args.USE_IPXE,
-                    args.USE_HTTP,
-                    args.DHCP_MODE_PROXY,
-                    args.DHCP_MODE_DEBUG)
-            dhcpthread = threading.Thread(target = dhcpd.listen)
-            dhcpthread.daemon = True
-            dhcpthread.start()
-            threads.append(dhcpthread)
             if args.DHCP_MODE_PROXY:
                 print 'Starting DHCP server in ProxyDHCP mode...'
             else:
                 print 'Starting DHCP server...'
+            dhcpServer = dhcp.DHCPD(
+                    ip = args.DHCP_SERVER_IP,
+                    port = args.DHCP_SERVER_PORT,
+                    offerfrom = args.DHCP_OFFER_BEGIN,
+                    offerto = args.DHCP_OFFER_END,
+                    subnet = args.DHCP_SUBNET,
+                    router = args.DHCP_ROUTER,
+                    dnsserver = args.DHCP_DNS,
+                    broadcast = args.DHCP_BROADCAST,
+                    fileserver = args.DHCP_FILESERVER,
+                    filename = args.NETBOOT_FILE,
+                    useipxe = args.USE_IPXE,
+                    usehttp = args.USE_HTTP,
+                    mode_proxy = args.DHCP_MODE_PROXY,
+                    mode_debug = args.MODE_DEBUG)
+            dhcpd = threading.Thread(target = dhcpServer.listen)
+            dhcpd.daemon = True
+            dhcpd.start()
+            runningServices.append(dhcpd)
+
 
         #configure/start HTTP server
         if args.USE_HTTP:
-            httpd = HTTPD(mode_debug = args.HTTP_MODE_DEBUG)
-            httpthread = threading.Thread(target = httpd.listen)
-            httpthread.daemon = True
-            httpthread.start()
-            threads.append(httpthread)
             print 'Starting HTTP server...'
+            httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG)
+            httpd = threading.Thread(target = httpServer.listen)
+            httpd.daemon = True
+            httpd.start()
+            runningServices.append(httpd)
 
         print 'PyPXE successfully initialized and running!'
 
-        while map(lambda x: x.isAlive(), threads):
+        while map(lambda x: x.isAlive(), runningServices):
             sleep(1)
 
     except KeyboardInterrupt:

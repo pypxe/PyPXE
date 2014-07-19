@@ -1,3 +1,9 @@
+'''
+
+This file contains classes and functions that implement the PyPXE TFTP service
+
+'''
+
 import socket
 import struct
 import os
@@ -8,25 +14,27 @@ class TFTPD:
         This class implements a read-only TFTP server
         implemented from RFC1350 and RFC2348
     '''
-    def __init__ (self, ip = '0.0.0.0', port = 69, netbootDirectory = '.', mode_debug = False):
-        self.ip = ip
-        self.port = port
-        self.mode_debug = mode_debug
+    def __init__(self, **serverSettings):
+        self.ip = serverSettings.get('ip', '0.0.0.0')
+        self.port = serverSettings.get('port', 69)
+        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
+        self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
 
         if self.mode_debug:
-            print '\nNOTICE: TFTP server started in debug mode. TFTP server is using the following:\n'
+            print 'NOTICE: TFTP server started in debug mode. TFTP server is using the following:'
             print '\tTFTP Server IP: ' + self.ip
             print '\tTFTP Server Port: ' + str(self.port)
-            print '\tTFTP Network Boot Directory: ' + netbootDirectory
+            print '\tTFTP Network Boot Directory: ' + self.netbootDirectory
 
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512})
+
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
-        os.chdir (netbootDirectory)
+        os.chdir (self.netbootDirectory)
         os.chroot ('.')
 
     def filename(self, message):
@@ -56,15 +64,15 @@ class TFTPD:
             short int 3 -> Data Block
         '''
         descriptor = self.ongoing[address]
-        #opcode 3 is DATA, also sent block number
-        response =  struct.pack('!H', 3)
+        response =  struct.pack('!H', 3) #opcode 3 is DATA, also sent block number
         response += struct.pack('!H', descriptor['block'] % 2 ** 16)
         data = descriptor['handle'].read(descriptor['blksize'])
         response += data
         self.sock.sendto(response, address)
         if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
-            print 'tftp://%s -> %s:%d' % (descriptor['filename'], address[0], address[1])
+            if self.mode_debug:
+                print '[DEBUG] TFTP File Sent - tftp://%s -> %s:%d' % (descriptor['filename'], address[0], address[1])
             self.ongoing.pop(address)
         else:
             if self.mode_debug:
@@ -93,8 +101,8 @@ class TFTPD:
             self.ongoing[address]['blksize'] = int(options['blksize'])
         filesize = os.path.getsize(self.ongoing[address]['filename'])
         if filesize > (2**16 * self.ongoing[address]['blksize']):
-            print '\nWARNING: TFTP request too big, attempting transfer anyway.'
-            print '\tFilesize %s is too big for blksize %s.\n' % (filesize, self.ongoing[address]['blksize'])
+            print '\nWARNING: TFTP request too big, attempting transfer anyway.\n'
+            print '\tDetails: Filesize %s is too big for blksize %s.\n' % (filesize, self.ongoing[address]['blksize'])
         if 'tsize' in options:
             response += 'tsize' + chr(0)
             response += str(filesize)
