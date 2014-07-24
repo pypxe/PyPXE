@@ -25,9 +25,9 @@ class TFTPD:
 
         if self.mode_debug:
             print 'NOTICE: TFTP server started in debug mode. TFTP server is using the following:'
-            print '\tTFTP Server IP: ' + self.ip
-            print '\tTFTP Server Port: ' + str(self.port)
-            print '\tTFTP Network Boot Directory: ' + self.netbootDirectory
+            print '\tTFTP Server IP: {}'.format(self.ip)
+            print '\tTFTP Server Port: {}'.format(self.port)
+            print '\tTFTP Network Boot Directory: {}'.format(self.netbootDirectory)
 
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512})
@@ -72,11 +72,11 @@ class TFTPD:
         if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
             if self.mode_debug:
-                print '[DEBUG] TFTP File Sent - tftp://%s -> %s:%d' % (descriptor['filename'], address[0], address[1])
+                print '[DEBUG] TFTP File Sent - tftp://{filename} -> {address[0]}:{address[1]}'.format(filename = descriptor['filename'], address = address)
             self.ongoing.pop(address)
         else:
             if self.mode_debug:
-                print '[DEBUG] TFTP Sending block ' + repr(descriptor['block'])
+                print '[DEBUG] TFTP Sending block {block}'.format(block = repr(descriptor['block']))
             descriptor['block'] += 1
 
     def read(self, address, message):
@@ -102,7 +102,7 @@ class TFTPD:
         filesize = os.path.getsize(self.ongoing[address]['filename'])
         if filesize > (2**16 * self.ongoing[address]['blksize']):
             print '\nWARNING: TFTP request too big, attempting transfer anyway.\n'
-            print '\tDetails: Filesize %s is too big for blksize %s.\n' % (filesize, self.ongoing[address]['blksize'])
+            print '\tDetails: Filesize {filesize} is too big for blksize {blksize}.\n'.format(filesize = filesize, blksize = self.ongoing[address]['blksize'])
         if 'tsize' in options:
             response += 'tsize' + chr(0)
             response += str(filesize)
