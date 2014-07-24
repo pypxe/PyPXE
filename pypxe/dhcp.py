@@ -38,24 +38,24 @@ class DHCPD:
         if self.http and not self.ipxe:
             print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
         if self.ipxe and self.http:
-            self.filename = 'http://%s/%s' % (self.fileserver, self.filename)
+            self.filename = 'http://{fileserver}/{filename}'.format(fileserver = self.fileserver, filename = self.filename)
         if self.ipxe and not self.http:
-            self.filename = 'tftp://%s/%s' % (self.fileserver, self.filename)
+            self.filename = 'tftp://{fileserver}/{filename}'.format(fileserver = self.fileserver, filename = self.filename)
 
         if self.mode_debug:
             print 'NOTICE: DHCP server started in debug mode. DHCP server is using the following:'
-            print '\tDHCP Server IP: ' + self.ip
-            print '\tDHCP Server Port: ' + str (self.port)
-            print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
-            print '\tDHCP Subnet Mask: ' + self.subnetmask
-            print '\tDHCP Router: ' + self.router
-            print '\tDHCP DNS Server: ' + self.dnsserver
-            print '\tDHCP Broadcast Address: ' + self.broadcast
-            print '\tDHCP File Server IP: ' + self.fileserver
-            print '\tDHCP File Name: ' + self.filename
-            print '\tProxyDHCP Mode: ' + str(self.mode_proxy)
-            print '\tUsing iPXE: ' + str(self.ipxe)
-            print '\tUsing HTTP Server: ' + str(self.http)
+            print '\tDHCP Server IP: {}'.format(self.ip)
+            print '\tDHCP Server Port: {}'.format(self.port)
+            print '\tDHCP Lease Range: {} - {}'.format(self.offerfrom, self.offterto)
+            print '\tDHCP Subnet Mask: {}'.format(self.subnetmask)
+            print '\tDHCP Router: {}'.format(self.router)
+            print '\tDHCP DNS Server: {}'.format(self.dnsserver)
+            print '\tDHCP Broadcast Address: {}'.format(self.broadcast)
+            print '\tDHCP File Server IP: {}'.format(self.fileserver)
+            print '\tDHCP File Name: {}'.format(self.filename)
+            print '\tProxyDHCP Mode: {}'.format(self.mode_proxy)
+            print '\tUsing iPXE: {}'.format(self.ipxe)
+            print '\tUsing HTTP Server: {}'.format(self.http)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -148,7 +148,7 @@ class DHCPD:
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
                 if self.mode_debug:
-                    print '[DEBUG] New DHCP Assignment - MAC: ' + self.printMAC(clientmac) + ' -> IP: ' + self.leases[clientmac]['ip']
+                    print '[DEBUG] New DHCP Assignment - MAC: {MAC} -> IP: {IP}'.format(MAC = self.printMAC(clientmac), IP = self.leases[clientmac]['ip'])
             response += socket.inet_aton(offer) #yiaddr
         else:
             response += socket.inet_aton('0.0.0.0')
@@ -203,9 +203,9 @@ class DHCPD:
         response = headerResponse + optionsResponse
         if self.mode_debug:
             print '[DEBUG] DHCPOFFER - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->'
-            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->'
-            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->'
+            print '\t<--BEGIN HEADER-->\n\t{headerResponse}\n\t<--END HEADER-->'.format(headerResponse = repr(headerResponse))
+            print '\t<--BEGIN OPTIONS-->\n\t{optionsResponse}\n\t<--END OPTIONS-->'.format(optionsResponse = repr(optionsResponse))
+            print '\t<--BEGIN RESPONSE-->\n\t{response}\n\t<--END RESPONSE-->'.format(response = repr(response))
         self.sock.sendto(response, (self.broadcast, 68))
 
     def dhcpAck(self, message):
@@ -215,9 +215,9 @@ class DHCPD:
         response = headerResponse + optionsResponse
         if self.mode_debug:
             print '[DEBUG] DHCPACK - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->'
-            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->'
-            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->'
+            print '\t<--BEGIN HEADER-->\n\t{headerResponse}\n\t<--END HEADER-->'.format(headerResponse = repr(headerResponse))
+            print '\t<--BEGIN OPTIONS-->\n\t{optionsResponse}\n\t<--END OPTIONS-->'.format(optionsResponse = repr(optionsResponse))
+            print '\t<--BEGIN RESPONSE-->\n\t{response}\n\t<--END RESPONSE-->'.format(response = repr(response))
         self.sock.sendto(response, (self.broadcast, 68))
 
     def listen(self):
@@ -227,11 +227,11 @@ class DHCPD:
             clientmac = struct.unpack('!28x6s', message[:34])
             if self.mode_debug:
                 print '[DEBUG] Received message'
-                print '\t<--BEGIN MESSAGE-->\n\t' + repr(message) + '\n\t<--END MESSAGE-->'
+                print '\t<--BEGIN MESSAGE-->\n\t{message}\n\t<--END MESSAGE-->'.format(message = repr(message))
             options = self.tlvParse(message[240:])
             if self.mode_debug:
                 print '[DEBUG] Parsed received options'
-                print '\t<--BEGIN OPTIONS-->\n\t' + repr(options) + '\n\t<--END OPTIONS-->'
+                print '\t<--BEGIN OPTIONS-->\n\t{options}\n\t<--END OPTIONS-->'.format(options = repr(options))
             if not (60 in options and 'PXEClient' in options[60][0]) : continue
             type = ord(options[53][0]) #see RFC2131 page 10
             if type == 1:
