@@ -46,7 +46,7 @@ class DHCPD:
             print 'NOTICE: DHCP server started in debug mode. DHCP server is using the following:'
             print '\tDHCP Server IP: {}'.format(self.ip)
             print '\tDHCP Server Port: {}'.format(self.port)
-            print '\tDHCP Lease Range: {} - {}'.format(self.offerfrom, self.offterto)
+            print '\tDHCP Lease Range: {} - {}'.format(self.offerfrom, self.offerto)
             print '\tDHCP Subnet Mask: {}'.format(self.subnetmask)
             print '\tDHCP Router: {}'.format(self.router)
             print '\tDHCP DNS Server: {}'.format(self.dnsserver)
