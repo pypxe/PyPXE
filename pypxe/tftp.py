@@ -76,7 +76,7 @@ class TFTPD:
             self.ongoing.pop(address)
         else:
             if self.mode_debug:
-                print '[DEBUG] TFTP Sending block {block}'.format(block = repr(descriptor['block'])
+                print '[DEBUG] TFTP Sending block {block}'.format(block = repr(descriptor['block']))
             descriptor['block'] += 1
 
     def read(self, address, message):
