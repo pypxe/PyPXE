@@ -5,6 +5,7 @@
 
 ##Required Operations for implementation (RFC5661§17)
 **§**|Operation|Description|
+--- | --- | --- | ---
 18.1|ACCESS|Check Access Rights|[ ]
 18.2|CLOSE|Close File|[ ]
 18.3|COMMIT|Commit Cached Data|[ ]
