@@ -5,50 +5,50 @@
 - [XDR RFC4506](https://tools.ietf.org/html/rfc4506)
 
 ###RPCv2
-RPC Program Number: 100003 (RFC5531§Appendix C)  
+RPC Program Number: 100003 (RFC5531§Appendix C)
 Relevant structs laid out in RFC1831§8.
 
 ####General Protocol
 Request:
 
 
-*msg_type*  
-    .0 (uint)  
-*rpc_msg*  
+msg_type
+    .0 (uint
+rpc_msg
     .xid = Random (uint)
-    .*call_body*  
-        .rpcvers = 2 (uint)  
-        .prog = 100003 (uint)  
-        .vers = 4 (uint)  
-        .proc = 1 (COMPOUND) (uint)  
-        .cred = ...  
-        .verf = ...  
-        *COMPOUND4args*  
-            Tag = (Left to implementer, see RFC5661§16.2.3) (utf8str_cs)  
-            .minorversion = 1 (uint32_t)  
+    .call_body
+        .rpcvers = 2 (uint)
+        .prog = 100003 (uint)
+        .vers = 4 (uint)
+        .proc = 1 (COMPOUND) (uint)
+        .cred = ...
+        .verf = ...
+        COMPOUND4args
+            Tag = (Left to implementer, see RFC5661§16.2.3) (utf8str_cs)
+            .minorversion = 1 (uint32_t)
             Operation Count (uint)
-            For Each Operation:  
-                *nfs_opnum4* (See RFC5661§16.2.1) (uint)  
-                *nfs_argop4*  
+            For Each Operation:
+                nfs_opnum4 (See RFC5661§16.2.1) (uint)
+                nfs_argop4
 
 
 Response:
-*msg_type*  
-    .1 (uint)  
-*rpc_msg*  
+msg_type
+    .1 (uint)
+rpc_msg
     .xid = match
-    .*reply_body*  
-        Reply state  
-        .*accepted_reply*  
-            .verf ...  
-            Accept State = 0  
-            *COMPOUND4res*  
-                .status = 0  
-                .tag (see above)  
-                Operation Count (uint)  
-                For Each Operation:  
-                    *nfs_opnum4* (uint)  
-                    *nfs_resop4* (See RFC5661§16.2.2)  
+    .reply_body
+        Reply state
+        .accepted_reply
+            .verf ...
+            Accept State = 0
+            COMPOUND4res
+                .status = 0
+                .tag (see above)
+                Operation Count (uint)
+                For Each Operation:
+                    nfs_opnum4 (uint)
+                    nfs_resop4 (See RFC5661§16.2.2)
 
 
 
