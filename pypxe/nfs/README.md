@@ -11,7 +11,7 @@ Relevant structs laid out in RFC1831§8.
 ####General Protocol
 Request:
 
-
+```
 msg_type
     .0 (uint
 rpc_msg
@@ -30,9 +30,12 @@ rpc_msg
             For Each Operation:
                 nfs_opnum4 (See RFC5661§16.2.1) (uint)
                 nfs_argop4
+```
 
 
 Response:
+
+```
 msg_type
     .1 (uint)
 rpc_msg
@@ -49,6 +52,7 @@ rpc_msg
                 For Each Operation:
                     nfs_opnum4 (uint)
                     nfs_resop4 (See RFC5661§16.2.2)
+```
 
 
 
