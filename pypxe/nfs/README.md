@@ -5,8 +5,9 @@
 - [XDR RFC4506](https://tools.ietf.org/html/rfc4506)
 
 ###RPCv2
+TCP 2049
 RPC Program Number: 100003 (RFC5531§Appendix C)  
-Relevant structs laid out in RFC1831§8.
+Relevant structs laid out in RFC5531§9.
 
 ####General Protocol
 Request:
@@ -54,6 +55,8 @@ rpc_msg
                     nfs_resop4 (See RFC5661§16.2.2)
 ```
 
+#Notes
+Need to implement RPCSEC_GSS as per RFC5661§2.2.1.1
 
 
 
