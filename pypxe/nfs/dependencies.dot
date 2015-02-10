@@ -1,0 +1,189 @@
+//Compile with dot -Tpng dependencies.dot -o dependencies.png
+digraph G {
+    graph [layout=fdp overlap=prism splines=spline];
+    subgraph cluster_topstruct {
+        color=blue;
+        label="Top Level Structs";
+        ACCESS4res;
+        CLOSE4args;
+        CLOSE4res;
+        CREATE4args;
+        CREATE4res;
+        COMMIT4args;
+        COMMIT4res;
+        GETATTR4args;
+        GETATTR4res;
+        GETFH4res;
+        LOCK4args;
+        LOCK4res;
+        LOCKT4args;
+        LOCKT4res;
+        LOCKU4res;
+        LOCKU4args;
+        LOOKUP4args;
+        LOOKUP4res;
+        LOOKUPP4res;
+        NVERIFY4args;
+        NVERIFY4res;
+        OPEN4args;
+        OPEN4res;
+        OPEN_DOWNGRADE4args;
+        OPEN_DOWNGRADE4res;
+        PUTFH4args;
+        PUTFH4res;
+        PUTPUBFH4res;
+        PUTROOTFH4res;
+        READ4args;
+        READ4res;
+        READDIR4args;
+        READDIR4res;
+        READLINK4res;
+        REMOVE4args;
+        REMOVE4res;
+        RENAME4args;
+        RENAME4res;
+        RESTOREFH4res;
+        SAVEFH4res;
+    }
+    subgraph cluster_basestruct {
+        color=purple;
+        label="Base Structs"
+        edge [color=purple];
+        void;
+    }
+    subgraph cluster_functions {
+        color=green
+        label="Functions"
+        ACCESS;
+        CLOSE;
+        COMMIT;
+        CREATE;
+        GETATTR;
+        GETFH;
+        CREATE;
+        LOCK;
+        LOCKT;
+        LOCKU;
+        LOOKUP;
+        LOOKUPP;
+        NVERIFY;
+        OPEN;
+        OPEN_DOWNGRADE;
+        PUTFH;
+        PUTPUBFH;
+        PUTROOTFH;
+        READ;
+        READDIR;
+        READLINK;
+        REMOVE;
+        RENAME;
+        RESTOREFH;
+        SAVEFH;
+    }
+
+    subgraph filehandle {
+        FILEHANDLE[shape=square label="FILEHANDLE\nin=requires\nout=provides"];
+        edge [color=red]
+        subgraph provides {
+            FILEHANDLE -> {OPEN_DOWNGRADE,
+                            CREATE,
+                            GETFH,
+                            LOOKUP,
+                            LOOKUPP,
+                            RESTOREFH};
+        }
+        subgraph requires {
+            {ACCESS,
+            CLOSE,
+            COMMIT,
+            GETATTR,
+            GETFH,
+            LOCK,
+            LOCKT,
+            LOCKU,
+            LOOKUP,
+            LOOKUPP,
+            NVERIFY,
+            PUTFH,
+            PUTPUBFH,
+            PUTROOTFH,
+            READ,
+            READDIR,
+            READLINK,
+            REMOVE,
+            RENAME,
+            RESTOREFH,
+            SAVEFH} -> FILEHANDLE;
+        }
+    }
+
+    subgraph call {
+        subgraph args {
+            edge [color=magenta tailport=s headport=n];
+            CLOSE4args -> CLOSE;
+            COMMIT4args -> COMMIT;
+            CREATE4args -> CREATE
+            GETATTR4args -> GETATTR;
+            LOCK4args -> LOCK;
+            LOCKT4args -> LOCKT;
+            LOCKU4args -> LOCKU;
+            LOOKUP4args -> LOOKUP;
+            NVERIFY4args -> NVERIFY;
+            OPEN4args -> OPEN;
+            OPEN_DOWNGRADE4args -> OPEN_DOWNGRADE;
+            PUTFH4args -> PUTFH;
+            READ4args -> READ;
+            READDIR4args -> READDIR;
+            REMOVE4args -> REMOVE;
+            RENAME4args -> RENAME;
+        }
+        subgraph res {
+            edge [color=grey50 tailport=n headport=s];
+            ACCESS -> ACCESS4res[dir=both];
+            CLOSE4res -> CLOSE;
+            COMMIT -> COMMIT4res;
+            CREATE -> CREATE4res;
+            GETATTR -> GETATTR4res;
+            GETFH -> GETFH4res;
+            LOCK -> LOCK4res;
+            LOCKT -> LOCK4res;
+            LOCKU -> LOCKU4res;
+            LOOKUP -> LOOKUP4res;
+            LOOKUPP -> LOOKUPP4res;
+            NVERIFY -> NVERIFY4res;
+            OPEN -> OPEN4res;
+            OPEN_DOWNGRADE -> OPEN_DOWNGRADE4res;
+            PUTFH -> PUTFH4res;
+            PUTPUBFH -> PUTPUBFH4res;
+            PUTROOTFH -> PUTROOTFH4res;
+            READ -> READ4res;
+            READDIR -> READDIR4res;
+            READLINK -> READLINK4res;
+            REMOVE -> REMOVE4res;
+            RENAME -> RENAME4res;
+            RESTOREFH -> RESTOREFH4res
+            SAVEFH -> SAVEFH4res;
+        }
+        subgraph void {
+            edge [color=purple];
+            {ACCESS4res,
+            CLOSE4res,
+            COMMIT4res,
+            CREATE4res,
+            GETATTR4res,
+            GETFH4res,
+            LOCK4res,
+            LOCKT4res,
+            LOCKU4res,
+            OPEN4res,
+            OPEN_DOWNGRADE4res,
+            PUTFH4res,
+            READ4res,
+            READLINK4res,
+            REMOVE4res,
+            RENAME4res} -> void;
+        }
+    }
+    CREATE -> GETFH[color=orange];
+    OPEN -> GETFH[color=orange];
+}
