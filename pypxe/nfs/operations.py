@@ -1,210 +1,288 @@
+import os
+import struct
 #All the following functions are individually defined
 #in RFC5661 sections 18.*
 
+#Operation ID for COMPOUND as per rFC5661-16.2.1
 nfs_opnum4 = {}
 nfs_opnum4_append = lambda f,x: nfs_opnum4.__setitem__(x,f)
 
-def ACCESS():
+#Functions all accept request and response strings, and state dict
+#They MUST cleanup the request string themselves (chop off the start)
+
+def ACCESS(request, response, state):
     #3
     return
 nfs_opnum4_append(ACCESS, 3)
 
-def CLOSE():
+def CLOSE(request, response, state):
     #4
     return
 nfs_opnum4_append(CLOSE, 4)
 
-def COMMIT():
+def COMMIT(request, response, state):
     #5
     return
 nfs_opnum4_append(COMMIT, 5)
 
-def CREATE():
+def CREATE(request, response, state):
     #6
     return
 nfs_opnum4_append(CREATE, 6)
 
-def GETATTR():
+def GETATTR(request, response, state):
     #9
     return
 nfs_opnum4_append(GETATTR, 9)
 
-def GETFH():
+def GETFH(request, response, state):
     #10
     return
 nfs_opnum4_append(GETFH, 10)
 
-def LOCK():
+def LOCK(request, response, state):
     #12
     return
 nfs_opnum4_append(LOCK, 12)
 
-def LOCKT():
+def LOCKT(request, response, state):
     #13
     return
 nfs_opnum4_append(LOCKT, 13)
 
-def LOCKU():
+def LOCKU(request, response, state):
     #14
     return
 nfs_opnum4_append(LOCKU, 14)
 
-def LOOKUP():
+def LOOKUP(request, response, state):
     #15
     return
 nfs_opnum4_append(LOOKUP, 15)
 
-def LOOKUPP():
+def LOOKUPP(request, response, state):
     #16
     return
 nfs_opnum4_append(LOOKUPP, 16)
 
-def NVERIFY():
+def NVERIFY(request, response, state):
     #17
     return
 nfs_opnum4_append(NVERIFY, 17)
 
-def OPEN():
+def OPEN(request, response, state):
     #18
     return
 nfs_opnum4_append(OPEN, 18)
 
-def OPEN_DOWNGRADE():
+def OPEN_DOWNGRADE(request, response, state):
     #21
     return
 nfs_opnum4_append(OPEN_DOWNGRADE, 21)
 
-def PUTFH():
+def PUTFH(request, response, state):
     #22
     return
 nfs_opnum4_append(PUTFH, 22)
 
-def PUTPUBFH():
+def PUTPUBFH(request, response, state):
     #23
     return
 nfs_opnum4_append(PUTPUBFH, 23)
 
-def PUTROOTFH():
+def PUTROOTFH(request, response, state):
     #24
     return
 nfs_opnum4_append(PUTROOTFH, 24)
 
-def READ():
+def READ(request, response, state):
     #25
     return
 nfs_opnum4_append(READ, 25)
 
-def READDIR():
+def READDIR(request, response, state):
     #26
     return
 nfs_opnum4_append(READDIR, 26)
 
-def READLINK():
+def READLINK(request, response, state):
     #27
     return
 nfs_opnum4_append(READLINK, 27)
 
-def REMOVE():
+def REMOVE(request, response, state):
     #28
     return
 nfs_opnum4_append(REMOVE, 28)
 
-def RENAME():
+def RENAME(request, response, state):
     #29
     return
 nfs_opnum4_append(RENAME, 29)
 
-def RESTOREFH():
+def RESTOREFH(request, response, state):
     #31
     return
 nfs_opnum4_append(RESTOREFH, 31)
 
-def SAVEFH():
+def SAVEFH(request, response, state):
     #32
     return
 nfs_opnum4_append(SAVEFH, 32)
 
-def SECINFO():
+def SECINFO(request, response, state):
     #33
     return
 nfs_opnum4_append(SECINFO, 33)
 
-def SETATTR():
+def SETATTR(request, response, state):
     #34
     return
 nfs_opnum4_append(SETATTR, 34)
 
-def VERIFY():
+def VERIFY(request, response, state):
     #37
     return
 nfs_opnum4_append(VERIFY, 37)
 
-def WRITE():
+def WRITE(request, response, state):
     #38
     return
 nfs_opnum4_append(WRITE, 38)
 
-def BACKCHANNEL_CTL():
+def BACKCHANNEL_CTL(request, response, state):
     #40
     return
 nfs_opnum4_append(BACKCHANNEL_CTL, 40)
 
-def BIND_CONN_TO_SESSION():
+def BIND_CONN_TO_SESSION(request, response, state):
     #41
     return
 nfs_opnum4_append(BIND_CONN_TO_SESSION, 41)
 
-def EXCHANGE_ID():
-    #42
-    return
+def EXCHANGE_ID(request, response, state):
+    '''
+    The client uses the EXCHANGE_ID operation to register a particular
+    client owner with the server.  The client ID returned from this
+    operation will be necessary for requests that create state on the
+    server and will serve as a parent object to sessions created by the
+    client.
+        - RFC5661-18.35.3
+    '''
+    verifier = request[:8] #RFC5661-3.1/2
+    request = request[8:]
+    client = {}
+
+    [client['owneridlen']] = struct.unpack("!I", request[:4])
+    request = request[4:]
+    client['ownerid'] = request[:client['owneridlen']]
+    #Pad to multiple of 4?
+    offset = client['owneridlen'] % 4
+    request = request[client['owneridlen']+offset:]
+
+    client['flags'] = struct.unpack("!I", request[:4])
+    request = request[4:]
+    client['stateprotection'] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    [client['impl_id']] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    [client['domainlen']] = struct.unpack("!I", request[:4])
+    request = request[4:]
+    client['domain'] = request[:client['domainlen']]
+    offset = client['domainlen'] % 4
+    request = request[client['domainlen']+offset:]
+
+    [client['namelen']] = struct.unpack("!I", request[:4])
+    request = request[4:]
+    client['name'] = request[:client['namelen']]
+    offset = client['namelen'] % 4
+    request = request[client['namelen']+offset:]
+
+    client['date'] = struct.unpack("!II", request[:8])
+
+
+    #EXCHANGE_ID, NFS4_OK
+    response += struct.pack("!II", 42, 0)
+    #clientid needs to be unique, 64 bit. RFC5661-2.4
+    clientid = os.urandom(8)
+    response += clientid
+    #seqid, flags, state_protect
+    response += struct.pack("!III", 0, 1<<16|1, 0)
+    #minor id
+    response += struct.pack("!d", 0)
+    #major ID + padding (hardcoded)
+    majorid = "PyPXE"
+    response += struct.pack("!I", 5)
+    response += majorid+"\x00\x00\x00"
+    #scope
+    response += struct.pack("!I", 5)
+    response += majorid+"\x00\x00\x00"
+    #eir_erver_impl_id
+    response += struct.pack("!I", 0)
+
+    state[clientid] = client
+    return request, response
 nfs_opnum4_append(EXCHANGE_ID, 42)
 
-def CREATE_SESSION():
+def CREATE_SESSION(request, response, state):
     #43
-    return
+    return request, response
 nfs_opnum4_append(CREATE_SESSION, 43)
 
-def DESTROY_SESSION():
+def DESTROY_SESSION(request, response, state):
     #44
     return
 nfs_opnum4_append(DESTROY_SESSION, 44)
 
-def FREE_STATEID():
+def FREE_STATEID(request, response, state):
     #45
     return
 nfs_opnum4_append(FREE_STATEID, 45)
 
-def LAYOUTCOMMIT():
+def LAYOUTCOMMIT(request, response, state):
     #49
     return
 nfs_opnum4_append(LAYOUTCOMMIT, 49)
 
-def SECINFO_NO_NAME():
+def SECINFO_NO_NAME(request, response, state):
     #52
     return
 nfs_opnum4_append(SECINFO_NO_NAME, 52)
 
-def SEQUENCE():
+def SEQUENCE(request, response, state):
     #53
     return
 nfs_opnum4_append(SEQUENCE, 53)
 
-def SET_SSV():
+def SET_SSV(request, response, state):
     #54
     return
 nfs_opnum4_append(SET_SSV, 54)
 
-def TEST_STATEID():
+def TEST_STATEID(request, response, state):
     #55
     return
 nfs_opnum4_append(TEST_STATEID, 55)
 
-def DESTROY_CLIENTID():
-    #57
-    return
+def DESTROY_CLIENTID(request, response, state):
+    '''
+    If there are sessions (both idle and non-idle), opens, locks, delegations,
+    layouts, and/or wants (Section 18.49) associated with the unexpired lease of
+    the client ID, the server MUST return NFS4ERR_CLIENTID_BUSY.
+        - RFC5661-18.50.3
+    '''
+    clientid = request[:8]
+    request = request[8:]
+    del state[clientid]
+    #DESTROY_CLIENTID, NFS4_OK
+    response += struct.pack("!II", 57, 0)
+
+    return request, response
 nfs_opnum4_append(DESTROY_CLIENTID, 57)
 
-def RECLAIM_COMPLETE():
+def RECLAIM_COMPLETE(request, response, state):
     #58
     return
 nfs_opnum4_append(RECLAIM_COMPLETE, 58)

@@ -9,9 +9,10 @@ class Request:
     class verifier:
         pass
 
-    def __init__(self, request, connection, addr):
+    def __init__(self, request, connection, addr, state):
         self.connection = connection
         self.addr = addr
+        self.state = state
 
         fmt =  "!" #Network byte order
         fmt += "I" #Fragment Header
@@ -60,13 +61,27 @@ class Request:
 
         #COMPOUND procedure, all other actions
         #Tag. RFC665-16.2.3, implementation defined, must respond matching
-        self.taglen = struct.unpack("!I", request[:4])
+        [self.taglen] = struct.unpack("!I", request[:4])
         request = request[4:]
         self.tag = request[:self.taglen]
         request = request[self.taglen:]
 
         self.minorversion = struct.unpack("!I", request[:4])
         request = request[4:]
+
+        [self.operations] = struct.unpack("!I", request[:4])
+        request = request[4:]
+
+        #Operations can take a variable length input
+        #This should be implemented inside the operation
+        #function, and they MUST clean up the response properly
+        #This is the pramble. NFS4_OK (0) should probably be handled properly
+        response =  struct.pack("!II", 0, self.taglen)
+        response += self.tag
+        response += struct.pack("!I", self.operations)
+        for _ in xrange(self.operations):
+            request, response = self.dispatch(request, response)
+            self.send(response)
 
     def null(self):
         #RFC5661-16.1
@@ -81,19 +96,40 @@ class Request:
         fraghdr = 1<<31 | len(response)
         response = struct.pack("!I", fraghdr) + response
         self.connection.send(response)
+        self.connection.close()
+
+    def dispatch(self, request, response):
+        [operation] = struct.unpack("!I", request[:4])
+        request = request[4:]
+        print operation, operations.nfs_opnum4[operation].__name__
+        request, response = operations.nfs_opnum4[operation](request, response, self.state)
+        return request, response
+
+    def send(self, response):
+        preresponse = struct.pack("!III", self.xid, 1, 0)
+        #Verifier AUTH_NULL
+        preresponse += struct.pack("!II", 0, 0)
+        #RPC Success
+        preresponse += struct.pack("!I", 0)
+        #Fragmentation header, 1<<31 == last fragment yes
+        fraghdr = 1<<31 | len(preresponse+response)
+        response = struct.pack("!I", fraghdr) + preresponse + response
+        self.connection.send(response)
+        self.connection.close()
 
 
-
-class RPC:
+class NFS:
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
         self.sock.listen(1)
+        #Global state info.
+        self.state = {}
 
     def handleRequest(self, connection, addr):
         data = connection.recv(8192)
-        Request(data, connection, addr)
+        Request(data, connection, addr, self.state)
 
     def listen(self):
         while True:
