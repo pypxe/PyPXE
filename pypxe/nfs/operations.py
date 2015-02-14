@@ -222,12 +222,75 @@ def EXCHANGE_ID(request, response, state):
     #eir_erver_impl_id
     response += struct.pack("!I", 0)
 
+    #needed for caching
+    client['seqid'] = [1,response]
+
     state[clientid] = client
     return request, response
 nfs_opnum4_append(EXCHANGE_ID, 42)
 
 def CREATE_SESSION(request, response, state):
-    #43
+    '''
+    
+    '''
+    clientid = request[:8]
+    request = request[8:]
+
+    [sequenceid] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    [flags] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    fore_attrs = struct.unpack("!IIIIIII", request[:28])
+    request = request[28:]
+    back_attrs = struct.unpack("!IIIIIII", request[:28])
+    request = request[28:]
+
+    [callback] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    #AUTH_SYS - THIS MAY BREAK
+    [unknown, flavor, stamp] = struct.unpack("!III", request[:12])
+    request = request[12:]
+
+    [machinelen] = struct.unpack("!I", request[:4])
+    request = request[4:]
+    machinename = request[:machinelen]
+    request = request[machinelen+machinelen%4:]
+
+    [uid, gid] = struct.unpack("!II", request[:8])
+    request = request[8:]
+
+    error = 0
+    if clientid not in state.keys():
+        #NFS4ERR_STALE_CLIENTID
+        error = 10022
+        #Section 15.1
+    if sequenceid == state[clientid]['seqid'][0]:
+        #Cache
+        return request, state[clientid]['seqid'][1]
+    if sequenceid > state[clientid]['seqid'][0]+1:
+        #NFS4ERR_SEQ_MISORDERED
+        error = 10063
+
+    sessid = os.urandom(16)
+
+    state[clientid]['sessid'] = sessid
+
+    #CREATE_SESSION, Error
+    response += struct.pack("!II", 43, error)
+    response += sessid
+    response += struct.pack("!I", sequenceid)
+    #not CREATE_SESSION4_FLAG_PERSIST or CREATE_SESSION4_FLAG_CONN_BACK_CHAN
+    response += struct.pack("!I", 0)
+    response += struct.pack("!IIIIIII", *fore_attrs)
+    response += struct.pack("!IIIIIII", *back_attrs)
+
+    if not error:
+        state[clientid]['seqid'][0] += 1
+        state[clientid]['seqid'][1] = response
+
     return request, response
 nfs_opnum4_append(CREATE_SESSION, 43)
 
@@ -252,6 +315,8 @@ def SECINFO_NO_NAME(request, response, state):
 nfs_opnum4_append(SECINFO_NO_NAME, 52)
 
 def SEQUENCE(request, response, state):
+    #Check Cache
+    #Incr seqid
     #53
     return
 nfs_opnum4_append(SEQUENCE, 53)
@@ -275,7 +340,10 @@ def DESTROY_CLIENTID(request, response, state):
     '''
     clientid = request[:8]
     request = request[8:]
-    del state[clientid]
+    try:
+        del state[clientid]
+    except:
+        pass
     #DESTROY_CLIENTID, NFS4_OK
     response += struct.pack("!II", 57, 0)
 

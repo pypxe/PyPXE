@@ -107,7 +107,6 @@ Need to implement RPCSEC_GSS as per RFC5661§2.2.1.1
 18.50|DESTROY_CLIENTID|Destroy a Client ID
 18.51|RECLAIM_COMPLETE|Indicates Reclaims Finished
 |**Callback Operations**|
-20.1|CB_GETATTR|Get Attributes
 20.8|CB_RECALL_SLOT|Change Flow Control Limits
-20.9|CB_SEQUENCE|Supply Backchannel
-20.11|CB_NOTIFY_LOCK|Notify Client of
+19.1|CB_NULL|No Operation
+19.2|CB_COMPOUND|Compound Operations
