@@ -177,7 +177,7 @@ def EXCHANGE_ID(request, response, state):
     request = request[4:]
     client['ownerid'] = request[:client['owneridlen']]
     #Pad to multiple of 4?
-    offset = client['owneridlen'] % 4
+    offset = 4 - (client['owneridlen'] % 4) if client['owneridlen'] % 4 else 0
     request = request[client['owneridlen']+offset:]
 
     client['flags'] = struct.unpack("!I", request[:4])
@@ -191,13 +191,13 @@ def EXCHANGE_ID(request, response, state):
     [client['domainlen']] = struct.unpack("!I", request[:4])
     request = request[4:]
     client['domain'] = request[:client['domainlen']]
-    offset = client['domainlen'] % 4
+    offset = 4 - (client['domainlen'] % 4) if client['domainlen'] % 4 else 0
     request = request[client['domainlen']+offset:]
 
     [client['namelen']] = struct.unpack("!I", request[:4])
     request = request[4:]
     client['name'] = request[:client['namelen']]
-    offset = client['namelen'] % 4
+    offset = 4 - (client['namelen'] % 4) if client['namelen'] % 4 else 0
     request = request[client['namelen']+offset:]
 
     client['date'] = struct.unpack("!II", request[:8])
@@ -257,7 +257,8 @@ def CREATE_SESSION(request, response, state):
     [machinelen] = struct.unpack("!I", request[:4])
     request = request[4:]
     machinename = request[:machinelen]
-    request = request[machinelen+machinelen%4:]
+    offset = 4 - (machinelen % 4) if machinelen % 4 else 0
+    request = request[machinelen+offset:]
 
     [uid, gid] = struct.unpack("!II", request[:8])
     request = request[8:]
@@ -351,7 +352,6 @@ def SEQUENCE(request, response, state):
     #New request, or not cached.
     #would be handy to have operation count here, this is a workaround
     while request:
-        print repr(request)
         [op] = struct.unpack("!I", request[:4])
         request = request[4:] #functions know who they are
         print "\t", op, nfs_opnum4[op].__name__
