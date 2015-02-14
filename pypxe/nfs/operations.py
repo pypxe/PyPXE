@@ -231,7 +231,7 @@ nfs_opnum4_append(EXCHANGE_ID, 42)
 
 def CREATE_SESSION(request, response, state):
     '''
-    
+
     '''
     clientid = request[:8]
     request = request[8:]
@@ -315,10 +315,50 @@ def SECINFO_NO_NAME(request, response, state):
 nfs_opnum4_append(SECINFO_NO_NAME, 52)
 
 def SEQUENCE(request, response, state):
-    #Check Cache
-    #Incr seqid
-    #53
-    return
+    '''
+    The SEQUENCE operation is used by the server to implement session request
+    control and the reply cache semantics.
+        - RFC5661-18.46.3
+    '''
+    sessid = request[:16]
+    request = request[16:]
+    [seqid,
+    slotid,
+    highest_slotid,
+    cachethis] = struct.unpack("!IIII", request[:16])
+    request = request[16:]
+
+    try:
+        clientid = [i for i in state if state[i]['sessid'] == sessid][0]
+    except IndexError:
+        #We don't have the client id.
+        print "INDEXERROR"
+        return request, response
+
+    #Retry and cached?
+    if seqid == state[clientid]['seqid'][0] and state[clientid]['seqid'][1]:
+        return request, state[clientid]['seqid'][1]
+
+    response += struct.pack("!II", 53, 0)
+    response += sessid
+    response += struct.pack("!IIIII",
+            seqid,
+            slotid,
+            highest_slotid,
+            highest_slotid,
+            0)
+
+    #New request, or not cached.
+    #would be handy to have operation count here, this is a workaround
+    while request:
+        print repr(request)
+        [op] = struct.unpack("!I", request[:4])
+        request = request[4:] #functions know who they are
+        print "\t", op, nfs_opnum4[op].__name__
+        #Functions always append to response. Refactor?
+        request, response = nfs_opnum4[op](request, response, state)
+
+    return request, response
 nfs_opnum4_append(SEQUENCE, 53)
 
 def SET_SSV(request, response, state):
@@ -351,6 +391,18 @@ def DESTROY_CLIENTID(request, response, state):
 nfs_opnum4_append(DESTROY_CLIENTID, 57)
 
 def RECLAIM_COMPLETE(request, response, state):
-    #58
-    return
+    '''
+    A RECLAIM_COMPLETE operation is used to indicate that the client has
+    reclaimed all of the locking state that it will recover, when it is
+    recovering state due to either a server restart or the transfer of a file
+    system to another server.
+        - RFC5661-18.51.3
+    '''
+    rca_one_fs = struct.unpack("!I", request[:4])
+    request = request[4:]
+    #Not using this (yet?)
+    response += struct.pack("!II", 58, 0)
+    response += struct.pack("!I", 0)
+
+    return request, response
 nfs_opnum4_append(RECLAIM_COMPLETE, 58)

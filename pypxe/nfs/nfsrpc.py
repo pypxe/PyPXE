@@ -79,9 +79,14 @@ class Request:
         response =  struct.pack("!II", 0, self.taglen)
         response += self.tag
         response += struct.pack("!I", self.operations)
-        for _ in xrange(self.operations):
+        [operation] = struct.unpack("!I", request[:4])
+        if operation == 53: #SEQUENCE, loops for us
             request, response = self.dispatch(request, response)
             self.send(response)
+        else:
+            for _ in xrange(self.operations):
+                request, response = self.dispatch(request, response)
+                self.send(response)
 
     def null(self):
         #RFC5661-16.1
@@ -102,6 +107,7 @@ class Request:
         [operation] = struct.unpack("!I", request[:4])
         request = request[4:]
         print operation, operations.nfs_opnum4[operation].__name__
+        #Will recurse on SEQUENCE, functions append to request
         request, response = operations.nfs_opnum4[operation](request, response, self.state)
         return request, response
 
