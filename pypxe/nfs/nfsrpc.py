@@ -76,10 +76,18 @@ class Request:
         #This should be implemented inside the operation
         #function, and they MUST clean up the response properly
         #This is the pramble. NFS4_OK (0) should probably be handled properly
+        [operation] = struct.unpack("!I", request[:4])
+        if operation in (35,):
+            #not supported
+            response =  struct.pack("!II", 10004, self.taglen)
+            response += self.tag
+            response += struct.pack("!I", self.operations)
+            self.send(response)
+            return
         response =  struct.pack("!II", 0, self.taglen)
         response += self.tag
         response += struct.pack("!I", self.operations)
-        [operation] = struct.unpack("!I", request[:4])
+
         if operation == 53: #SEQUENCE, loops for us
             request, response = self.dispatch(request, response)
             self.send(response)
@@ -129,7 +137,7 @@ class NFS:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
-        self.sock.listen(1)
+        self.sock.listen(4)
         #Global state info.
         self.state = {}
 

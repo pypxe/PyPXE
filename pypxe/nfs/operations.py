@@ -312,7 +312,7 @@ nfs_opnum4_append(LAYOUTCOMMIT, 49)
 
 def SECINFO_NO_NAME(request, response, state):
     #52
-    return
+    return request, response
 nfs_opnum4_append(SECINFO_NO_NAME, 52)
 
 def SEQUENCE(request, response, state):
@@ -351,6 +351,7 @@ def SEQUENCE(request, response, state):
 
     #New request, or not cached.
     #would be handy to have operation count here, this is a workaround
+    print repr(request)
     while request:
         [op] = struct.unpack("!I", request[:4])
         request = request[4:] #functions know who they are
