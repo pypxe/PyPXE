@@ -91,8 +91,17 @@ def PUTPUBFH(request, response, state):
 nfs_opnum4_append(PUTPUBFH, 23)
 
 def PUTROOTFH(request, response, state):
-    #24
-    return
+    '''
+    Takes no arguments
+    returns root filehandle.
+    '''
+    #Probably ought to be OS pathsep
+    state[state['current']]['fh'] = "nfsroot/"
+
+    #PUTROOTFH, OK
+    response += struct.pack("!II", 24, 0)
+
+    return request, response
 nfs_opnum4_append(PUTROOTFH, 24)
 
 def READ(request, response, state):
@@ -223,7 +232,8 @@ def EXCHANGE_ID(request, response, state):
     response += struct.pack("!I", 0)
 
     #needed for caching
-    client['seqid'] = [1,response]
+    #but don't ache this or CREATE_SESSION
+    client['seqid'] = [0,None]
 
     state[clientid] = client
     return request, response
@@ -268,9 +278,6 @@ def CREATE_SESSION(request, response, state):
         #NFS4ERR_STALE_CLIENTID
         error = 10022
         #Section 15.1
-    if sequenceid == state[clientid]['seqid'][0]:
-        #Cache
-        return request, state[clientid]['seqid'][1]
     if sequenceid > state[clientid]['seqid'][0]+1:
         #NFS4ERR_SEQ_MISORDERED
         error = 10063
@@ -287,10 +294,6 @@ def CREATE_SESSION(request, response, state):
     response += struct.pack("!I", 0)
     response += struct.pack("!IIIIIII", *fore_attrs)
     response += struct.pack("!IIIIIII", *back_attrs)
-
-    if not error:
-        state[clientid]['seqid'][0] += 1
-        state[clientid]['seqid'][1] = response
 
     return request, response
 nfs_opnum4_append(CREATE_SESSION, 43)
@@ -311,7 +314,15 @@ def LAYOUTCOMMIT(request, response, state):
 nfs_opnum4_append(LAYOUTCOMMIT, 49)
 
 def SECINFO_NO_NAME(request, response, state):
-    #52
+    [secinfostyle] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    #SECINFO_NO_NAME, NFS4_OK
+    response += struct.pack("!II", 52, 0)
+    #flavor count
+    response += struct.pack("!I", 1)
+    #AUTH_NONE for now(?)
+    response += struct.pack("!I", 0)
     return request, response
 nfs_opnum4_append(SECINFO_NO_NAME, 52)
 
@@ -339,7 +350,6 @@ def SEQUENCE(request, response, state):
     #Retry and cached?
     if seqid == state[clientid]['seqid'][0] and state[clientid]['seqid'][1]:
         return request, state[clientid]['seqid'][1]
-
     response += struct.pack("!II", 53, 0)
     response += sessid
     response += struct.pack("!IIIII",
@@ -349,15 +359,24 @@ def SEQUENCE(request, response, state):
             highest_slotid,
             0)
 
+    #e.g PUTROOTFH doesn't give us a clientid, so pass it in
+    #not thread safe, should probably be an argument
+    state['current'] = clientid
     #New request, or not cached.
     #would be handy to have operation count here, this is a workaround
-    print repr(request)
     while request:
         [op] = struct.unpack("!I", request[:4])
         request = request[4:] #functions know who they are
         print "\t", op, nfs_opnum4[op].__name__
         #Functions always append to response. Refactor?
-        request, response = nfs_opnum4[op](request, response, state)
+        try:
+            request, response = nfs_opnum4[op](request, response, state)
+        except TypeError:
+            raise NotImplementedError(op, nfs_opnum4[op].__name__)
+
+    #Cache here
+
+    del state['current']
 
     return request, response
 nfs_opnum4_append(SEQUENCE, 53)
