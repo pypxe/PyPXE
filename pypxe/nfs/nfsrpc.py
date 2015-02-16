@@ -1,6 +1,7 @@
 import operations
 import struct
 import socket
+import os
 
 class Request:
     class credentials:
@@ -66,12 +67,19 @@ class Request:
         self.tag = request[:self.taglen]
         request = request[self.taglen:]
 
-        self.minorversion = struct.unpack("!I", request[:4])
+        [self.minorversion] = struct.unpack("!I", request[:4])
         request = request[4:]
 
         [self.operations] = struct.unpack("!I", request[:4])
         request = request[4:]
 
+        if self.minorversion != 1:
+            response = struct.pack("!II", 10021, self.taglen)
+            response += self.tag
+            #0 operations
+            response += struct.pack("!I", 0)
+            self.send(response)
+            return
         #Operations can take a variable length input
         #This should be implemented inside the operation
         #function, and they MUST clean up the response properly
@@ -81,7 +89,8 @@ class Request:
             #not supported
             response =  struct.pack("!II", 10004, self.taglen)
             response += self.tag
-            response += struct.pack("!I", self.operations)
+            #0 operations
+            response += struct.pack("!I", 0)
             self.send(response)
             return
         response =  struct.pack("!II", 0, self.taglen)

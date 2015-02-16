@@ -13,8 +13,15 @@ nfs_opnum4_append = lambda f,x: nfs_opnum4.__setitem__(x,f)
 #They MUST cleanup the request string themselves (chop off the start)
 
 def ACCESS(request, response, state):
-    #3
-    return
+    #THIS IS NOT COMPLETE
+    #RELIES ON AUTHENTICATION WHICH IS NOT YET DONE
+    [access] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    #ACCESS, NFS4_OK
+    response += struct.pack("!II", 3, 0)
+    response += struct.pack("!II", access, access)
+    return request, response
 nfs_opnum4_append(ACCESS, 3)
 
 def CLOSE(request, response, state):
@@ -40,11 +47,11 @@ def GETATTR(request, response, state):
 
     def packbits(bitmask):
         #Create one big long with the bitmask
-        bitmaskint = reduce(lambda x,y:x|1<<y, bitmask)
+        bitmaskint = reduce(lambda x,y:x|1<<y, bitmask, 0)
         #convert into 32bit ints
         ints = []
         while bitmaskint:
-            ints.append(bitmaskint&2**32-1)
+            ints.append(bitmaskint&0xffffffff)
             bitmaskint >>= 32
         #pack with prefixed length
         return struct.pack("!I%dI" % len(ints), len(ints), *ints)
@@ -68,9 +75,9 @@ def GETATTR(request, response, state):
     #FH4_VOLATILE_ANY "The filehandle may expire at any time" - RFC5661-4.2.3
     attributes[2] = lambda:struct.pack("!I", 2)
     #change, last modified works, st_mtime returns float, so might as well use it all
-    attributes[3] = lambda:struct.pack("!f", pathstat.st_mtime)
+    attributes[3] = lambda:struct.pack("!d", pathstat.st_mtime)
     #size, uint64
-    attributes[4] = lambda:struct.pack("!q", pathstat.st_size)
+    attributes[4] = lambda:struct.pack("!Q", pathstat.st_size)
     #support hard links?
     attributes[5] = lambda:struct.pack("!I", 1)
     #support symbolic links?
@@ -100,13 +107,13 @@ def GETATTR(request, response, state):
     #Major/Minor device number. useless if not BLK or CHR
     attributes[41] = lambda:struct.pack("!II", os.major(pathstat.st_dev), os.minor(pathstat.st_dev))
     #used size, uint64
-    attributes[45] = lambda:struct.pack("!q", pathstat.st_size)
+    attributes[45] = lambda:struct.pack("!Q", pathstat.st_size)
     #Time accessed. Should also send nanoseconds, but tricky to access
-    attributes[47] = lambda:struct.pack("!qI", pathstat.st_atime, 0)
+    attributes[47] = lambda:struct.pack("!QI", pathstat.st_atime, 0)
     #Time metadata changed
-    attributes[52] = lambda:struct.pack("!qI", pathstat.st_ctime, 0)
+    attributes[52] = lambda:struct.pack("!QI", pathstat.st_ctime, 0)
     #Time modified
-    attributes[53] = lambda:struct.pack("!qI", pathstat.st_mtime, 0)
+    attributes[53] = lambda:struct.pack("!QI", pathstat.st_mtime, 0)
     #unsure on this one, copying attributes[1]
     attributes[75] = lambda:struct.pack("!I",{49152:6, 40960:5, 24576:3, 16384:2, 8192:4, 4096:7}[pathstat.st_mode&61440])
 
@@ -116,6 +123,7 @@ def GETATTR(request, response, state):
 
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
     request = request[4*maskcnt:]
+
 
     #calculates all the positions in the bit array
     offset = 0
@@ -128,13 +136,12 @@ def GETATTR(request, response, state):
     response += struct.pack("!II", 9, 0)
 
     #response bitmask here
-    response += packbits([i for i in attr_pos if i in attributes])
+    response += packbits([attr for attr in attr_pos if attr in attributes])
 
     #Need the vals for a length next
     attr_vals = ''.join([attributes[attr]() for attr in attr_pos if attr in attributes])
     #byte length of attrlist
     response += struct.pack("!I", len(attr_vals))
-    response += attributes[0]()
     #pre-packed attr_vals
     response += attr_vals
 
@@ -200,8 +207,16 @@ def OPEN_DOWNGRADE(request, response, state):
 nfs_opnum4_append(OPEN_DOWNGRADE, 21)
 
 def PUTFH(request, response, state):
-    #22
-    return
+    [length] = struct.unpack("!I", request[:4]) #should always be 128
+    request = request[4:]
+    fh = request[:length]
+    request = request[length:]
+    path = state['fhs'][fh]
+    state[state['current']]['fh'] = fh
+
+    #PUTFH, OK
+    response += struct.pack("!II", 22, 0)
+    return request, response
 nfs_opnum4_append(PUTFH, 22)
 
 def PUTPUBFH(request, response, state):
@@ -430,7 +445,6 @@ def DESTROY_SESSION(request, response, state):
         #We don't have the client id.
         #Error badsession
         error = 10052
-
     #DESTROY_SESSION
     response += struct.pack("!II", 44, error)
     return request, response
@@ -473,23 +487,27 @@ def SEQUENCE(request, response, state):
     cachethis] = struct.unpack("!IIII", request[:16])
     request = request[16:]
 
+    error = 0
     try:
         clientid = [i for i in state if i != "fhs" and state[i]['sessid'] == sessid][0]
     except IndexError:
-        #We don't have the client id.
-        print "INDEXERROR"
+        #NFS4ERR_BADSESSION
+        #We don't have a client to match the session
+        error = 10052
         return request, response
 
     #Retry and cached?
     if seqid == state[clientid]['seqid'][0] and state[clientid]['seqid'][1]:
         return request, state[clientid]['seqid'][1]
-    response += struct.pack("!II", 53, 0)
+    response += struct.pack("!II", 53, error)
+    if error:
+        return request, response
     response += sessid
     response += struct.pack("!IIIII",
             seqid,
             slotid,
-            highest_slotid,
-            highest_slotid,
+            32,
+            32,
             0)
 
     #e.g PUTROOTFH doesn't give us a clientid, so pass it in
@@ -502,10 +520,7 @@ def SEQUENCE(request, response, state):
         request = request[4:] #functions know who they are
         print "\t", op, nfs_opnum4[op].__name__
         #Functions always append to response. Refactor?
-        try:
-            request, response = nfs_opnum4[op](request, response, state)
-        except TypeError:
-            raise NotImplementedError(op, nfs_opnum4[op].__name__)
+        request, response = nfs_opnum4[op](request, response, state)
 
     #Cache here
 
