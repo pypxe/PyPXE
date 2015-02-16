@@ -421,8 +421,19 @@ def CREATE_SESSION(request, response, state):
 nfs_opnum4_append(CREATE_SESSION, 43)
 
 def DESTROY_SESSION(request, response, state):
-    #44
-    return
+    sessid = request[:16]
+    try:
+        clientid = [i for i in state if i != "fhs" and state[i]['sessid'] == sessid][0]
+        state[clientid]['sessid'] = ""
+        error = 0
+    except IndexError:
+        #We don't have the client id.
+        #Error badsession
+        error = 10052
+
+    #DESTROY_SESSION
+    response += struct.pack("!II", 44, error)
+    return request, response
 nfs_opnum4_append(DESTROY_SESSION, 44)
 
 def FREE_STATEID(request, response, state):
