@@ -140,6 +140,7 @@ class NFS:
         self.sock.listen(4)
         #Global state info.
         self.state = {}
+        self.state['fhs'] = {}
 
     def handleRequest(self, connection, addr):
         data = connection.recv(8192)
