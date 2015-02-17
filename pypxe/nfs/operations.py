@@ -26,8 +26,26 @@ def ACCESS(request, response, state):
 nfs_opnum4_append(ACCESS, 3)
 
 def CLOSE(request, response, state):
-    #4
-    return
+    [seqid] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    [stateidseqid] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    stateid = request[:12]
+    request = request[12:]
+
+    lockclient = [i for i in state if i not in ("fhs", "current") and stateid in state[i]['locks']][0]
+    #Remove the lock
+    del state[lockclient]['locks'][stateid]
+
+
+    #CLOSE, NFS4_OK
+    response += struct.pack("!II", 4, 0)
+    #Deprecated response of stateid
+    response += struct.pack("!I", stateidseqid)
+    response += stateid
+    return request, response
 nfs_opnum4_append(CLOSE, 4)
 
 def COMMIT(request, response, state):
@@ -237,8 +255,45 @@ def PUTROOTFH(request, response, state):
 nfs_opnum4_append(PUTROOTFH, 24)
 
 def READ(request, response, state):
-    #25
-    return
+    [seqid] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    stateid = request[:12]
+    request = request[12:]
+
+    [offset, count] = struct.unpack("!QI", request[:12])
+    request = request[12:]
+
+    clientid = [i for i in state if i not in ("fhs","current") and stateid in state[i]["locks"]][0]
+    fh = state[clientid]['fh']
+    path = state['fhs'][fh]
+
+    #implicit read only
+    file = open(path)
+    file.seek(offset)
+    data = file.read(count)
+    #Go to EOF
+    file.seek(0, 2)
+
+    #READ, NFS4_OK
+    response += struct.pack("!II", 25, 0)
+
+    if offset+len(data) < file.tell():
+        #Not EOF
+        response += struct.pack("!I", 0)
+    else:
+        #EOF
+        response += struct.pack("!I", 1)
+
+    #Length of returned data
+    response += struct.pack("!I", len(data))
+    response += data
+
+    #Pad to 4 bytes
+    offset = 4 - (len(data) % 4) if len(data) % 4 else 0
+    response += "\x00"*offset
+
+    return request, response
 nfs_opnum4_append(READ, 25)
 
 def READDIR(request, response, state):
@@ -470,7 +525,7 @@ def CREATE_SESSION(request, response, state):
         #NFS4ERR_STALE_CLIENTID
         error = 10022
         #Section 15.1
-    if sequenceid > state[clientid]['seqid'][0]+1:
+    elif sequenceid > state[clientid]['seqid'][0]+1:
         #NFS4ERR_SEQ_MISORDERED
         error = 10063
 
@@ -480,6 +535,9 @@ def CREATE_SESSION(request, response, state):
 
     #CREATE_SESSION, Error
     response += struct.pack("!II", 43, error)
+    if error:
+        response += struct.pack("!I", 0)
+        return request, response
     response += sessid
     response += struct.pack("!I", sequenceid)
     #not CREATE_SESSION4_FLAG_PERSIST or CREATE_SESSION4_FLAG_CONN_BACK_CHAN
@@ -493,7 +551,7 @@ nfs_opnum4_append(CREATE_SESSION, 43)
 def DESTROY_SESSION(request, response, state):
     sessid = request[:16]
     try:
-        clientid = [i for i in state if i != "fhs" and state[i]['sessid'] == sessid][0]
+        clientid = [i for i in state if i not in ("fhs","current") and state[i]['sessid'] == sessid][0]
         state[clientid]['sessid'] = ""
         error = 0
     except IndexError:
@@ -548,15 +606,22 @@ def SEQUENCE(request, response, state):
     except IndexError:
         #NFS4ERR_BADSESSION
         #We don't have a client to match the session
-        error = 10052
+        print "\tBADSESSION"
+        response += struct.pack("!II", 53, 0)
+        response += sessid
+        response += struct.pack("!IIIII",
+                seqid,
+                slotid,
+                32,
+                32,
+                0)
         return request, response
+
 
     #Retry and cached?
     if seqid == state[clientid]['seqid'][0] and state[clientid]['seqid'][1]:
         return request, state[clientid]['seqid'][1]
-    response += struct.pack("!II", 53, error)
-    if error:
-        return request, response
+    response += struct.pack("!II", 53, 0)
     response += sessid
     response += struct.pack("!IIIII",
             seqid,
@@ -564,6 +629,7 @@ def SEQUENCE(request, response, state):
             32,
             32,
             0)
+
 
     #e.g PUTROOTFH doesn't give us a clientid, so pass it in
     #not thread safe, should probably be an argument
@@ -573,7 +639,7 @@ def SEQUENCE(request, response, state):
     while request:
         [op] = struct.unpack("!I", request[:4])
         request = request[4:] #functions know who they are
-        print "\t", op, nfs_opnum4[op].__name__
+        print "\t", op, nfs_opnum4[op].__name__, seqid
         #Functions always append to response. Refactor?
         request, response = nfs_opnum4[op](request, response, state)
 
