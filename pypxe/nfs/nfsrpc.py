@@ -2,6 +2,7 @@ import operations
 import struct
 import socket
 import os
+import threading
 
 class Request:
     class credentials:
@@ -118,7 +119,6 @@ class Request:
         fraghdr = 1<<31 | len(response)
         response = struct.pack("!I", fraghdr) + response
         self.connection.send(response)
-        self.connection.close()
 
     def dispatch(self, request, response):
         [operation] = struct.unpack("!I", request[:4])
@@ -138,8 +138,25 @@ class Request:
         fraghdr = 1<<31 | len(preresponse+response)
         response = struct.pack("!I", fraghdr) + preresponse + response
         self.connection.send(response)
-        self.connection.close()
 
+class RequestHandler(threading.Thread):
+    def __init__(self, conn, addr, state):
+        threading.Thread.__init__(self)
+        self.conn = conn
+        self.addr = addr
+        self.state = state
+
+    def run(self):
+        while True:
+            first4 = self.conn.recv(4)
+            if not first4:
+                print "Connection Closed"
+                return
+            [fraghdr] = struct.unpack("!I", first4)
+            #The top bit is the last fragment bool
+            #We don't want that so ignore
+            length = fraghdr & ~(1<<31)
+            Request(struct.pack("!I", fraghdr)+self.conn.recv(length), self.conn, self.addr, self.state)
 
 class NFS:
     def __init__(self):
@@ -151,11 +168,10 @@ class NFS:
         self.state = {}
         self.state['fhs'] = {}
 
-    def handleRequest(self, connection, addr):
-        data = connection.recv(8192)
-        Request(data, connection, addr, self.state)
-
     def listen(self):
         while True:
             conn, addr = self.sock.accept()
-            self.handleRequest(conn, addr)
+            print "pre"
+            req = RequestHandler(conn, addr, self.state)
+            req.start()
+            print "post"

@@ -326,7 +326,9 @@ def READDIR(request, response, state):
 
     eof = 1
     #skip those we've already seen. overly relies on os.listdir ordering
-    dirents = list(enumerate(os.listdir(path)))[reqcookie[0]+1:]
+    dirents = list(enumerate(os.listdir(path)))
+    if reqcookie[0]:
+        dirents = dirents[reqcookie[0]+1:]
     for cookie, dirent in dirents:
         subresponse = ""
         #We have a value
