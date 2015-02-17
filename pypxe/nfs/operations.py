@@ -2,6 +2,7 @@ import os
 import struct
 import hashlib
 import math
+import attributes
 #All the following functions are individually defined
 #in RFC5661 sections 18.*
 
@@ -56,67 +57,6 @@ def GETATTR(request, response, state):
         #pack with prefixed length
         return struct.pack("!I%dI" % len(ints), len(ints), *ints)
 
-    #Huge benefit from extending this
-    #(See RFC5661 - 5.6/7 for details)
-    #Implemented = REQUIRED & Kernel requested
-    attributes = {}
-    #Bitmask length, Attributes. RFC5661-5.6
-    attributes[0] = lambda:packbits(attributes.keys())
-    #RFC3010-18: enum nfs_ftype4
-    #bitwise OR stat.S_IF* 61440
-    #{stat.S_IFSOCK : NF4SOCK,
-    #stat.S_IFLNK : NF4LNK,
-    #stat.S_IFBLK : NF4BLK,
-    #stat.S_IFDIR : NF4DIR,
-    #stat.S_IFCHR : NF4CHR,
-    #stat.S_IFIFO : NF4FIFO}
-    #Returns the nfs_ftype4
-    attributes[1] = lambda:struct.pack("!I",{49152:6, 40960:5, 24576:3, 16384:2, 8192:4, 4096:7}[pathstat.st_mode&61440])
-    #FH4_VOLATILE_ANY "The filehandle may expire at any time" - RFC5661-4.2.3
-    attributes[2] = lambda:struct.pack("!I", 2)
-    #change, last modified works, st_mtime returns float, so might as well use it all
-    attributes[3] = lambda:struct.pack("!d", pathstat.st_mtime)
-    #size, uint64
-    attributes[4] = lambda:struct.pack("!Q", pathstat.st_size)
-    #support hard links?
-    attributes[5] = lambda:struct.pack("!I", 1)
-    #support symbolic links?
-    attributes[6] = lambda:struct.pack("!I", 1)
-    #has named attribs?
-    attributes[7] = lambda:struct.pack("!I", 1)
-    #major/minor uint64 filesystem id, is this okay (kernel gives these vals)?
-    attributes[8] = lambda:struct.pack("!qq", 0, 0)
-    #handles are unique?
-    attributes[9] = lambda:struct.pack("!I", 1)
-    #Lease time. Documentation sparse, 1hr
-    attributes[10] = lambda:struct.pack("!I", 3600)
-    #Error from attrib readdir
-    attributes[11] = lambda:struct.pack("!I", 0)
-    #object filehandle
-    attributes[19] = lambda:fh
-    #number uniquely identifying file on filesystem. Not perfect but should work.
-    attributes[20] = lambda:fh[:8]
-    #Mode. Only want bottom 0xfff mask for perms
-    attributes[33] = lambda:struct.pack("!I", pathstat.st_mode&0xfff)
-    #Number of hard links
-    attributes[35] = lambda:struct.pack("!I", pathstat.st_nlink)
-    #Owner name. This is what the kernel did. could do pwd.getpwuid(pathstat.st_uid).pw_name
-    attributes[36] = lambda:struct.pack("!Icbbb", 1, "0", 0, 0, 0)
-    #Group name. See 36
-    attributes[37] = lambda:struct.pack("!Icbbb", 1, "0", 0, 0, 0)
-    #Major/Minor device number. useless if not BLK or CHR
-    attributes[41] = lambda:struct.pack("!II", os.major(pathstat.st_dev), os.minor(pathstat.st_dev))
-    #used size, uint64
-    attributes[45] = lambda:struct.pack("!Q", pathstat.st_size)
-    #Time accessed. Should also send nanoseconds, but tricky to access
-    attributes[47] = lambda:struct.pack("!QI", pathstat.st_atime, 0)
-    #Time metadata changed
-    attributes[52] = lambda:struct.pack("!QI", pathstat.st_ctime, 0)
-    #Time modified
-    attributes[53] = lambda:struct.pack("!QI", pathstat.st_mtime, 0)
-    #unsure on this one, copying attributes[1]
-    attributes[75] = lambda:struct.pack("!I",{49152:6, 40960:5, 24576:3, 16384:2, 8192:4, 4096:7}[pathstat.st_mode&61440])
-
 
     [maskcnt] = struct.unpack("!I", request[:4])
     request = request[4:]
@@ -136,10 +76,10 @@ def GETATTR(request, response, state):
     response += struct.pack("!II", 9, 0)
 
     #response bitmask here
-    response += packbits([attr for attr in attr_pos if attr in attributes])
+    response += packbits([attr for attr in attr_pos if attr in attributes.attributes])
 
     #Need the vals for a length next
-    attr_vals = ''.join([attributes[attr]() for attr in attr_pos if attr in attributes])
+    attr_vals = ''.join([attributes.attributes[attr]() for attr in attr_pos if attr in attributes.attributes])
     #byte length of attrlist
     response += struct.pack("!I", len(attr_vals))
     #pre-packed attr_vals
