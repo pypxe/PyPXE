@@ -146,8 +146,55 @@ def NVERIFY(request, response, state):
 nfs_opnum4_append(NVERIFY, 17)
 
 def OPEN(request, response, state):
-    #18
-    return
+    [seqid] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    share_access, share_deny = struct.unpack("!II", request[:8])
+    request = request[8:]
+
+    clientid = request[:8]
+    request = request[8:]
+
+    [ownerlen] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    owner = request[:ownerlen]
+    offset = 4 - (ownerlen % 4) if ownerlen % 4 else 0
+    request = request[ownerlen+offset:]
+
+    [opentype] = struct.unpack("!I", request[:4])
+    request = request[4:]
+    if opentype == 1:
+        #createhow4
+        #createmode4 == 1: don't overwrite file
+        pass
+
+    [openclaim] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    #OPEN
+    response += struct.pack("!II", 18, 0)
+
+    #stateid seqid
+    response += struct.pack("!I", 1)
+    #random stateid is used for keeping track of locks
+    stateid = os.urandom(12)
+    response += stateid
+    state[clientid]['locks'][stateid] = state[clientid]['fh']
+
+    #change_info
+    response += struct.pack("!IQQ", 0, 0, 0)
+
+    #rflags, matches kernel
+    response += struct.pack("!I", 4)
+
+    #Attributes, This is relevant to creating files
+    response += struct.pack("!II", 0, 0)
+
+    #OPEN_DELEGATE_NONE
+    response += struct.pack("!I", 0)
+
+    return request, response
 nfs_opnum4_append(OPEN, 18)
 
 def OPEN_DOWNGRADE(request, response, state):
@@ -200,7 +247,8 @@ def READDIR(request, response, state):
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
 
-    reqcookie = struct.unpack("!II", request[:8])
+    #we modify later, so list
+    reqcookie = list(struct.unpack("!II", request[:8]))
     request = request[8:]
 
     cookie_verf = struct.unpack("!II", request[:8])
@@ -215,14 +263,6 @@ def READDIR(request, response, state):
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
     request = request[4*maskcnt:]
 
-    #Two possible correct verifiers: a correct one and a first one
-    if cookie_verf not in ((len(os.listdir(path)),0),(0,0)):
-        #Probably stale (new files exist)
-        #Here so we don't have to do our own cleanup
-        #NFS4ERR_NOT_SAME
-        response += struct.pack("!II", 26, 10027)
-        return request, response
-
     #READDIR, NFS4_OK
     response += struct.pack("!II", 26, 0)
 
@@ -230,12 +270,9 @@ def READDIR(request, response, state):
     response += struct.pack("!II", len(os.listdir(path)), 1)
 
     eof = 1
-    for cookie, dirent in enumerate(os.listdir(path)):
-        while reqcookie[0] > 0:
-            #Reqcookie is an offset into the returned structure
-            reqcookie[0] -= 1
-            continue
-        print "\t\t"+path+"/"+dirent
+    #skip those we've already seen. overly relies on os.listdir ordering
+    dirents = list(enumerate(os.listdir(path)))[reqcookie[0]+1:]
+    for cookie, dirent in dirents:
         subresponse = ""
         #We have a value
         subresponse += struct.pack("!I", 1)
@@ -262,7 +299,7 @@ def READDIR(request, response, state):
             response += subresponse
             maxcount -= len(subresponse)
 
-    #Nothing to follow, EOF
+    #value following?, EOF
     response += struct.pack("!II", 0, eof)
 
     return request, response
@@ -388,6 +425,7 @@ def EXCHANGE_ID(request, response, state):
     #needed for caching
     #but don't ache this or CREATE_SESSION
     client['seqid'] = [0,None]
+    client['locks'] = {}
 
     state[clientid] = client
     return request, response
