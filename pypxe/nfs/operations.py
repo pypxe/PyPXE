@@ -194,7 +194,7 @@ def READDIR(request, response, state):
     response += struct.pack("!II", 0, 1)
 
     for dirent in os.listdir(path):
-        print dirent
+        print "\t\t"+path+dirent
         #We have a value
         response += struct.pack("!I", 1)
         #WRONG COOKIE VAL
@@ -206,8 +206,8 @@ def READDIR(request, response, state):
         response += "\x00"*offset
 
         #Create a filehandle object
-        state['fhs'][hashlib.sha512(dirent).hexdigest()] = dirent
-        attrib = attributes.Attributes(hashlib.sha512(dirent).hexdigest(), state, attr_req)
+        state['fhs'][hashlib.sha512(path+dirent).hexdigest()] = path+dirent
+        attrib = attributes.Attributes(hashlib.sha512(path+dirent).hexdigest(), state, attr_req)
         #Add in the attributes
         response += attrib.respbitmask
         response += struct.pack("!I", attrib.packedattrlen)

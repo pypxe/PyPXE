@@ -41,18 +41,19 @@ class Attributes:
     attributes = {}
 
     #Bitmask length, Attributes. RFC5661-5.6
-    attributes[0] = lambda self:self.packbits(attributes.keys())
+    attributes[0] = lambda self:self.packbits(self.attributes.keys())
 
     #RFC3010-18: enum nfs_ftype4
     #bitwise OR stat.S_IF* 61440
     #{stat.S_IFSOCK : NF4SOCK,
     #stat.S_IFLNK : NF4LNK,
     #stat.S_IFBLK : NF4BLK,
+    #stat.S_IFREG : NF4REG,
     #stat.S_IFDIR : NF4DIR,
     #stat.S_IFCHR : NF4CHR,
     #stat.S_IFIFO : NF4FIFO}
     #Returns the nfs_ftype4
-    attributes[1] = lambda self:struct.pack("!I",{49152:6, 40960:5, 24576:3, 16384:2, 8192:4, 4096:7}[self.pathstat.st_mode&61440])
+    attributes[1] = lambda self:struct.pack("!I",{49152:6, 40960:5, 32768:1, 24576:3, 16384:2, 8192:4, 4096:7}[self.pathstat.st_mode&61440])
 
     #FH4_VOLATILE_ANY "The filehandle may expire at any time" - RFC5661-4.2.3
     attributes[2] = lambda self:struct.pack("!I", 2)
@@ -85,7 +86,7 @@ class Attributes:
     attributes[11] = lambda self:struct.pack("!I", 0)
 
     #object filehandle
-    attributes[19] = lambda self:self.fh
+    attributes[19] = lambda self:struct.pack("!I", 128)+self.fh
 
     #number uniquely identifying file on filesystem. Not perfect but should work.
     attributes[20] = lambda self:self.fh[:8]
@@ -118,4 +119,4 @@ class Attributes:
     attributes[53] = lambda self:struct.pack("!QI", self.pathstat.st_mtime, 0)
 
     #unsure on this one, copying attributes[1]
-    attributes[75] = lambda self:struct.pack("!I",{49152:6, 40960:5, 24576:3, 16384:2, 8192:4, 4096:7}[self.pathstat.st_mode&61440])
+    attributes[75] = lambda self:struct.pack("!I",{49152:6, 40960:5, 32768:1, 24576:3, 16384:2, 8192:4, 4096:7}[self.pathstat.st_mode&61440])
