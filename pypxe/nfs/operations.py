@@ -72,7 +72,6 @@ nfs_opnum4_append(GETATTR, 9)
 def GETFH(request, response, state):
     #128 byte fh ret
     #store, opaque to client, our job to translate
-    #10
     clientid = state['current']
     #Get client's current fh (128 byte string)
     fh = state[clientid]['fh']
@@ -102,8 +101,30 @@ def LOCKU(request, response, state):
 nfs_opnum4_append(LOCKU, 14)
 
 def LOOKUP(request, response, state):
-    #15
-    return
+    clientid = state['current']
+    error = 0
+
+    [namelen] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    name = request[:namelen]
+    offset = 4 - (namelen % 4) if namelen % 4 else 0
+    request = request[namelen+offset:]
+
+    fh = state[clientid]['fh']
+    path = state['fhs'][fh]
+    if os.stat(path).st_mode&61440 != 16384:
+        #NFS4ERR_NOTDIR
+        error = 20
+    newpath = path+"/"+name
+    if not os.path.exists(newpath):
+        #NFS4ERR_NOENT
+        error = 2
+    print "\t\t"+newpath
+
+    #LOOKUP
+    response += struct.pack("!II", 15, error)
+    return request, response
 nfs_opnum4_append(LOOKUP, 15)
 
 def LOOKUPP(request, response, state):
@@ -149,11 +170,10 @@ def PUTROOTFH(request, response, state):
     Takes no arguments
     returns root filehandle.
     '''
-    #Probably ought to be OS pathsep
     #sha512 is free 128 byte
-    nfsroot = hashlib.sha512("nfsroot/").hexdigest()
+    nfsroot = hashlib.sha512("nfsroot").hexdigest()
     state[state['current']]['fh'] = nfsroot
-    state['fhs'][nfsroot] = "nfsroot/"
+    state['fhs'][nfsroot] = "nfsroot"
 
     #PUTROOTFH, OK
     response += struct.pack("!II", 24, 0)
@@ -172,10 +192,10 @@ def READDIR(request, response, state):
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
 
-    cookie = request[:8]
+    reqcookie = struct.unpack("!II", request[:8])
     request = request[8:]
 
-    cookie_verf = request[:8]
+    cookie_verf = struct.unpack("!II", request[:8])
     request = request[8:]
 
     [dircount, maxcount] = struct.unpack("!II", request[:8])
@@ -187,34 +207,55 @@ def READDIR(request, response, state):
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
     request = request[4*maskcnt:]
 
+    #Two possible correct verifiers: a correct one and a first one
+    if cookie_verf not in ((len(os.listdir(path)),0),(0,0)):
+        #Probably stale (new files exist)
+        #Here so we don't have to do our own cleanup
+        #NFS4ERR_NOT_SAME
+        response += struct.pack("!II", 26, 10027)
+        return request, response
+
     #READDIR, NFS4_OK
     response += struct.pack("!II", 26, 0)
 
-    #THIS IS WRONG, VERIFIER
-    response += struct.pack("!II", 0, 1)
+    #Verifier. Used for detecting stale cookies
+    response += struct.pack("!II", len(os.listdir(path)), 1)
 
-    for dirent in os.listdir(path):
-        print "\t\t"+path+dirent
+    eof = 1
+    for cookie, dirent in enumerate(os.listdir(path)):
+        while reqcookie[0] > 0:
+            #Reqcookie is an offset into the returned structure
+            reqcookie[0] -= 1
+            continue
+        print "\t\t"+path+"/"+dirent
+        subresponse = ""
         #We have a value
-        response += struct.pack("!I", 1)
-        #WRONG COOKIE VAL
-        response += struct.pack("!II", 0, 1)
+        subresponse += struct.pack("!I", 1)
+        #Cookieval
+        subresponse += struct.pack("!II", cookie, 0)
         #Name 4byte padded
-        response += struct.pack("!I", len(dirent))
-        response += dirent
+        subresponse += struct.pack("!I", len(dirent))
+        subresponse += dirent
         offset = 4 - (len(dirent) % 4) if len(dirent) % 4 else 0
-        response += "\x00"*offset
+        subresponse += "\x00"*offset
 
         #Create a filehandle object
-        state['fhs'][hashlib.sha512(path+dirent).hexdigest()] = path+dirent
-        attrib = attributes.Attributes(hashlib.sha512(path+dirent).hexdigest(), state, attr_req)
+        #Probably ought to be pathsep
+        state['fhs'][hashlib.sha512(path+"/"+dirent).hexdigest()] = path+"/"+dirent
+        attrib = attributes.Attributes(hashlib.sha512(path+"/"+dirent).hexdigest(), state, attr_req)
         #Add in the attributes
-        response += attrib.respbitmask
-        response += struct.pack("!I", attrib.packedattrlen)
-        response += attrib.packedattr
+        subresponse += attrib.respbitmask
+        subresponse += struct.pack("!I", attrib.packedattrlen)
+        subresponse += attrib.packedattr
+        if not (maxcount - len(subresponse) > 0):
+            eof = 0
+            break
+        else:
+            response += subresponse
+            maxcount -= len(subresponse)
 
     #Nothing to follow, EOF
-    response += struct.pack("!II", 0, 1)
+    response += struct.pack("!II", 0, eof)
 
     return request, response
 nfs_opnum4_append(READDIR, 26)
