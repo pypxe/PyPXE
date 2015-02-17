@@ -46,44 +46,24 @@ def GETATTR(request, response, state):
     path = state['fhs'][fh]
     pathstat = os.stat(path)
 
-    def packbits(bitmask):
-        #Create one big long with the bitmask
-        bitmaskint = reduce(lambda x,y:x|1<<y, bitmask, 0)
-        #convert into 32bit ints
-        ints = []
-        while bitmaskint:
-            ints.append(bitmaskint&0xffffffff)
-            bitmaskint >>= 32
-        #pack with prefixed length
-        return struct.pack("!I%dI" % len(ints), len(ints), *ints)
-
-
     [maskcnt] = struct.unpack("!I", request[:4])
     request = request[4:]
 
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
     request = request[4*maskcnt:]
 
-
-    #calculates all the positions in the bit array
-    offset = 0
-    attr_pos = []
-    for attr in attr_req:
-        attr_pos += [i+offset for i,x in enumerate(bin(attr)[2:][::-1]) if int(x)]
-        offset += 32
+    attrib = attributes.Attributes(fh, state, attr_req)
 
     #GETATTR, NFS4_OK
     response += struct.pack("!II", 9, 0)
 
     #response bitmask here
-    response += packbits([attr for attr in attr_pos if attr in attributes.attributes])
+    response += attrib.respbitmask
 
-    #Need the vals for a length next
-    attr_vals = ''.join([attributes.attributes[attr]() for attr in attr_pos if attr in attributes.attributes])
     #byte length of attrlist
-    response += struct.pack("!I", len(attr_vals))
+    response += struct.pack("!I", attrib.packedattrlen)
     #pre-packed attr_vals
-    response += attr_vals
+    response += attrib.packedattr
 
     #return as LSB int32 array, attr_vals
     return request, response
@@ -187,8 +167,56 @@ def READ(request, response, state):
 nfs_opnum4_append(READ, 25)
 
 def READDIR(request, response, state):
-    #26
-    return
+    #Lots here taken from GETATTR, we do the same mask business
+    clientid = state['current']
+    fh = state[clientid]['fh']
+    path = state['fhs'][fh]
+
+    cookie = request[:8]
+    request = request[8:]
+
+    cookie_verf = request[:8]
+    request = request[8:]
+
+    [dircount, maxcount] = struct.unpack("!II", request[:8])
+    request = request[8:]
+
+    [maskcnt] = struct.unpack("!I", request[:4])
+    request = request[4:]
+
+    attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
+    request = request[4*maskcnt:]
+
+    #READDIR, NFS4_OK
+    response += struct.pack("!II", 26, 0)
+
+    #THIS IS WRONG, VERIFIER
+    response += struct.pack("!II", 0, 1)
+
+    for dirent in os.listdir(path):
+        print dirent
+        #We have a value
+        response += struct.pack("!I", 1)
+        #WRONG COOKIE VAL
+        response += struct.pack("!II", 0, 1)
+        #Name 4byte padded
+        response += struct.pack("!I", len(dirent))
+        response += dirent
+        offset = 4 - (len(dirent) % 4) if len(dirent) % 4 else 0
+        response += "\x00"*offset
+
+        #Create a filehandle object
+        state['fhs'][hashlib.sha512(dirent).hexdigest()] = dirent
+        attrib = attributes.Attributes(hashlib.sha512(dirent).hexdigest(), state, attr_req)
+        #Add in the attributes
+        response += attrib.respbitmask
+        response += struct.pack("!I", attrib.packedattrlen)
+        response += attrib.packedattr
+
+    #Nothing to follow, EOF
+    response += struct.pack("!II", 0, 1)
+
+    return request, response
 nfs_opnum4_append(READDIR, 26)
 
 def READLINK(request, response, state):
