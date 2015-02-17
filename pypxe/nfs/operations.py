@@ -44,7 +44,6 @@ def GETATTR(request, response, state):
     clientid = state['current']
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
-    pathstat = os.stat(path)
 
     [maskcnt] = struct.unpack("!I", request[:4])
     request = request[4:]
@@ -52,6 +51,13 @@ def GETATTR(request, response, state):
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
     request = request[4*maskcnt:]
 
+    if not os.path.exists(path):
+        #Here so we don't have to cleanup manually
+        #NFS4ERR_NOENT
+        response += struct.pack("!II", 9, 2)
+        return request, response
+
+    pathstat = os.stat(path)
     attrib = attributes.Attributes(fh, state, attr_req)
 
     #GETATTR, NFS4_OK
@@ -120,7 +126,9 @@ def LOOKUP(request, response, state):
     if not os.path.exists(newpath):
         #NFS4ERR_NOENT
         error = 2
-    print "\t\t"+newpath
+
+    state[clientid]['fh'] = hashlib.sha512(newpath).hexdigest()
+    state['fhs'][hashlib.sha512(newpath).hexdigest()] = newpath
 
     #LOOKUP
     response += struct.pack("!II", 15, error)
