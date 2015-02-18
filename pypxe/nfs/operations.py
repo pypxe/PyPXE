@@ -141,6 +141,7 @@ def LOOKUP(request, response, state):
         #NFS4ERR_NOTDIR
         error = 20
     newpath = path+"/"+name
+    print newpath, os.path.exists(newpath)
     if not os.path.exists(newpath):
         #NFS4ERR_NOENT
         error = 2
@@ -190,6 +191,14 @@ def OPEN(request, response, state):
     [openclaim] = struct.unpack("!I", request[:4])
     request = request[4:]
 
+    if openclaim == 0:
+        [claimlen] = struct.unpack("!I", request[:4])
+        request = request[4:]
+        claimname = request[:claimlen]
+        offset = 4 - (claimlen % 4) if claimlen % 4 else 0
+        request = request[claimlen+offset:]
+
+
     #OPEN
     response += struct.pack("!II", 18, 0)
 
@@ -204,10 +213,10 @@ def OPEN(request, response, state):
     response += struct.pack("!IQQ", 0, 0, 0)
 
     #rflags, matches kernel
-    response += struct.pack("!I", 4)
+    response += struct.pack("!I", 0)
 
-    #Attributes, This is relevant to creating files
-    response += struct.pack("!II", 0, 0)
+    #Attributes, This is relevant to creating files?
+    response += struct.pack("!I", 0)
 
     #OPEN_DELEGATE_NONE
     response += struct.pack("!I", 0)
