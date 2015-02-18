@@ -3,6 +3,7 @@ import struct
 import hashlib
 import math
 import attributes
+from io import BytesIO
 #All the following functions are individually defined
 #in RFC5661 sections 18.*
 
@@ -59,7 +60,7 @@ def GETATTR(request, response, state):
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
 
-    [maskcnt] = struct.unpack("!I", request.read:4])
+    [maskcnt] = struct.unpack("!I", request.read(4))
 
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request.read(4*maskcnt))
 
@@ -167,7 +168,7 @@ def OPEN(request, response, state):
 
     owner = request.read(ownerlen)
     offset = 4 - (ownerlen % 4) if ownerlen % 4 else 0
-    requst.seek(offset, 1)
+    request.seek(offset, 1)
 
     [opentype] = struct.unpack("!I", request.read(4))
     if opentype:
@@ -194,6 +195,8 @@ def OPEN(request, response, state):
         #pathsep
         if not os.path.exists(path+"/"+claimname) and createmode != 4:
             open(path+"/"+claimname,"w").close()
+    elif openclaim == 1:
+        [delegate_type] = struct.unpack("!I", request.read(4))
 
     if opentype:
         #Recreate the request for proper parsing
@@ -202,7 +205,7 @@ def OPEN(request, response, state):
         req += struct.pack("!"+str(attrlen)+"I", *attr)
         req += struct.pack("!I", tosetlen)
         req += toset
-        attrib = attributes.WriteAttributes(fh, state, req)
+        attrib = attributes.WriteAttributes(fh, state, BytesIO(req))
 
 
     #OPEN
@@ -241,7 +244,12 @@ nfs_opnum4_append(OPEN_DOWNGRADE, 21)
 def PUTFH(request, response, state):
     [length] = struct.unpack("!I", request.read(4)) #should always be 128
     fh = request.read(length)
-    path = state['fhs'][fh]
+    try:
+        path = state['fhs'][fh]
+    except KeyError:
+        #PUTFH, NFS4ERR_STALE
+        response += struct.pack("!II", 22, 70)
+        return request, response
     state[state['current']]['fh'] = fh
 
     #PUTFH, OK
@@ -414,8 +422,24 @@ def SECINFO(request, response, state):
 nfs_opnum4_append(SECINFO, 33)
 
 def SETATTR(request, response, state):
-    #34
-    return
+    [seqid] = struct.unpack("!I", request.read(4))
+    stateid = request.read(12)
+
+    fh = state[state['current']]['fh']
+
+    [masklen] = struct.unpack("!I", request.read(4))
+    request.read(masklen*4)
+    [arglen] = struct.unpack("!I", request.read(4))
+    #Makes it easier to create the object next
+    request.seek(-(masklen*4+8), 1)
+    #Masklen+arglen+8 is the total argument structure size
+    attrib = attributes.WriteAttributes(fh, state, BytesIO(request.read(masklen*4+arglen+8)))
+
+    #SETATTR, NFS4_OK
+    response += struct.pack("!II", 34, 0)
+    response += attrib.respbitmask
+
+    return request, response
 nfs_opnum4_append(SETATTR, 34)
 
 def VERIFY(request, response, state):
@@ -641,9 +665,10 @@ def SEQUENCE(request, response, state):
     state['current'] = clientid
     #New request, or not cached.
     #would be handy to have operation count here, this is a workaround
-    while request:
+    #unpleasant, but worth not having to [:x]
+    while len(request.getvalue()) != request.tell():
         [op] = struct.unpack("!I", request.read(4))
-        print "\t", op, nfs_opnum4[op].__name__, seqid
+        print "\t", op, nfs_opnum4[op].__name__
         #Functions always append to response. Refactor?
         request, response = nfs_opnum4[op](request, response, state)
 

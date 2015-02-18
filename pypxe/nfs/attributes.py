@@ -1,5 +1,6 @@
 import struct
 import os
+from io import BytesIO
 #This is used in various places (GETATTR/READDIR), and is quite large
 #So I've split it into a new file
 #Huge benefit from extending this
@@ -135,7 +136,7 @@ class WriteAttributes(Attributes):
         [attr_len] = struct.unpack("!I", self.req.read(4))
         attr_req = struct.unpack("!"+str(attr_len)+"I", self.req.read(4*attr_len))
         [attrsize] = struct.unpack("!I", self.req.read(4))
-        self.arguments = self.req[:attrsize]
+        self.arguments = BytesIO(self.req.read(attrsize))
 
         self.attr_pos = self.extractbits(attr_req)
         self.respbitmask = self.packbits([attr for attr in self.attr_pos if attr in self.attributes])
@@ -147,7 +148,7 @@ class WriteAttributes(Attributes):
     attributes = {}
 
     #Set size. truncate does sparse
-    attributes[4] = lambda self:open(self.path,"a").truncate(struct.unpack("!I", self.arguments[4]))
+    attributes[4] = lambda self:open(self.path,"a").truncate(struct.unpack("!Q", self.arguments.read(8))[0])
 
-    #chmod
-    attributes[33] = lambda self:os.chmod(self.path, struct.unpack("!I",self.arguments[33]))
+    #chmod.
+    attributes[33] = lambda self:os.chmod(self.path, struct.unpack("!I",self.arguments.read(4))[0])
