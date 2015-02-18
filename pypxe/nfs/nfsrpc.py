@@ -165,13 +165,12 @@ class NFS:
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
         self.sock.listen(4)
         #Global state info.
+        #Now we're threading we really ought to do per-client state
         self.state = {}
         self.state['fhs'] = {}
 
     def listen(self):
         while True:
             conn, addr = self.sock.accept()
-            print "pre"
             req = RequestHandler(conn, addr, self.state)
             req.start()
-            print "post"

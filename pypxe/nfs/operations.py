@@ -371,8 +371,21 @@ def READDIR(request, response, state):
 nfs_opnum4_append(READDIR, 26)
 
 def READLINK(request, response, state):
-    #27
-    return
+    path = state['fhs'][state[state['current']]['fh']]
+    if os.lstat(path).st_mode&61440 != 40960:
+        #READLINK, NFS4ERR_WRONG_TYPE
+        response += struct.pack("!II", 27, 10083)
+        return request, response
+
+    realpath = os.readlink(path)
+    #READLINK, NFS4_OK
+    response += struct.pack("!II", 27, 0)
+    response += struct.pack("!I", len(realpath))
+    response += realpath
+    offset = 4 - (len(realpath) % 4) if len(realpath) % 4 else 0
+    response += "\x00" * offset
+
+    return request, response
 nfs_opnum4_append(READLINK, 27)
 
 def REMOVE(request, response, state):
