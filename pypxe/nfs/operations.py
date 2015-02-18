@@ -16,8 +16,7 @@ nfs_opnum4_append = lambda f,x: nfs_opnum4.__setitem__(x,f)
 def ACCESS(request, response, state):
     #THIS IS NOT COMPLETE
     #RELIES ON AUTHENTICATION WHICH IS NOT YET DONE
-    [access] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [access] = struct.unpack("!I", request.read(4))
 
     #ACCESS, NFS4_OK
     response += struct.pack("!II", 3, 0)
@@ -26,14 +25,11 @@ def ACCESS(request, response, state):
 nfs_opnum4_append(ACCESS, 3)
 
 def CLOSE(request, response, state):
-    [seqid] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [seqid] = struct.unpack("!I", request.read(4))
 
-    [stateidseqid] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [stateidseqid] = struct.unpack("!I", request.read(4))
 
-    stateid = request[:12]
-    request = request[12:]
+    stateid = request.read(12)
 
     lockclient = [i for i in state if i not in ("fhs", "current") and stateid in state[i]['locks']][0]
     #Remove the lock
@@ -63,11 +59,9 @@ def GETATTR(request, response, state):
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
 
-    [maskcnt] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [maskcnt] = struct.unpack("!I", request.read:4])
 
-    attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
-    request = request[4*maskcnt:]
+    attr_req = struct.unpack("!"+str(maskcnt)+"I", request.read(4*maskcnt))
 
     if not os.path.exists(path):
         #Here so we don't have to cleanup manually
@@ -76,7 +70,7 @@ def GETATTR(request, response, state):
         return request, response
 
     pathstat = os.lstat(path)
-    attrib = attributes.Attributes(fh, state, attr_req)
+    attrib = attributes.ReadAttributes(fh, state, attr_req)
 
     #GETATTR, NFS4_OK
     response += struct.pack("!II", 9, 0)
@@ -128,12 +122,11 @@ def LOOKUP(request, response, state):
     clientid = state['current']
     error = 0
 
-    [namelen] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [namelen] = struct.unpack("!I", request.read(4))
 
-    name = request[:namelen]
+    name = request.read(namelen)
     offset = 4 - (namelen % 4) if namelen % 4 else 0
-    request = request[namelen+offset:]
+    request.seek(offset, 1)
 
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
@@ -164,38 +157,52 @@ def NVERIFY(request, response, state):
 nfs_opnum4_append(NVERIFY, 17)
 
 def OPEN(request, response, state):
-    [seqid] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [seqid] = struct.unpack("!I", request.read(4))
 
-    share_access, share_deny = struct.unpack("!II", request[:8])
-    request = request[8:]
+    share_access, share_deny = struct.unpack("!II", request.read(8))
 
-    clientid = request[:8]
-    request = request[8:]
+    clientid = request.read(8)
 
-    [ownerlen] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [ownerlen] = struct.unpack("!I", request.read(4))
 
-    owner = request[:ownerlen]
+    owner = request.read(ownerlen)
     offset = 4 - (ownerlen % 4) if ownerlen % 4 else 0
-    request = request[ownerlen+offset:]
+    requst.seek(offset, 1)
 
-    [opentype] = struct.unpack("!I", request[:4])
-    request = request[4:]
-    if opentype == 1:
+    [opentype] = struct.unpack("!I", request.read(4))
+    if opentype:
         #createhow4
-        #createmode4 == 1: don't overwrite file
-        pass
+        #createmode4 == 1: don't clobber
+        [createmode] = struct.unpack("!I", request.read(4))
+        [attrlen] = struct.unpack("!I", request.read(4))
+        attr = struct.unpack("!"+str(attrlen)+"I", request.read(4*attrlen))
+        [tosetlen] = struct.unpack("!I", request.read(4))
+        toset = request.read(tosetlen)
 
-    [openclaim] = struct.unpack("!I", request[:4])
-    request = request[4:]
+
+    [openclaim] = struct.unpack("!I", request.read(4))
 
     if openclaim == 0:
-        [claimlen] = struct.unpack("!I", request[:4])
-        request = request[4:]
-        claimname = request[:claimlen]
+        [claimlen] = struct.unpack("!I", request.read(4))
+        claimname = request.read(claimlen)
         offset = 4 - (claimlen % 4) if claimlen % 4 else 0
-        request = request[claimlen+offset:]
+        request.seek(offset, 1)
+        #The following makes the file exist
+        path = state['fhs'][state[state['current']]['fh']]
+        state['fhs'][hashlib.sha512(path+"/"+claimname).hexdigest()] = path+"/"+claimname
+        fh = hashlib.sha512(path+"/"+claimname).hexdigest()
+        #pathsep
+        if not os.path.exists(path+"/"+claimname) and createmode != 4:
+            open(path+"/"+claimname,"w").close()
+
+    if opentype:
+        #Recreate the request for proper parsing
+        #probably ought to modify the if opentype above
+        req = struct.pack("!I", attrlen)
+        req += struct.pack("!"+str(attrlen)+"I", *attr)
+        req += struct.pack("!I", tosetlen)
+        req += toset
+        attrib = attributes.WriteAttributes(fh, state, req)
 
 
     #OPEN
@@ -214,8 +221,11 @@ def OPEN(request, response, state):
     #rflags, matches kernel
     response += struct.pack("!I", 0)
 
-    #Attributes, This is relevant to creating files?
-    response += struct.pack("!I", 0)
+    #Applied Attributes
+    if not opentype:
+        response += struct.pack("!I", 0)
+    else:
+        response += attrib.respbitmask
 
     #OPEN_DELEGATE_NONE
     response += struct.pack("!I", 0)
@@ -229,10 +239,8 @@ def OPEN_DOWNGRADE(request, response, state):
 nfs_opnum4_append(OPEN_DOWNGRADE, 21)
 
 def PUTFH(request, response, state):
-    [length] = struct.unpack("!I", request[:4]) #should always be 128
-    request = request[4:]
-    fh = request[:length]
-    request = request[length:]
+    [length] = struct.unpack("!I", request.read(4)) #should always be 128
+    fh = request.read(length)
     path = state['fhs'][fh]
     state[state['current']]['fh'] = fh
 
@@ -263,14 +271,11 @@ def PUTROOTFH(request, response, state):
 nfs_opnum4_append(PUTROOTFH, 24)
 
 def READ(request, response, state):
-    [seqid] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [seqid] = struct.unpack("!I", request.read(4))
 
-    stateid = request[:12]
-    request = request[12:]
+    stateid = request.read(12)
 
-    [offset, count] = struct.unpack("!QI", request[:12])
-    request = request[12:]
+    [offset, count] = struct.unpack("!QI", request.read(12))
 
     clientid = [i for i in state if i not in ("fhs","current") and stateid in state[i]["locks"]][0]
     fh = state[clientid]['fh']
@@ -311,20 +316,15 @@ def READDIR(request, response, state):
     path = state['fhs'][fh]
 
     #we modify later, so list
-    reqcookie = list(struct.unpack("!II", request[:8]))
-    request = request[8:]
+    reqcookie = list(struct.unpack("!II", request.read(8)))
 
-    cookie_verf = struct.unpack("!II", request[:8])
-    request = request[8:]
+    cookie_verf = struct.unpack("!II", request.read(8))
 
-    [dircount, maxcount] = struct.unpack("!II", request[:8])
-    request = request[8:]
+    [dircount, maxcount] = struct.unpack("!II", request.read(8))
 
-    [maskcnt] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [maskcnt] = struct.unpack("!I", request.read(4))
 
-    attr_req = struct.unpack("!"+str(maskcnt)+"I", request[:4*maskcnt])
-    request = request[4*maskcnt:]
+    attr_req = struct.unpack("!"+str(maskcnt)+"I", request.read(4*maskcnt))
 
     #READDIR, NFS4_OK
     response += struct.pack("!II", 26, 0)
@@ -352,7 +352,7 @@ def READDIR(request, response, state):
         #Create a filehandle object
         #Probably ought to be pathsep
         state['fhs'][hashlib.sha512(path+"/"+dirent).hexdigest()] = path+"/"+dirent
-        attrib = attributes.Attributes(hashlib.sha512(path+"/"+dirent).hexdigest(), state, attr_req)
+        attrib = attributes.ReadAttributes(hashlib.sha512(path+"/"+dirent).hexdigest(), state, attr_req)
         #Add in the attributes
         subresponse += attrib.respbitmask
         subresponse += struct.pack("!I", attrib.packedattrlen)
@@ -447,38 +447,31 @@ def EXCHANGE_ID(request, response, state):
     client.
         - RFC5661-18.35.3
     '''
-    verifier = request[:8] #RFC5661-3.1/2
-    request = request[8:]
+    verifier = request.read(8) #RFC5661-3.1/2
     client = {}
 
-    [client['owneridlen']] = struct.unpack("!I", request[:4])
-    request = request[4:]
-    client['ownerid'] = request[:client['owneridlen']]
+    [client['owneridlen']] = struct.unpack("!I", request.read(4))
+    client['ownerid'] = request.read(client['owneridlen'])
     #Pad to multiple of 4?
     offset = 4 - (client['owneridlen'] % 4) if client['owneridlen'] % 4 else 0
-    request = request[client['owneridlen']+offset:]
+    request.seek(offset, 1)
 
-    client['flags'] = struct.unpack("!I", request[:4])
-    request = request[4:]
-    client['stateprotection'] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    client['flags'] = struct.unpack("!I", request.read(4))
+    client['stateprotection'] = struct.unpack("!I", request.read(4))
 
-    [client['impl_id']] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [client['impl_id']] = struct.unpack("!I", request.read(4))
 
-    [client['domainlen']] = struct.unpack("!I", request[:4])
-    request = request[4:]
-    client['domain'] = request[:client['domainlen']]
+    [client['domainlen']] = struct.unpack("!I", request.read(4))
+    client['domain'] = request.read(client['domainlen'])
     offset = 4 - (client['domainlen'] % 4) if client['domainlen'] % 4 else 0
-    request = request[client['domainlen']+offset:]
+    request.seek(offset,1)
 
-    [client['namelen']] = struct.unpack("!I", request[:4])
-    request = request[4:]
-    client['name'] = request[:client['namelen']]
+    [client['namelen']] = struct.unpack("!I", request.read(4))
+    client['name'] = request.read(client['namelen'])
     offset = 4 - (client['namelen'] % 4) if client['namelen'] % 4 else 0
-    request = request[client['namelen']+offset:]
+    request.seek(offset,1)
 
-    client['date'] = struct.unpack("!II", request[:8])
+    client['date'] = struct.unpack("!II", request.read(8))
 
 
     #EXCHANGE_ID, NFS4_OK
@@ -513,35 +506,26 @@ def CREATE_SESSION(request, response, state):
     '''
 
     '''
-    clientid = request[:8]
-    request = request[8:]
+    clientid = request.read(8)
 
-    [sequenceid] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [sequenceid] = struct.unpack("!I", request.read(4))
 
-    [flags] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [flags] = struct.unpack("!I", request.read(4))
 
-    fore_attrs = struct.unpack("!IIIIIII", request[:28])
-    request = request[28:]
-    back_attrs = struct.unpack("!IIIIIII", request[:28])
-    request = request[28:]
+    fore_attrs = struct.unpack("!IIIIIII", request.read(28))
+    back_attrs = struct.unpack("!IIIIIII", request.read(28))
 
-    [callback] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [callback] = struct.unpack("!I", request.read(4))
 
     #AUTH_SYS - THIS MAY BREAK
-    [unknown, flavor, stamp] = struct.unpack("!III", request[:12])
-    request = request[12:]
+    [unknown, flavor, stamp] = struct.unpack("!III", request.read(12))
 
-    [machinelen] = struct.unpack("!I", request[:4])
-    request = request[4:]
-    machinename = request[:machinelen]
+    [machinelen] = struct.unpack("!I", request.read(4))
+    machinename = request.read(machinelen)
     offset = 4 - (machinelen % 4) if machinelen % 4 else 0
-    request = request[machinelen+offset:]
+    request.seek(offset, 1)
 
-    [uid, gid] = struct.unpack("!II", request[:8])
-    request = request[8:]
+    [uid, gid] = struct.unpack("!II", request.read(8))
 
     error = 0
     if clientid not in state.keys():
@@ -574,7 +558,7 @@ def CREATE_SESSION(request, response, state):
 nfs_opnum4_append(CREATE_SESSION, 43)
 
 def DESTROY_SESSION(request, response, state):
-    sessid = request[:16]
+    sessid = request.read(16)
     try:
         clientid = [i for i in state if i not in ("fhs","current") and state[i]['sessid'] == sessid][0]
         state[clientid]['sessid'] = ""
@@ -599,8 +583,7 @@ def LAYOUTCOMMIT(request, response, state):
 nfs_opnum4_append(LAYOUTCOMMIT, 49)
 
 def SECINFO_NO_NAME(request, response, state):
-    [secinfostyle] = struct.unpack("!I", request[:4])
-    request = request[4:]
+    [secinfostyle] = struct.unpack("!I", request.read(4))
 
     #SECINFO_NO_NAME, NFS4_OK
     response += struct.pack("!II", 52, 0)
@@ -617,13 +600,11 @@ def SEQUENCE(request, response, state):
     control and the reply cache semantics.
         - RFC5661-18.46.3
     '''
-    sessid = request[:16]
-    request = request[16:]
+    sessid = request.read(16)
     [seqid,
     slotid,
     highest_slotid,
-    cachethis] = struct.unpack("!IIII", request[:16])
-    request = request[16:]
+    cachethis] = struct.unpack("!IIII", request.read(16))
 
     error = 0
     try:
@@ -661,8 +642,7 @@ def SEQUENCE(request, response, state):
     #New request, or not cached.
     #would be handy to have operation count here, this is a workaround
     while request:
-        [op] = struct.unpack("!I", request[:4])
-        request = request[4:] #functions know who they are
+        [op] = struct.unpack("!I", request.read(4))
         print "\t", op, nfs_opnum4[op].__name__, seqid
         #Functions always append to response. Refactor?
         request, response = nfs_opnum4[op](request, response, state)
@@ -691,8 +671,7 @@ def DESTROY_CLIENTID(request, response, state):
     the client ID, the server MUST return NFS4ERR_CLIENTID_BUSY.
         - RFC5661-18.50.3
     '''
-    clientid = request[:8]
-    request = request[8:]
+    clientid = request.read(8)
     try:
         del state[clientid]
     except:
@@ -711,8 +690,7 @@ def RECLAIM_COMPLETE(request, response, state):
     system to another server.
         - RFC5661-18.51.3
     '''
-    rca_one_fs = struct.unpack("!I", request[:4])
-    request = request[4:]
+    rca_one_fs = struct.unpack("!I", request.read(4))
     #Not using this (yet?)
     response += struct.pack("!II", 58, 0)
     response += struct.pack("!I", 0)

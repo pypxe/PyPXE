@@ -10,11 +10,9 @@ class Attributes:
         self.clientid = state['current']
         self.fh = state[self.clientid]['fh']
         self.path = state['fhs'][fh]
+        self.req = req
         self.pathstat = os.lstat(self.path)
-        self.attr_pos = self.extractbits(req)
-        self.respbitmask = self.packbits([attr for attr in self.attr_pos if attr in self.attributes])
-        self.packedattr = ''.join([self.attributes[attr](self) for attr in self.attr_pos if attr in self.attributes])
-        self.packedattrlen = len(self.packedattr)
+        self.create()
 
     def extractbits(self, attr_req):
         offset = 0
@@ -37,6 +35,15 @@ class Attributes:
             bitmaskint >>= 32
         #pack with prefixed length
         return struct.pack("!I%dI" % len(ints), len(ints), *ints)
+
+class ReadAttributes(Attributes):
+    def create(self):
+        #Read specific handling
+        #self.req is a list of int32 bitfields
+        self.attr_pos = self.extractbits(self.req)
+        self.respbitmask = self.packbits([attr for attr in self.attr_pos if attr in self.attributes])
+        self.packedattr = ''.join([self.attributes[attr](self) for attr in self.attr_pos if attr in self.attributes])
+        self.packedattrlen = len(self.packedattr)
 
     attributes = {}
 
@@ -120,3 +127,27 @@ class Attributes:
 
     #unsure on this one, copying attributes[1]
     attributes[75] = lambda self:struct.pack("!I",{49152:6, 40960:5, 32768:1, 24576:3, 16384:2, 8192:4, 4096:7}[self.pathstat.st_mode&61440])
+
+class WriteAttributes(Attributes):
+    def create(self):
+        #Write specific handling
+        #self.req is a string, bitmask to end of args
+        [attr_len] = struct.unpack("!I", self.req.read(4))
+        attr_req = struct.unpack("!"+str(attr_len)+"I", self.req.read(4*attr_len))
+        [attrsize] = struct.unpack("!I", self.req.read(4))
+        self.arguments = self.req[:attrsize]
+
+        self.attr_pos = self.extractbits(attr_req)
+        self.respbitmask = self.packbits([attr for attr in self.attr_pos if attr in self.attributes])
+
+        #Actually perform the operations
+        #This needs to be in order, for argument parsing
+        [self.attributes[attr](self) for attr in self.attr_pos if attr in self.attributes]
+
+    attributes = {}
+
+    #Set size. truncate does sparse
+    attributes[4] = lambda self:open(self.path,"a").truncate(struct.unpack("!I", self.arguments[4]))
+
+    #chmod
+    attributes[33] = lambda self:os.chmod(self.path, struct.unpack("!I",self.arguments[33]))

@@ -3,6 +3,7 @@ import struct
 import socket
 import os
 import threading
+from io import BytesIO
 
 class Request:
     class credentials:
@@ -31,30 +32,25 @@ class Request:
         self.prog,
         self.vers,
         self.proc
-        ] = struct.unpack(fmt,request[:7*4])
+        ] = struct.unpack(fmt,request.read(7*4))
         if not sum([self.msgtype == 0,
               self.rpcver == 2,
               self.prog == 100003,
               self.vers == 4,
               self.proc in (0,1)]) == 5:
             return
-        request = request[7*4:]
 
         #Credentials, uint flavor, uint length followed by opaque length bytes
         [self.credentials.flavor,
         self.credentials.length
-        ] = struct.unpack("!II", request[:2*4])
-        request = request[2*4:]
-        self.credentials.opaque = request[:self.credentials.length]
-        request = request[self.credentials.length:]
+        ] = struct.unpack("!II", request.read(2*4))
+        self.credentials.opaque = request.read(self.credentials.length)
 
         #See Credentials
         [self.verifier.flavor,
         self.verifier.length
-        ] = struct.unpack("!II", request[:2*4])
-        request = request[2*4:]
-        self.verifier.opaque = request[:self.verifier.length]
-        request = request[self.verifier.length:]
+        ] = struct.unpack("!II", request.read(2*4))
+        self.verifier.opaque = request.read(self.verifier.length)
 
         #NULL procedure, sometimes used for overhead measurement
         if self.proc == 0:
@@ -63,16 +59,12 @@ class Request:
 
         #COMPOUND procedure, all other actions
         #Tag. RFC665-16.2.3, implementation defined, must respond matching
-        [self.taglen] = struct.unpack("!I", request[:4])
-        request = request[4:]
-        self.tag = request[:self.taglen]
-        request = request[self.taglen:]
+        [self.taglen] = struct.unpack("!I", request.read(4))
+        self.tag = request.read(self.taglen)
 
-        [self.minorversion] = struct.unpack("!I", request[:4])
-        request = request[4:]
+        [self.minorversion] = struct.unpack("!I", request.read(4))
 
-        [self.operations] = struct.unpack("!I", request[:4])
-        request = request[4:]
+        [self.operations] = struct.unpack("!I", request.read(4))
 
         if self.minorversion != 1:
             response = struct.pack("!II", 10021, self.taglen)
@@ -85,7 +77,9 @@ class Request:
         #This should be implemented inside the operation
         #function, and they MUST clean up the response properly
         #This is the pramble. NFS4_OK (0) should probably be handled properly
-        [operation] = struct.unpack("!I", request[:4])
+        [operation] = struct.unpack("!I", request.read(4))
+        #Peek only
+        request.seek(-4, 1)
         if operation in (35,):
             #not supported
             response =  struct.pack("!II", 10004, self.taglen)
@@ -121,8 +115,7 @@ class Request:
         self.connection.send(response)
 
     def dispatch(self, request, response):
-        [operation] = struct.unpack("!I", request[:4])
-        request = request[4:]
+        [operation] = struct.unpack("!I", request.read(4))
         print operation, operations.nfs_opnum4[operation].__name__
         #Will recurse on SEQUENCE, functions append to request
         request, response = operations.nfs_opnum4[operation](request, response, self.state)
@@ -150,13 +143,14 @@ class RequestHandler(threading.Thread):
         while True:
             first4 = self.conn.recv(4)
             if not first4:
-                print "Connection Closed"
                 return
             [fraghdr] = struct.unpack("!I", first4)
             #The top bit is the last fragment bool
             #We don't want that so ignore
             length = fraghdr & ~(1<<31)
-            Request(struct.pack("!I", fraghdr)+self.conn.recv(length), self.conn, self.addr, self.state)
+            req = struct.pack("!I", fraghdr)+self.conn.recv(length)
+            #BytesIO lets us read(), so we don't have a [x:] every other line
+            Request(BytesIO(req), self.conn, self.addr, self.state)
 
 class NFS:
     def __init__(self):
