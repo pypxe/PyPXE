@@ -552,15 +552,17 @@ def CREATE_SESSION(request, response, state):
         #NFS4ERR_SEQ_MISORDERED
         error = 10063
 
-    sessid = os.urandom(16)
-
-    state[clientid]['sessid'] = sessid
 
     #CREATE_SESSION, Error
     response += struct.pack("!II", 43, error)
     if error:
         response += struct.pack("!I", 0)
         return request, response
+
+    sessid = os.urandom(16)
+
+    state[clientid]['sessid'] = sessid
+
     response += sessid
     response += struct.pack("!I", sequenceid)
     #not CREATE_SESSION4_FLAG_PERSIST or CREATE_SESSION4_FLAG_CONN_BACK_CHAN
@@ -629,8 +631,7 @@ def SEQUENCE(request, response, state):
     except IndexError:
         #NFS4ERR_BADSESSION
         #We don't have a client to match the session
-        print "\tBADSESSION"
-        response += struct.pack("!II", 53, 0)
+        response += struct.pack("!II", 53, 10052)
         response += sessid
         response += struct.pack("!IIIII",
                 seqid,
