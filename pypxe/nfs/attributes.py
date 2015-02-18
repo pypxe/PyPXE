@@ -10,7 +10,7 @@ class Attributes:
         self.clientid = state['current']
         self.fh = state[self.clientid]['fh']
         self.path = state['fhs'][fh]
-        self.pathstat = os.stat(self.path)
+        self.pathstat = os.lstat(self.path)
         self.attr_pos = self.extractbits(req)
         self.respbitmask = self.packbits([attr for attr in self.attr_pos if attr in self.attributes])
         self.packedattr = ''.join([self.attributes[attr](self) for attr in self.attr_pos if attr in self.attributes])

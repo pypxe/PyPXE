@@ -75,7 +75,7 @@ def GETATTR(request, response, state):
         response += struct.pack("!II", 9, 2)
         return request, response
 
-    pathstat = os.stat(path)
+    pathstat = os.lstat(path)
     attrib = attributes.Attributes(fh, state, attr_req)
 
     #GETATTR, NFS4_OK
@@ -137,11 +137,10 @@ def LOOKUP(request, response, state):
 
     fh = state[clientid]['fh']
     path = state['fhs'][fh]
-    if os.stat(path).st_mode&61440 != 16384:
+    if os.lstat(path).st_mode&61440 != 16384:
         #NFS4ERR_NOTDIR
         error = 20
     newpath = path+"/"+name
-    print newpath, os.path.exists(newpath)
     if not os.path.exists(newpath):
         #NFS4ERR_NOENT
         error = 2
