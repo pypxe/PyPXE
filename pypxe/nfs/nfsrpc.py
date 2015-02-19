@@ -172,7 +172,7 @@ class NFS:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
         self.sock.listen(4)
-        self.shared = {"locks":{}, "fhs":{}}
+        self.shared = {"locks":{}, "fhs":{}, "root":"nfsroot"}
 
     def listen(self):
         while True:

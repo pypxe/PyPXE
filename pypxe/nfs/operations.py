@@ -50,7 +50,7 @@ def ACCESS(request, response, state):
     #os sep
     #parent directory stat
     #Delete requires write on the parent directory
-    if not path == "nfsroot":
+    if not path == state["globals"]["root"]:
         ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
         if pathstat.st_uid == state["auth"]["uid"]:
             result |= 0x10 if ppathstat&128 else 0
@@ -309,9 +309,9 @@ def PUTROOTFH(request, response, state):
     returns root filehandle.
     '''
     #sha512 is free 128 byte
-    nfsroot = hashlib.sha512("nfsroot").hexdigest()
+    nfsroot = hashlib.sha512(state["globals"]["root"]).hexdigest()
     state['current']['fh'] = nfsroot
-    state["globals"]['fhs'][nfsroot] = "nfsroot"
+    state["globals"]['fhs'][nfsroot] = state["globals"]["root"]
 
     #PUTROOTFH, OK
     response += struct.pack("!II", 24, 0)
