@@ -44,7 +44,19 @@ class Request:
         [self.credentials.flavor,
         self.credentials.length
         ] = struct.unpack("!II", request.read(2*4))
-        self.credentials.opaque = request.read(self.credentials.length)
+        if self.credentials.flavor == 1:
+            #AUTH_UNIX
+            stamp = request.read(4)
+            [namelen] = struct.unpack("!I", request.read(4))
+            name = request.read(namelen)
+            offset = 4 - (namelen % 4) if namelen % 4 else 0
+            request.seek(offset, 1)
+            [uid, gid] = struct.unpack("!II", request.read(2*4))
+            [gidscount] = struct.unpack("!I", request.read(4))
+            gids = struct.unpack("!"+str(gidscount)+"I", request.read(gidscount*4))
+        else:
+            #This shouldn't happen becuase we told client in SECINFO_NO_NAME
+            self.credentials.opaque = request.read(self.credentials.length)
 
         #See Credentials
         [self.verifier.flavor,
@@ -133,11 +145,12 @@ class Request:
         self.connection.send(response)
 
 class RequestHandler(threading.Thread):
-    def __init__(self, conn, addr, state):
+    def __init__(self, conn, addr, shared):
         threading.Thread.__init__(self)
         self.conn = conn
         self.addr = addr
-        self.state = state
+        #Per client state, global locks
+        self.state = {"globals": shared}
 
     def run(self):
         while True:
@@ -158,13 +171,10 @@ class NFS:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
         self.sock.listen(4)
-        #Global state info.
-        #Now we're threading we really ought to do per-client state
-        self.state = {}
-        self.state['fhs'] = {}
+        self.shared = {"locks":{}, "fhs":{}}
 
     def listen(self):
         while True:
             conn, addr = self.sock.accept()
-            req = RequestHandler(conn, addr, self.state)
+            req = RequestHandler(conn, addr, self.shared)
             req.start()

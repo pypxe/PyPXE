@@ -32,10 +32,8 @@ def CLOSE(request, response, state):
 
     stateid = request.read(12)
 
-    lockclient = [i for i in state if i not in ("fhs", "current") and stateid in state[i]['locks']][0]
     #Remove the lock
-    del state[lockclient]['locks'][stateid]
-
+    del state["globals"]["locks"][state["current"]["fh"]][stateid]
 
     #CLOSE, NFS4_OK
     response += struct.pack("!II", 4, 0)
@@ -56,9 +54,9 @@ def CREATE(request, response, state):
 nfs_opnum4_append(CREATE, 6)
 
 def GETATTR(request, response, state):
-    clientid = state['current']
-    fh = state[clientid]['fh']
-    path = state['fhs'][fh]
+    client = state['current']
+    fh = client['fh']
+    path = state['globals']['fhs'][fh]
 
     [maskcnt] = struct.unpack("!I", request.read(4))
 
@@ -91,9 +89,9 @@ nfs_opnum4_append(GETATTR, 9)
 def GETFH(request, response, state):
     #128 byte fh ret
     #store, opaque to client, our job to translate
-    clientid = state['current']
+    client = state['current']
     #Get client's current fh (128 byte string)
-    fh = state[clientid]['fh']
+    fh = client['fh']
 
     #GETFH, NFS4_OK
     response += struct.pack("!II", 10, 0)
@@ -120,7 +118,7 @@ def LOCKU(request, response, state):
 nfs_opnum4_append(LOCKU, 14)
 
 def LOOKUP(request, response, state):
-    clientid = state['current']
+    client = state['current']
     error = 0
 
     [namelen] = struct.unpack("!I", request.read(4))
@@ -129,8 +127,8 @@ def LOOKUP(request, response, state):
     offset = 4 - (namelen % 4) if namelen % 4 else 0
     request.seek(offset, 1)
 
-    fh = state[clientid]['fh']
-    path = state['fhs'][fh]
+    fh = client['fh']
+    path = state["globals"]['fhs'][fh]
     if os.lstat(path).st_mode&61440 != 16384:
         #NFS4ERR_NOTDIR
         error = 20
@@ -139,8 +137,8 @@ def LOOKUP(request, response, state):
         #NFS4ERR_NOENT
         error = 2
 
-    state[clientid]['fh'] = hashlib.sha512(newpath).hexdigest()
-    state['fhs'][hashlib.sha512(newpath).hexdigest()] = newpath
+    client['fh'] = hashlib.sha512(newpath).hexdigest()
+    state["globals"]['fhs'][hashlib.sha512(newpath).hexdigest()] = newpath
 
     #LOOKUP
     response += struct.pack("!II", 15, error)
@@ -189,8 +187,8 @@ def OPEN(request, response, state):
         offset = 4 - (claimlen % 4) if claimlen % 4 else 0
         request.seek(offset, 1)
         #The following makes the file exist
-        path = state['fhs'][state[state['current']]['fh']]
-        state['fhs'][hashlib.sha512(path+"/"+claimname).hexdigest()] = path+"/"+claimname
+        path = state["globals"]['fhs'][state['current']['fh']]
+        state["globals"]['fhs'][hashlib.sha512(path+"/"+claimname).hexdigest()] = path+"/"+claimname
         fh = hashlib.sha512(path+"/"+claimname).hexdigest()
         #pathsep
         if not os.path.exists(path+"/"+claimname) and createmode != 4:
@@ -207,7 +205,6 @@ def OPEN(request, response, state):
         req += toset
         attrib = attributes.WriteAttributes(fh, state, BytesIO(req))
 
-
     #OPEN
     response += struct.pack("!II", 18, 0)
 
@@ -216,7 +213,10 @@ def OPEN(request, response, state):
     #random stateid is used for keeping track of locks
     stateid = os.urandom(12)
     response += stateid
-    state[clientid]['locks'][stateid] = state[clientid]['fh']
+    if state[clientid]['fh'] not in state["globals"]['locks']:
+        state["globals"]['locks'][state[clientid]['fh']] = {stateid:(share_access, share_deny)}
+    else:
+        state["globals"]['locks'][state[clientid]['fh']][stateid] = (share_access, share_deny)
 
     #change_info
     response += struct.pack("!IQQ", 0, 0, 0)
@@ -245,12 +245,12 @@ def PUTFH(request, response, state):
     [length] = struct.unpack("!I", request.read(4)) #should always be 128
     fh = request.read(length)
     try:
-        path = state['fhs'][fh]
+        path = state["globals"]['fhs'][fh]
     except KeyError:
         #PUTFH, NFS4ERR_STALE
         response += struct.pack("!II", 22, 70)
         return request, response
-    state[state['current']]['fh'] = fh
+    state['current']['fh'] = fh
 
     #PUTFH, OK
     response += struct.pack("!II", 22, 0)
@@ -269,8 +269,8 @@ def PUTROOTFH(request, response, state):
     '''
     #sha512 is free 128 byte
     nfsroot = hashlib.sha512("nfsroot").hexdigest()
-    state[state['current']]['fh'] = nfsroot
-    state['fhs'][nfsroot] = "nfsroot"
+    state['current']['fh'] = nfsroot
+    state["globals"]['fhs'][nfsroot] = "nfsroot"
 
     #PUTROOTFH, OK
     response += struct.pack("!II", 24, 0)
@@ -285,9 +285,12 @@ def READ(request, response, state):
 
     [offset, count] = struct.unpack("!QI", request.read(12))
 
-    clientid = [i for i in state if i not in ("fhs","current") and stateid in state[i]["locks"]][0]
-    fh = state[clientid]['fh']
-    path = state['fhs'][fh]
+    #need to check lock here
+    client = state["current"]
+    fh = client["fh"]
+    path = state["globals"]["fhs"][fh]
+    locks = state["globals"]["locks"][fh]
+    print locks
 
     #implicit read only
     file = open(path)
@@ -319,9 +322,9 @@ nfs_opnum4_append(READ, 25)
 
 def READDIR(request, response, state):
     #Lots here taken from GETATTR, we do the same mask business
-    clientid = state['current']
-    fh = state[clientid]['fh']
-    path = state['fhs'][fh]
+    client = state['current']
+    fh = client['fh']
+    path = state["globals"]['fhs'][fh]
 
     #we modify later, so list
     reqcookie = list(struct.unpack("!II", request.read(8)))
@@ -359,7 +362,7 @@ def READDIR(request, response, state):
 
         #Create a filehandle object
         #Probably ought to be pathsep
-        state['fhs'][hashlib.sha512(path+"/"+dirent).hexdigest()] = path+"/"+dirent
+        state["globals"]['fhs'][hashlib.sha512(path+"/"+dirent).hexdigest()] = path+"/"+dirent
         attrib = attributes.ReadAttributes(hashlib.sha512(path+"/"+dirent).hexdigest(), state, attr_req)
         #Add in the attributes
         subresponse += attrib.respbitmask
@@ -379,7 +382,7 @@ def READDIR(request, response, state):
 nfs_opnum4_append(READDIR, 26)
 
 def READLINK(request, response, state):
-    path = state['fhs'][state[state['current']]['fh']]
+    path = state["globals"]['fhs'][state['current']['fh']]
     if os.lstat(path).st_mode&61440 != 40960:
         #READLINK, NFS4ERR_WRONG_TYPE
         response += struct.pack("!II", 27, 10083)
@@ -425,7 +428,7 @@ def SETATTR(request, response, state):
     [seqid] = struct.unpack("!I", request.read(4))
     stateid = request.read(12)
 
-    fh = state[state['current']]['fh']
+    fh = state['current']['fh']
 
     [masklen] = struct.unpack("!I", request.read(4))
     request.read(masklen*4)
@@ -520,9 +523,10 @@ def EXCHANGE_ID(request, response, state):
     #needed for caching
     #but don't ache this or CREATE_SESSION
     client['seqid'] = [0,None]
-    client['locks'] = {}
+    client['clientid'] = clientid
 
     state[clientid] = client
+    state["current"] = state[clientid]
     return request, response
 nfs_opnum4_append(EXCHANGE_ID, 42)
 
@@ -583,14 +587,14 @@ nfs_opnum4_append(CREATE_SESSION, 43)
 
 def DESTROY_SESSION(request, response, state):
     sessid = request.read(16)
-    try:
-        clientid = [i for i in state if i not in ("fhs","current") and state[i]['sessid'] == sessid][0]
-        state[clientid]['sessid'] = ""
-        error = 0
-    except IndexError:
-        #We don't have the client id.
+    if state.keys() == ["globals"] or state["current"]["sessid"] == sessid:
+        #We don't have the client id, or we have no state at all
         #Error badsession
         error = 10052
+    else:
+        clientid = state["current"]["clientid"]
+        state[clientid]['sessid'] = ""
+        error = 0
     #DESTROY_SESSION
     response += struct.pack("!II", 44, error)
     return request, response
@@ -613,8 +617,8 @@ def SECINFO_NO_NAME(request, response, state):
     response += struct.pack("!II", 52, 0)
     #flavor count
     response += struct.pack("!I", 1)
-    #AUTH_NONE for now(?)
-    response += struct.pack("!I", 0)
+    #AUTH_UNIX
+    response += struct.pack("!I", 1)
     return request, response
 nfs_opnum4_append(SECINFO_NO_NAME, 52)
 
@@ -631,11 +635,22 @@ def SEQUENCE(request, response, state):
     cachethis] = struct.unpack("!IIII", request.read(16))
 
     error = 0
-    try:
-        clientid = [i for i in state if i != "fhs" and state[i]['sessid'] == sessid][0]
-    except IndexError:
+    #We have no clients
+    if state.keys() == ["globals"]:
+        #NFS4ERR_STALE_CLIENTID
+        #Goes back to EXCHANGE_ID (Not allowed in SEQUENCE)
+        response += struct.pack("!II", 53, 10022)
+        response += sessid
+        response += struct.pack("!IIIII",
+                seqid,
+                slotid,
+                32,
+                32,
+                0)
+        return request, response
+    elif ("current" in state and not state["current"]["sessid"] == sessid):
         #NFS4ERR_BADSESSION
-        #We don't have a client to match the session
+        #Goes back to CREATE_SESSION (Not allowed in SEQUENCE)
         response += struct.pack("!II", 53, 10052)
         response += sessid
         response += struct.pack("!IIIII",
@@ -645,6 +660,8 @@ def SEQUENCE(request, response, state):
                 32,
                 0)
         return request, response
+    else:
+        clientid = state["current"]["clientid"]
 
 
     #Retry and cached?
@@ -660,9 +677,6 @@ def SEQUENCE(request, response, state):
             0)
 
 
-    #e.g PUTROOTFH doesn't give us a clientid, so pass it in
-    #not thread safe, should probably be an argument
-    state['current'] = clientid
     #New request, or not cached.
     #would be handy to have operation count here, this is a workaround
     #unpleasant, but worth not having to [:x]
@@ -673,8 +687,6 @@ def SEQUENCE(request, response, state):
         request, response = nfs_opnum4[op](request, response, state)
 
     #Cache here
-
-    del state['current']
 
     return request, response
 nfs_opnum4_append(SEQUENCE, 53)
@@ -699,6 +711,7 @@ def DESTROY_CLIENTID(request, response, state):
     clientid = request.read(8)
     try:
         del state[clientid]
+        state["current"] = ""
     except:
         pass
     #DESTROY_CLIENTID, NFS4_OK

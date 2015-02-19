@@ -8,9 +8,9 @@ from io import BytesIO
 #Implemented = REQUIRED & Kernel requested
 class Attributes:
     def __init__(self, fh, state, req):
-        self.clientid = state['current']
-        self.fh = state[self.clientid]['fh']
-        self.path = state['fhs'][fh]
+        self.client = state['current']
+        self.fh = self.client['fh']
+        self.path = state["globals"]['fhs'][fh]
         self.req = req
         self.pathstat = os.lstat(self.path)
         self.create()
