@@ -1,6 +1,6 @@
 #!/bin/sh
-/bin/busybox mkdir /proc
-/bin/busybox mkdir /dev
-/bin/busybox mount -t proc proc /proc
-/bin/busybox mount -t devtmpfs dev /dev
+#/bin/busybox mkdir /proc
+#/bin/busybox mkdir /dev
+#/bin/busybox mount -t proc proc /proc
+#/bin/busybox mount -t devtmpfs dev /dev
 exec /bin/sh

@@ -19,9 +19,50 @@ def ACCESS(request, response, state):
     #RELIES ON AUTHENTICATION WHICH IS NOT YET DONE
     [access] = struct.unpack("!I", request.read(4))
 
+    path = state["globals"]["fhs"][state["current"]["fh"]]
+    pathstat = os.lstat(path)
+    result = 0
+    if pathstat.st_uid == state["auth"]["uid"]:
+        #user
+        #Read
+        result |= (0x1|0x2) if pathstat.st_mode&256 else 0
+        #Write
+        result |= (0x2|0x8) if pathstat.st_mode&128 else 0
+        #Exec
+        result |= 0x20 if pathstat.st_mode&64 else 0
+    elif pathstat.st_gid == state["auth"]["uid"]:
+        #group
+        #if group and user, user's lack of permissions win
+        #Read
+        result |= (0x1|0x2) if pathstat.st_mode&32 else 0
+        #Write
+        result |= (0x2|0x8) if pathstat.st_mode&16 else 0
+        #Exec
+        result |= 0x20 if pathstat.st_mode&8 else 0
+    else:
+        #all
+        #Read
+        result |= (0x1|0x2) if pathstat.st_mode&4 else 0
+        #Write
+        result |= (0x2|0x8) if pathstat.st_mode&2 else 0
+        #Exec
+        result |= 0x20 if pathstat.st_mode&1 else 0
+    #os sep
+    #parent directory stat
+    #Delete requires write on the parent directory
+    if not path == "nfsroot":
+        ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
+        if pathstat.st_uid == state["auth"]["uid"]:
+            result |= 0x10 if ppathstat&128 else 0
+        elif pathstat.st_gid == state["auth"]["uid"]:
+            result |= 0x10 if ppathstat&16 else 0
+        else:
+            result |= 0x10 if ppathstat&2 else 0
+
     #ACCESS, NFS4_OK
     response += struct.pack("!II", 3, 0)
-    response += struct.pack("!II", access, access)
+    #Support all
+    response += struct.pack("!II", access, result)
     return request, response
 nfs_opnum4_append(ACCESS, 3)
 
@@ -290,7 +331,6 @@ def READ(request, response, state):
     fh = client["fh"]
     path = state["globals"]["fhs"][fh]
     locks = state["globals"]["locks"][fh]
-    print locks
 
     #implicit read only
     file = open(path)
@@ -636,7 +676,7 @@ def SEQUENCE(request, response, state):
 
     error = 0
     #We have no clients
-    if state.keys() == ["globals"]:
+    if state.keys() == ["globals", "auth"]:
         #NFS4ERR_STALE_CLIENTID
         #Goes back to EXCHANGE_ID (Not allowed in SEQUENCE)
         response += struct.pack("!II", 53, 10022)
@@ -661,7 +701,11 @@ def SEQUENCE(request, response, state):
                 0)
         return request, response
     else:
-        clientid = state["current"]["clientid"]
+        try:
+            clientid = state["current"]["clientid"]
+        except:
+            print state
+            raise Exception("STATE ERROR - SEQUENCE")
 
 
     #Retry and cached?

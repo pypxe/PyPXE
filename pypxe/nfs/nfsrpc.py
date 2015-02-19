@@ -54,6 +54,7 @@ class Request:
             [uid, gid] = struct.unpack("!II", request.read(2*4))
             [gidscount] = struct.unpack("!I", request.read(4))
             gids = struct.unpack("!"+str(gidscount)+"I", request.read(gidscount*4))
+            self.state["auth"] = {"uid":uid, "gid":gid, "gids":gids}
         else:
             #This shouldn't happen becuase we told client in SECINFO_NO_NAME
             self.credentials.opaque = request.read(self.credentials.length)
