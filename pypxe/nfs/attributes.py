@@ -9,7 +9,7 @@ from io import BytesIO
 class Attributes:
     def __init__(self, fh, state, req):
         self.client = state['current']
-        self.fh = self.client['fh']
+        self.fh = fh
         self.path = state["globals"]['fhs'][fh]
         self.req = req
         self.pathstat = os.lstat(self.path)
