@@ -103,7 +103,7 @@ def GETATTR(request, response, state):
 
     attr_req = struct.unpack("!"+str(maskcnt)+"I", request.read(4*maskcnt))
 
-    if not os.path.exists(path):
+    if not os.path.lexists(path):
         #Here so we don't have to cleanup manually
         #NFS4ERR_NOENT
         response += struct.pack("!II", 9, 2)
@@ -174,7 +174,7 @@ def LOOKUP(request, response, state):
         #NFS4ERR_NOTDIR
         error = 20
     newpath = path+"/"+name
-    if not os.path.exists(newpath):
+    if not os.path.lexists(newpath):
         #NFS4ERR_NOENT
         error = 2
 
@@ -232,7 +232,8 @@ def OPEN(request, response, state):
         state["globals"]['fhs'][hashlib.sha512(path+"/"+claimname).hexdigest()] = path+"/"+claimname
         fh = hashlib.sha512(path+"/"+claimname).hexdigest()
         #pathsep
-        if not os.path.exists(path+"/"+claimname) and createmode != 4:
+        #opentype evaluated to Shortcircuit
+        if not os.path.lexists(path+"/"+claimname) and (opentype and createmode != 4):
             open(path+"/"+claimname,"w").close()
     elif openclaim == 1:
         [delegate_type] = struct.unpack("!I", request.read(4))
