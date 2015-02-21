@@ -8,6 +8,7 @@ import socket
 import struct
 import os
 import select
+import time
 from collections import defaultdict
 
 class TFTPD:
@@ -31,7 +32,7 @@ class TFTPD:
             print '\tTFTP Network Boot Directory: {}'.format(self.netbootDirectory)
 
         #key is (address, port) pair
-        self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512, 'sock':None})
+        self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512, 'sock':None, 'timeout':float("inf"), 'retries':3})
 
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
@@ -65,13 +66,15 @@ class TFTPD:
             short int 3 -> Data Block
         '''
         descriptor = self.ongoing[address]
-        response =  struct.pack('!H', 3) #opcode 3 is DATA, also sent block number
+        response = struct.pack('!H', 3) #opcode 3 is DATA, also sent block number
         response += struct.pack('!H', descriptor['block'] % 2 ** 16)
         data = descriptor['handle'].read(descriptor['blksize'])
         response += data
         if self.mode_debug:
             print '[DEBUG] TFTP Sending block {block}'.format(block = repr(descriptor['block']))
         descriptor['sock'].sendto(response, address)
+        self.ongoing[address]['retries'] -= 1
+        self.ongoing[address]['timeout'] = time.time()
         if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
             if self.mode_debug:
@@ -131,4 +134,14 @@ class TFTPD:
                      if self.ongoing.has_key(address):
                         blockack = struct.unpack("!H", message[:2])[0]
                         self.ongoing[address]['block'] = blockack + 1
+                        self.ongoing[address]['retries'] = 3
                         self.sendBlock(address)
+            #Timeouts and Retries. Done after the above so timeout actually has a value
+            #Resent those that have timed out
+            for i in self.ongoing:
+                if self.ongoing[i]['timeout']+5 < time.time() and self.ongoing[i]['retries']:
+                    print self.ongoing[i]['handle'].tell()
+                    self.ongoing[i]['handle'].seek(-self.ongoing[i]['blksize'], 1)
+                    self.sendBlock(i)
+                if not self.ongoing[i]['retries']:
+                    self.ongoing.pop(i)
