@@ -1,19 +1,19 @@
 default menu.c32
 prompt 0
 timeout 300
-ONTIMEOUT local
+ONTIMEOUT NFS
 
 MENU TITLE PyPXE
+
+LABEL NFS
+    MENU LABEL NFS
+    KERNEL vmlinuz-linux
+    APPEND initrd=initramfs-linux.img ip=dhcp nfsroot=192.168.0.3:/ ro
 
 LABEL TinyCore
     MENU LABEL TinyCore
     KERNEL memdisk
     APPEND iso initrd=Core.iso
-
-LABEL test
-    MENU LABEL test
-    KERNEL vmlinuz-linux
-    APPEND initrd=initramfs-linux.img ip=dhcp nfsroot=192.168.0.3:/ ro
 
 LABEL local
         MENU LABEL Boot local hard drive

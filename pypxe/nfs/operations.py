@@ -293,6 +293,7 @@ def PUTFH(request, response, state):
         response += struct.pack("!II", 22, 70)
         return request, response
     state['current']['fh'] = fh
+    print state["globals"]["fhs"][fh]
 
     #PUTFH, OK
     response += struct.pack("!II", 22, 0)
@@ -742,8 +743,17 @@ def SET_SSV(request, response, state):
 nfs_opnum4_append(SET_SSV, 54)
 
 def TEST_STATEID(request, response, state):
-    #55
-    return
+    #We don't use these properly yet. Relates to locks.
+    [num] = struct.unpack("!I", request.read(4))
+    #4 byte seqid + 12 byte stateid
+    stateids = request.read(num*16)
+
+    #DESTROY_CLIENTID, NFS4_OK
+    response += struct.pack("!II", 55, 0)
+    response += struct.pack("!I", num)
+    #NFS4_OK for each stateid
+    response += struct.pack("!I", 0)*num
+    return request, response
 nfs_opnum4_append(TEST_STATEID, 55)
 
 def DESTROY_CLIENTID(request, response, state):
