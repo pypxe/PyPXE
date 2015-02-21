@@ -86,7 +86,7 @@ class TFTPD:
                 file does not exist -> reply with error
         '''
         filename = self.filename(message)
-        if not os.path.exists(filename):
+        if not os.path.lexists(filename):
             self.notFound(address)
             return
         self.ongoing[address]['filename'] = filename
