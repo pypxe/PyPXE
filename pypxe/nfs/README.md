@@ -25,7 +25,7 @@ a suitable initrd
 3. Modify `nfsrpc.py->class NFS->def __init__()->self.shared["root"]` to point to
    the directory from step 1.
 
-4. Add to `pxelinux.cfg/default` the following:
+4. Add a boot option to  `pxelinux.cfg/default` containing:
     `KERNEL vmlinuz-linux`, `APPEND initrd=initramfs-linux.img ip=dhcp nfsroot=192.168.0.3:/ ro`
     Where the nfsroot address is the host of `test.py`
 
