@@ -1,6 +1,7 @@
 import threading
 import os
 import sys
+import json
 
 try:
     import argparse
@@ -11,6 +12,9 @@ from time import sleep
 from pypxe import tftp #PyPXE TFTP service
 from pypxe import dhcp #PyPXE DHCP service
 from pypxe import http #PyPXE HTTP service
+
+#json default
+JSON_CONFIG = ''
 
 #Default Network Boot File Directory
 NETBOOT_DIR = 'netboot'
@@ -29,6 +33,14 @@ DHCP_DNS = '8.8.8.8'
 DHCP_BROADCAST = '<broadcast>'
 DHCP_FILESERVER = '192.168.2.2'
 
+#Service bools
+USE_IPXE = False
+USE_HTTP = False
+USE_TFTP = True
+MODE_DEBUG = False
+USE_DHCP = False
+DHCP_MODE_PROXY = False
+
 if __name__ == '__main__':
     try:
         #warn the user that they are starting PyPXE as non-root user
@@ -45,6 +57,7 @@ if __name__ == '__main__':
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
         parser.add_argument('--debug', action = 'store_true', dest = 'MODE_DEBUG', help = 'Adds verbosity to the selected services while they run', default = False)
+        parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a json file rather than the command line', default = JSON_CONFIG)
         
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
@@ -66,6 +79,19 @@ if __name__ == '__main__':
 
         #parse the arguments given
         args = parser.parse_args()
+        if args.JSON_CONFIG:
+            try:
+                config = open(args.JSON_CONFIG)
+            except IOError:
+                sys.exit("Failed to open %s" % args.JSON_CONFIG)
+            try:
+                loadedcfg = json.load(config)
+                config.close()
+            except ValueError:
+                sys.exit("%s does not contain valid json" % args.JSON_CONFIG)
+            dargs = vars(args)
+            dargs.update(loadedcfg)
+            args = argparse.Namespace(**dargs)
 
         #pass warning to user regarding starting HTTP server without iPXE
         if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
