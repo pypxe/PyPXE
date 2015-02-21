@@ -44,7 +44,7 @@ class HTTPD:
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
         target = startline[1]
-        if not os.path.exists(target) or not os.path.isfile(target):
+        if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
         elif method not in ('GET', 'HEAD'):
             status = '501 Not Implemented'
