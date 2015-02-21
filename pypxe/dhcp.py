@@ -30,10 +30,10 @@ class DHCPD:
         self.fileserver = serverSettings.get('fileserver', '192.168.2.2')
         self.filename = serverSettings.get('filename', '')
         if not self.filename:
-            self.forcefilename = True
+            self.forcefilename = False
             self.filename = "pxelinux.0"
         else:
-            self.forcefilename = False
+            self.forcefilename = True
         self.ipxe = serverSettings.get('useipxe', False)
         self.http = serverSettings.get('usehttp', False)
         self.mode_proxy = serverSettings.get('mode_proxy', False) #ProxyDHCP mode
@@ -191,7 +191,7 @@ class DHCPD:
         #filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
             #http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
-            if 93 in self.options:
+            if 93 in self.options and not self.forcefilename:
                 [arch] = struct.unpack("!H", self.options[93][0])
                 if arch == 6: #EFI IA32
                     response += self.tlvEncode(67, "syslinux.efi32" + chr(0))
