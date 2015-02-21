@@ -7,6 +7,7 @@ This file contains classes and functions that implement the PyPXE TFTP service
 import socket
 import struct
 import os
+import select
 from collections import defaultdict
 
 class TFTPD:
@@ -30,7 +31,7 @@ class TFTPD:
             print '\tTFTP Network Boot Directory: {}'.format(self.netbootDirectory)
 
         #key is (address, port) pair
-        self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512})
+        self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512, 'sock':None})
 
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
@@ -39,11 +40,11 @@ class TFTPD:
 
     def filename(self, message):
         '''
-            The first null-delimited field after the OPCODE
+            The first null-delimited field
             is the filename. This method returns the filename
             from the message.
         '''
-        return message[2:].split(chr(0))[0]
+        return message.split(chr(0))[0]
 
     def notFound(self, address):
         '''
@@ -68,16 +69,15 @@ class TFTPD:
         response += struct.pack('!H', descriptor['block'] % 2 ** 16)
         data = descriptor['handle'].read(descriptor['blksize'])
         response += data
-        self.sock.sendto(response, address)
+        if self.mode_debug:
+            print '[DEBUG] TFTP Sending block {block}'.format(block = repr(descriptor['block']))
+        descriptor['sock'].sendto(response, address)
         if len(data) != descriptor['blksize']:
             descriptor['handle'].close()
             if self.mode_debug:
                 print '[DEBUG] TFTP File Sent - tftp://{filename} -> {address[0]}:{address[1]}'.format(filename = descriptor['filename'], address = address)
+            descriptor['sock'].close()
             self.ongoing.pop(address)
-        else:
-            if self.mode_debug:
-                print '[DEBUG] TFTP Sending block {block}'.format(block = repr(descriptor['block']))
-            descriptor['block'] += 1
 
     def read(self, address, message):
         '''
@@ -91,7 +91,7 @@ class TFTPD:
             return
         self.ongoing[address]['filename'] = filename
         self.ongoing[address]['handle'] = open(filename, 'r')
-        options = message.split(chr(0))[3: -1]
+        options = message.split(chr(0))[2: -1]
         options = dict(zip(options[0::2], options[1::2]))
         response = ''
         if 'blksize' in options:
@@ -109,18 +109,26 @@ class TFTPD:
             response += chr(0)
         if response:
             response = struct.pack('!H', 6) + response
-            self.sock.sendto(response, address)
-        self.sendBlock(address)
+            socknew = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            socknew.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            socknew.bind((self.ip, 0))
+            socknew.sendto(response, address)
+            self.ongoing[address]['sock'] = socknew
 
     def listen(self):
         '''This method listens for incoming requests'''
         while True:
-            message, address = self.sock.recvfrom(1024)
-            opcode = struct.unpack('!H', message[:2])[0]
-            if opcode == 1: #read the request
-                if self.mode_debug:
-                    print '[DEBUG] TFTP receiving request'
-                self.read(address, message)
-            if opcode == 4:
-                 if self.ongoing.has_key(address):
-                    self.sendBlock(address)
+            rlist, wlist, xlist = select.select([self.sock] + [self.ongoing[i]['sock'] for i in self.ongoing if self.ongoing[i]['sock']], [], [])
+            for sock in rlist:
+                message, address = sock.recvfrom(1024)
+                opcode = struct.unpack('!H', message[:2])[0]
+                message = message[2:]
+                if opcode == 1: #read the request
+                    if self.mode_debug:
+                        print '[DEBUG] TFTP receiving request'
+                    self.read(address, message)
+                if opcode == 4:
+                     if self.ongoing.has_key(address):
+                        blockack = struct.unpack("!H", message[:2])[0]
+                        self.ongoing[address]['block'] = blockack + 1
+                        self.sendBlock(address)
