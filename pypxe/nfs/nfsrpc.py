@@ -168,12 +168,14 @@ class RequestHandler(threading.Thread):
             Request(BytesIO(req), self.conn, self.addr, self.state)
 
 class NFS:
-    def __init__(self):
+    def __init__(self, **serverSettings):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
         self.sock.listen(4)
-        self.shared = {"locks":{}, "fhs":{}, "root":"arch"}
+        self.root = serverSettings.get('root', 'arch')
+        self.readonly = serverSettings.get('readonly', True)
+        self.shared = {"locks":{}, "fhs":{}, "root":self.root, "readonly":self.readonly}
 
     def listen(self):
         while True:

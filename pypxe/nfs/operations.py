@@ -6,7 +6,7 @@ import attributes
 from io import BytesIO
 #All the following functions are individually defined
 #in RFC5661 sections 18.*
-READONLY = True
+
 #Operation ID for COMPOUND as per rFC5661-16.2.1
 nfs_opnum4 = {}
 nfs_opnum4_append = lambda f,x: nfs_opnum4.__setitem__(x,f)
@@ -27,7 +27,7 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&256 else 0
         #Write
-        if not READONLY:
+        if not state["globals"]["readonly"]:
             result |= (0x4|0x8) if pathstat.st_mode&128 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&64 else 0
@@ -37,7 +37,7 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&32 else 0
         #Write
-        if not READONLY:
+        if not state["globals"]["readonly"]:
             result |= (0x4|0x8) if pathstat.st_mode&16 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&8 else 0
@@ -46,14 +46,14 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&4 else 0
         #Write
-        if not READONLY:
+        if not state["globals"]["readonly"]:
             result |= (0x4|0x8) if pathstat.st_mode&2 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&1 else 0
     #os sep
     #parent directory stat
     #Delete requires write on the parent directory
-    if not READONLY:
+    if not state["globals"]["readonly"]:
         if not path == state["globals"]["root"]:
             ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
             if pathstat.st_uid == state["auth"]["uid"]:
@@ -63,7 +63,7 @@ def ACCESS(request, response, state):
             else:
                 result |= 0x10 if ppathstat&2 else 0
     if state["auth"]["uid"] == state["auth"]["gid"] == 0:
-        if READONLY:
+        if state["globals"]["readonly"]:
             result = 0x1|0x2|0x20
         else:
             result = 0x1|0x2|0x4|0x8|0x10|0x20
@@ -120,7 +120,7 @@ def CREATE(request, response, state):
     attrs = request.read(attrslen)
 
     #CREATE, READ ONLY FILESYSTEM
-    if READONLY:
+    if state["globals"]["readonly"]:
         response += struct.pack("!II", 6, 30)
         return request, response
 
@@ -278,7 +278,7 @@ def OPEN(request, response, state):
             print path+"/"+claimname
     elif openclaim == 1:
         [delegate_type] = struct.unpack("!I", request.read(4))
-        if READONLY:
+        if state["globals"]["readonly"]:
             #OPEN, READONLY
             response += struct.pack("!II", 18, 30)
             return request, response
@@ -523,7 +523,7 @@ def SETATTR(request, response, state):
     #Makes it easier to create the object next
     request.seek(-(masklen*4+8), 1)
 
-    if READONLY:
+    if state["globals"]["readonly"]:
         #SETATTR, READONLY
         response += struct.pack("!II", 34, 30)
         return request, response
@@ -553,7 +553,7 @@ def WRITE(request, response, state):
     offset = 4 - (datalen % 4) if datalen % 4 else 0
     request.seek(offset, 1)
 
-    if READONLY:
+    if state["globals"]["readonly"]:
         #WRITE, READONLYFILESYSTEM
         response += struct.pack("!II", 38, 30)
         return request, response
