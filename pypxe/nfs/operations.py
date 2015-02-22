@@ -6,7 +6,7 @@ import attributes
 from io import BytesIO
 #All the following functions are individually defined
 #in RFC5661 sections 18.*
-
+READONLY = True
 #Operation ID for COMPOUND as per rFC5661-16.2.1
 nfs_opnum4 = {}
 nfs_opnum4_append = lambda f,x: nfs_opnum4.__setitem__(x,f)
@@ -27,7 +27,8 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&256 else 0
         #Write
-        result |= (0x2|0x8) if pathstat.st_mode&128 else 0
+        if not READONLY:
+            result |= (0x4|0x8) if pathstat.st_mode&128 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&64 else 0
     elif pathstat.st_gid == state["auth"]["uid"]:
@@ -36,7 +37,8 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&32 else 0
         #Write
-        result |= (0x2|0x8) if pathstat.st_mode&16 else 0
+        if not READONLY:
+            result |= (0x4|0x8) if pathstat.st_mode&16 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&8 else 0
     else:
@@ -44,20 +46,27 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&4 else 0
         #Write
-        result |= (0x2|0x8) if pathstat.st_mode&2 else 0
+        if not READONLY:
+            result |= (0x4|0x8) if pathstat.st_mode&2 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&1 else 0
     #os sep
     #parent directory stat
     #Delete requires write on the parent directory
-    if not path == state["globals"]["root"]:
-        ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
-        if pathstat.st_uid == state["auth"]["uid"]:
-            result |= 0x10 if ppathstat&128 else 0
-        elif pathstat.st_gid == state["auth"]["uid"]:
-            result |= 0x10 if ppathstat&16 else 0
+    if not READONLY:
+        if not path == state["globals"]["root"]:
+            ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
+            if pathstat.st_uid == state["auth"]["uid"]:
+                result |= 0x10 if ppathstat&128 else 0
+            elif pathstat.st_gid == state["auth"]["uid"]:
+                result |= 0x10 if ppathstat&16 else 0
+            else:
+                result |= 0x10 if ppathstat&2 else 0
+    if state["auth"]["uid"] == state["auth"]["gid"] == 0:
+        if READONLY:
+            result = 0x1|0x2|0x20
         else:
-            result |= 0x10 if ppathstat&2 else 0
+            result = 0x1|0x2|0x4|0x8|0x10|0x20
 
     #ACCESS, NFS4_OK
     response += struct.pack("!II", 3, 0)
@@ -90,7 +99,31 @@ def COMMIT(request, response, state):
 nfs_opnum4_append(COMMIT, 5)
 
 def CREATE(request, response, state):
-    #6
+    [ftype] = struct.unpack("!I", request.read(4))
+
+    [namelen] = struct.unpack("!I", request.read(4))
+    name = request.read(namelen)
+    offset = 4 - (namelen % 4) if namelen % 4 else 0
+    request.seek(offset, 1)
+    if ftype == 5: #NF4LNK:
+        names = [name]
+        [namelen] = struct.unpack("!I", request.read(4))
+        names.append(request.read(namelen))
+        offset = 4 - (namelen % 4) if namelen % 4 else 0
+        request.seek(offset, 1)
+
+    #Attribute bitmask
+    [attrlen] = struct.unpack("!I", request.read(4))
+    attr_req = struct.unpack("!"+str(attrlen)+"I", request.read(attrlen*4))
+    #Attribute arguments
+    [attrslen] = struct.unpack("!I", request.read(4))
+    attrs = request.read(attrslen)
+
+    #CREATE, READ ONLY FILESYSTEM
+    if READONLY:
+        response += struct.pack("!II", 6, 30)
+        return request, response
+
     return
 nfs_opnum4_append(CREATE, 6)
 
@@ -211,14 +244,21 @@ def OPEN(request, response, state):
 
     [opentype] = struct.unpack("!I", request.read(4))
     if opentype:
-        #createhow4
-        #createmode4 == 1: don't clobber
         [createmode] = struct.unpack("!I", request.read(4))
-        [attrlen] = struct.unpack("!I", request.read(4))
-        attr = struct.unpack("!"+str(attrlen)+"I", request.read(4*attrlen))
-        [tosetlen] = struct.unpack("!I", request.read(4))
-        toset = request.read(tosetlen)
-
+        if createmode in (0,1):
+            #UNCHECKED, GUARDED
+            #1 = noclobber
+            [attrlen] = struct.unpack("!I", request.read(4))
+            attr = struct.unpack("!"+str(attrlen)+"I", request.read(4*attrlen))
+            [tosetlen] = struct.unpack("!I", request.read(4))
+            toset = request.read(tosetlen)
+        if createmode == 3:
+            #EXCLUSIVE4_1
+            verifier = request.read(8)
+            #UNKNOWN OPAQUE DATA
+            #Wireshark doesn't tag it
+            #Without this we crash
+            request.read(12)
 
     [openclaim] = struct.unpack("!I", request.read(4))
 
@@ -235,10 +275,15 @@ def OPEN(request, response, state):
         #opentype evaluated to Shortcircuit
         if not os.path.lexists(path+"/"+claimname) and (opentype and createmode != 4):
             open(path+"/"+claimname,"w").close()
+            print path+"/"+claimname
     elif openclaim == 1:
         [delegate_type] = struct.unpack("!I", request.read(4))
+        if READONLY:
+            #OPEN, READONLY
+            response += struct.pack("!II", 18, 30)
+            return request, response
 
-    if opentype:
+    if opentype and createmode in (0, 1):
         #Recreate the request for proper parsing
         #probably ought to modify the if opentype above
         req = struct.pack("!I", attrlen)
@@ -269,7 +314,7 @@ def OPEN(request, response, state):
     #Applied Attributes
     if not opentype:
         response += struct.pack("!I", 0)
-    else:
+    elif createmode in (0, 1):
         response += attrib.respbitmask
 
     #OPEN_DELEGATE_NONE
@@ -293,7 +338,7 @@ def PUTFH(request, response, state):
         response += struct.pack("!II", 22, 70)
         return request, response
     state['current']['fh'] = fh
-    print state["globals"]["fhs"][fh]
+    print state["globals"]["fhs"][fh], fh
 
     #PUTFH, OK
     response += struct.pack("!II", 22, 0)
@@ -477,6 +522,12 @@ def SETATTR(request, response, state):
     [arglen] = struct.unpack("!I", request.read(4))
     #Makes it easier to create the object next
     request.seek(-(masklen*4+8), 1)
+
+    if READONLY:
+        #SETATTR, READONLY
+        response += struct.pack("!II", 34, 30)
+        return request, response
+
     #Masklen+arglen+8 is the total argument structure size
     attrib = attributes.WriteAttributes(fh, state, BytesIO(request.read(masklen*4+arglen+8)))
 
@@ -493,7 +544,19 @@ def VERIFY(request, response, state):
 nfs_opnum4_append(VERIFY, 37)
 
 def WRITE(request, response, state):
-    #38
+    [seqid] = struct.unpack("!I", request.read(4))
+    stateid = request.read(12)
+    [offset] = struct.unpack("!Q", request.read(8))
+    [stable] = struct.unpack("!I", request.read(4))
+    [datalen] = struct.unpack("!I", request.read(4))
+    data = request.read(datalen)
+    offset = 4 - (datalen % 4) if datalen % 4 else 0
+    request.seek(offset, 1)
+
+    if READONLY:
+        #WRITE, READONLYFILESYSTEM
+        response += struct.pack("!II", 38, 30)
+        return request, response
     return
 nfs_opnum4_append(WRITE, 38)
 
@@ -728,7 +791,10 @@ def SEQUENCE(request, response, state):
     #unpleasant, but worth not having to [:x]
     while len(request.getvalue()) != request.tell():
         [op] = struct.unpack("!I", request.read(4))
-        print "\t", op, nfs_opnum4[op].__name__
+        try:
+            print "\t", op, nfs_opnum4[op].__name__
+        except KeyError:
+            print repr(request.read(128))
         #Functions always append to response. Refactor?
         request, response = nfs_opnum4[op](request, response, state)
 

@@ -162,7 +162,8 @@ class RequestHandler(threading.Thread):
             #The top bit is the last fragment bool
             #We don't want that so ignore
             length = fraghdr & ~(1<<31)
-            req = struct.pack("!I", fraghdr)+self.conn.recv(length)
+            #We want all of the packet, wait for it
+            req = struct.pack("!I", fraghdr)+self.conn.recv(length, socket.MSG_WAITALL)
             #BytesIO lets us read(), so we don't have a [x:] every other line
             Request(BytesIO(req), self.conn, self.addr, self.state)
 
@@ -172,7 +173,7 @@ class NFS:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('', 2049)) #RFC5661-2.9.3
         self.sock.listen(4)
-        self.shared = {"locks":{}, "fhs":{}, "root":"tmp/root"}
+        self.shared = {"locks":{}, "fhs":{}, "root":"arch"}
 
     def listen(self):
         while True:
