@@ -28,7 +28,12 @@ class DHCPD:
         self.dnsserver = serverSettings.get('dnsserver', '8.8.8.8')
         self.broadcast = serverSettings.get('broadcast', '<broadcast>')
         self.fileserver = serverSettings.get('fileserver', '192.168.2.2')
-        self.filename = serverSettings.get('filename', 'pxelinux.0')
+        self.filename = serverSettings.get('filename', '')
+        if not self.filename:
+            self.forcefilename = False
+            self.filename = "pxelinux.0"
+        else:
+            self.forcefilename = True
         self.ipxe = serverSettings.get('useipxe', False)
         self.http = serverSettings.get('usehttp', False)
         self.mode_proxy = serverSettings.get('mode_proxy', False) #ProxyDHCP mode
@@ -185,7 +190,19 @@ class DHCPD:
         
         #filename null terminated
         if not self.ipxe or not self.leases[clientmac]['ipxe']:
-            response += self.tlvEncode(67, self.filename + chr(0))
+            #http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
+            if 93 in self.options and not self.forcefilename:
+                [arch] = struct.unpack("!H", self.options[93][0])
+                if arch == 6: #EFI IA32
+                    response += self.tlvEncode(67, "syslinux.efi32" + chr(0))
+                elif arch == 7: #EFI BC, x86-64 according to link above
+                    response += self.tlvEncode(67, "syslinux.efi64" + chr(0))
+                elif arch == 9: #EFI x86-64
+                    response += self.tlvEncode(67, "syslinux.efi64" + chr(0))
+                if arch == 0: #BIOS/default
+                    response += self.tlvEncode(67, "pxelinux.0" + chr(0))
+            else:
+                response += self.tlvEncode(67, self.filename + chr(0))
         else:
             response += self.tlvEncode(67, '/chainload.kpxe' + chr(0)) #chainload iPXE
             if opt53 == 5: #ACK
@@ -228,12 +245,12 @@ class DHCPD:
             if self.mode_debug:
                 print '[DEBUG] Received message'
                 print '\t<--BEGIN MESSAGE-->\n\t{message}\n\t<--END MESSAGE-->'.format(message = repr(message))
-            options = self.tlvParse(message[240:])
+            self.options = self.tlvParse(message[240:])
             if self.mode_debug:
                 print '[DEBUG] Parsed received options'
-                print '\t<--BEGIN OPTIONS-->\n\t{options}\n\t<--END OPTIONS-->'.format(options = repr(options))
-            if not (60 in options and 'PXEClient' in options[60][0]) : continue
-            type = ord(options[53][0]) #see RFC2131 page 10
+                print '\t<--BEGIN OPTIONS-->\n\t{options}\n\t<--END OPTIONS-->'.format(options = repr(self.options))
+            if not (60 in self.options and 'PXEClient' in self.options[60][0]) : continue
+            type = ord(self.options[53][0]) #see RFC2131 page 10
             if type == 1:
                 if self.mode_debug:
                     print '[DEBUG] Received DHCPOFFER'
