@@ -89,29 +89,21 @@ class Request:
         #Operations can take a variable length input
         #This should be implemented inside the operation
         #function, and they MUST clean up the response properly
+        #on error they MUST return opcode, errno and nothing else
         #This is the pramble. NFS4_OK (0) should probably be handled properly
-        [operation] = struct.unpack("!I", request.read(4))
-        #Peek only
-        request.seek(-4, 1)
-        if operation in (35,):
-            #not supported
-            response =  struct.pack("!II", 10004, self.taglen)
-            response += self.tag
-            #0 operations
-            response += struct.pack("!I", 0)
-            self.send(response)
-            return
-        response =  struct.pack("!II", 0, self.taglen)
-        response += self.tag
-        response += struct.pack("!I", self.operations)
 
-        if operation == 53: #SEQUENCE, loops for us
-            request, response = self.dispatch(request, response)
-            self.send(response)
-        else:
-            for _ in xrange(self.operations):
-                request, response = self.dispatch(request, response)
-                self.send(response)
+        err = 0
+        response = ""
+        for opcnt in xrange(self.operations):
+            request, subresponse = self.dispatch(request, "")
+            [op,err] = struct.unpack("!II", subresponse[:8])
+            response += subresponse
+            if err:
+                break
+        preresponse =  struct.pack("!II", err, self.taglen)
+        preresponse += self.tag
+        preresponse += struct.pack("!I", opcnt+1)
+        self.send(preresponse + response)
 
     def null(self):
         #RFC5661-16.1

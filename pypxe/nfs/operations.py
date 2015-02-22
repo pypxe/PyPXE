@@ -785,21 +785,6 @@ def SEQUENCE(request, response, state):
             32,
             0)
 
-
-    #New request, or not cached.
-    #would be handy to have operation count here, this is a workaround
-    #unpleasant, but worth not having to [:x]
-    while len(request.getvalue()) != request.tell():
-        [op] = struct.unpack("!I", request.read(4))
-        try:
-            print "\t", op, nfs_opnum4[op].__name__
-        except KeyError:
-            print repr(request.read(128))
-        #Functions always append to response. Refactor?
-        request, response = nfs_opnum4[op](request, response, state)
-
-    #Cache here
-
     return request, response
 nfs_opnum4_append(SEQUENCE, 53)
 
