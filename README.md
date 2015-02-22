@@ -55,7 +55,9 @@ The following are arguments that can be passed to `pypxe-server.py` when running
     * Description: Disable built-in TFTP server which is enabled by default
     * Default: `False`
   * __`--debug`__
-    * Description: Enable selected services in DEBUG mode
+    * Description: Enable selected services in DEBUG mode. Services are
+      selected by passing the name in a comma seperated list. Options are http,
+      tftp and dhcp
       * _This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give._
     * Default: `False`
 * __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_

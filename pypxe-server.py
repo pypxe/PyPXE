@@ -44,7 +44,7 @@ if __name__ == '__main__':
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
-        parser.add_argument('--debug', action = 'store_true', dest = 'MODE_DEBUG', help = 'Adds verbosity to the selected services while they run', default = False)
+        parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run', default = '')
         
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         #configure/start TFTP server
         if args.USE_TFTP:
             print 'Starting TFTP server...'
-            tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
+            tftpServer = tftp.TFTPD(mode_debug = ("tftp" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()))
             tftpd = threading.Thread(target = tftpServer.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -119,7 +119,7 @@ if __name__ == '__main__':
                     useipxe = args.USE_IPXE,
                     usehttp = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
-                    mode_debug = args.MODE_DEBUG)
+                    mode_debug = ("dhcp" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()))
             dhcpd = threading.Thread(target = dhcpServer.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         #configure/start HTTP server
         if args.USE_HTTP:
             print 'Starting HTTP server...'
-            httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG)
+            httpServer = http.HTTPD(mode_debug = ("http" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()))
             httpd = threading.Thread(target = httpServer.listen)
             httpd.daemon = True
             httpd.start()
