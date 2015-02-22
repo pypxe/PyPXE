@@ -338,7 +338,6 @@ def PUTFH(request, response, state):
         response += struct.pack("!II", 22, 70)
         return request, response
     state['current']['fh'] = fh
-    print state["globals"]["fhs"][fh], fh
 
     #PUTFH, OK
     response += struct.pack("!II", 22, 0)

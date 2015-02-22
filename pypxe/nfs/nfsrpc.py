@@ -4,7 +4,7 @@ import socket
 import os
 import threading
 from io import BytesIO
-
+DEBUG = True
 class Request:
     class credentials:
         pass
@@ -99,6 +99,8 @@ class Request:
             [op,err] = struct.unpack("!II", subresponse[:8])
             response += subresponse
             if err:
+                #Operation errored.
+                #Bail out, setting the error code accordingly
                 break
         preresponse =  struct.pack("!II", err, self.taglen)
         preresponse += self.tag
@@ -121,7 +123,8 @@ class Request:
 
     def dispatch(self, request, response):
         [operation] = struct.unpack("!I", request.read(4))
-        print operation, operations.nfs_opnum4[operation].__name__
+        if DEBUG:
+            print operation, operations.nfs_opnum4[operation].__name__
         #Will recurse on SEQUENCE, functions append to request
         request, response = operations.nfs_opnum4[operation](request, response, self.state)
         return request, response
