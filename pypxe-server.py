@@ -33,14 +33,6 @@ DHCP_DNS = '8.8.8.8'
 DHCP_BROADCAST = '<broadcast>'
 DHCP_FILESERVER = '192.168.2.2'
 
-#Service bools
-USE_IPXE = False
-USE_HTTP = False
-USE_TFTP = True
-MODE_DEBUG = False
-USE_DHCP = False
-DHCP_MODE_PROXY = False
-
 if __name__ == '__main__':
     try:
         #warn the user that they are starting PyPXE as non-root user
