@@ -125,7 +125,6 @@ class Request:
         [operation] = struct.unpack("!I", request.read(4))
         if DEBUG:
             print operation, operations.nfs_opnum4[operation].__name__
-        #Will recurse on SEQUENCE, functions append to request
         request, response = operations.nfs_opnum4[operation](request, response, self.state)
         return request, response
 

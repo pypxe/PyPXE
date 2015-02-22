@@ -27,8 +27,7 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&256 else 0
         #Write
-        if not state["globals"]["readonly"]:
-            result |= (0x4|0x8) if pathstat.st_mode&128 else 0
+        result |= (0x4|0x8) if pathstat.st_mode&128 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&64 else 0
     elif pathstat.st_gid == state["auth"]["uid"]:
@@ -37,8 +36,7 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&32 else 0
         #Write
-        if not state["globals"]["readonly"]:
-            result |= (0x4|0x8) if pathstat.st_mode&16 else 0
+        result |= (0x4|0x8) if pathstat.st_mode&16 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&8 else 0
     else:
@@ -46,27 +44,22 @@ def ACCESS(request, response, state):
         #Read
         result |= (0x1|0x2) if pathstat.st_mode&4 else 0
         #Write
-        if not state["globals"]["readonly"]:
-            result |= (0x4|0x8) if pathstat.st_mode&2 else 0
+        result |= (0x4|0x8) if pathstat.st_mode&2 else 0
         #Exec
         result |= 0x20 if pathstat.st_mode&1 else 0
     #os sep
     #parent directory stat
     #Delete requires write on the parent directory
-    if not state["globals"]["readonly"]:
-        if not path == state["globals"]["root"]:
-            ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
-            if pathstat.st_uid == state["auth"]["uid"]:
-                result |= 0x10 if ppathstat&128 else 0
-            elif pathstat.st_gid == state["auth"]["uid"]:
-                result |= 0x10 if ppathstat&16 else 0
-            else:
-                result |= 0x10 if ppathstat&2 else 0
-    if state["auth"]["uid"] == state["auth"]["gid"] == 0:
-        if state["globals"]["readonly"]:
-            result = 0x1|0x2|0x20
+    if not path == state["globals"]["root"]:
+        ppathstat = os.lstat('/'.join(path.split("/")[:-1])).st_mode
+        if pathstat.st_uid == state["auth"]["uid"]:
+            result |= 0x10 if ppathstat&128 else 0
+        elif pathstat.st_gid == state["auth"]["uid"]:
+            result |= 0x10 if ppathstat&16 else 0
         else:
-            result = 0x1|0x2|0x4|0x8|0x10|0x20
+            result |= 0x10 if ppathstat&2 else 0
+    if state["auth"]["uid"] == state["auth"]["gid"] == 0:
+        result = 0x1|0x2|0x4|0x8|0x10|0x20
 
     #ACCESS, NFS4_OK
     response += struct.pack("!II", 3, 0)
