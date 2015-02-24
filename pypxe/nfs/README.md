@@ -34,3 +34,17 @@ a suitable initrd
 
 5. Run `pypxe-server.py` and `test.py`, netboot your client.
 
+# TODO
+The following is a list of things left to do. Order doesn't matter so much
+except for dependent items.
+
+* Finish operations (operation.py)
+
+* Implement locking (OPEN/READ/CLOSE etc.) RFC5661§9
+
+* Implement Read Only properly (Documentation unknown, RFC5661§15.4 defines where
+  NFS4ERR_ROFS can be used)
+
+* Rewrite OPEN (Feels brittle currently)
+
+* Profile (Our boot is slower than kernel NFS boot)
