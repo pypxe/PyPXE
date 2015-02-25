@@ -533,15 +533,16 @@ nfs_opnum4_append(VERIFY, 37)
 def WRITE(request, response, state):
     [seqid] = struct.unpack("!I", request.read(4))
     stateid = request.read(12)
-    [offset] = struct.unpack("!Q", request.read(8))
+    [offset4] = struct.unpack("!Q", request.read(8))
     [stable] = struct.unpack("!I", request.read(4))
     [datalen] = struct.unpack("!I", request.read(4))
     data = request.read(datalen)
     offset = 4 - (datalen % 4) if datalen % 4 else 0
     request.seek(offset, 1)
 
-    fh = open(state["globals"]["fhs"][state["fh"]],"a")
-    fh.seek(offset)
+    fh = open(state["globals"]["fhs"][state["current"]["fh"]],"a")
+    #Seek from start of file
+    fh.seek(offset4, 0)
     fh.write(data)
     if stable in (1, 2):
         #DATA_SYNC4
@@ -555,7 +556,7 @@ def WRITE(request, response, state):
     response += struct.pack("!I", datalen)
     response += struct.pack("!I", stable)
     #Should be different each run
-    response += "PyPXE\x00\x00"
+    response += "PyPXE\x00\x00\x00"
 
     return request, response
 nfs_opnum4_append(WRITE, 38)

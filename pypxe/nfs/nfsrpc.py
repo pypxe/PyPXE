@@ -92,6 +92,7 @@ class Request:
         #on error they MUST return opcode, errno and nothing else
         #This is the pramble. NFS4_OK (0) should probably be handled properly
 
+        if DEBUG: print
         err = 0
         response = ""
         for opcnt in xrange(self.operations):
