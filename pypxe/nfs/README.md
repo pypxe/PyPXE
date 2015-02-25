@@ -48,3 +48,5 @@ except for dependent items.
 * Rewrite OPEN (Feels brittle currently)
 
 * Profile (Our boot is slower than kernel NFS boot)
+
+* Implement the RECOMMENDED write attributes (RFC5661§5.7)
