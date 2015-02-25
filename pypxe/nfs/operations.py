@@ -515,11 +515,6 @@ def SETATTR(request, response, state):
     #Makes it easier to create the object next
     request.seek(-(masklen*4+8), 1)
 
-    if state["globals"]["readonly"]:
-        #SETATTR, READONLY
-        response += struct.pack("!II", 34, 30)
-        return request, response
-
     #Masklen+arglen+8 is the total argument structure size
     attrib = attributes.WriteAttributes(fh, state, BytesIO(request.read(masklen*4+arglen+8)))
 
@@ -545,11 +540,24 @@ def WRITE(request, response, state):
     offset = 4 - (datalen % 4) if datalen % 4 else 0
     request.seek(offset, 1)
 
-    if state["globals"]["readonly"]:
-        #WRITE, READONLYFILESYSTEM
-        response += struct.pack("!II", 38, 30)
-        return request, response
-    return
+    fh = open(state["globals"]["fhs"][state["fh"]],"a")
+    fh.seek(offset)
+    fh.write(data)
+    if stable in (1, 2):
+        #DATA_SYNC4
+        #FILE_SYNC4
+        os.fsync(fh)
+    fh.close()
+
+    #WRITE, NFS4_OK
+    response += struct.pack("!II", 38, 0)
+    #Not technically right, but .write() doesn't give us a count
+    response += struct.pack("!I", datalen)
+    response += struct.pack("!I", stable)
+    #Should be different each run
+    response += "PyPXE\x00\x00"
+
+    return request, response
 nfs_opnum4_append(WRITE, 38)
 
 def BACKCHANNEL_CTL(request, response, state):
