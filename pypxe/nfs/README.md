@@ -50,3 +50,7 @@ except for dependent items.
 * Profile (Our boot is slower than kernel NFS boot)
 
 * Implement the RECOMMENDED write attributes (RFC5661§5.7)
+
+* os.sep or os.path.join everywhere
+
+* It's our job to check ACCESS, and do NFS4ERR_ACCESS

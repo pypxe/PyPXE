@@ -15,8 +15,8 @@ nfs_opnum4_append = lambda f,x: nfs_opnum4.__setitem__(x,f)
 #They MUST cleanup the request string themselves (chop off the start)
 
 def ACCESS(request, response, state):
-    #THIS IS NOT COMPLETE
-    #RELIES ON AUTHENTICATION WHICH IS NOT YET DONE
+    #This would be nicer with os.access, but we can't drop privileges
+    #and regain them, euid/egid don't work
     [access] = struct.unpack("!I", request.read(4))
 
     path = state["globals"]["fhs"][state["current"]["fh"]]
@@ -112,10 +112,11 @@ def CREATE(request, response, state):
     [attrslen] = struct.unpack("!I", request.read(4))
     attrs = request.read(attrslen)
 
-    #CREATE, READ ONLY FILESYSTEM
-    if state["globals"]["readonly"]:
-        response += struct.pack("!II", 6, 30)
-        return request, response
+    #Current file handle replaced w new object
+    #Case on ftype:
+    #LNK
+    #BLK/CHR
+    #SOCK/FIFO/DIR
 
     return
 nfs_opnum4_append(CREATE, 6)
@@ -299,7 +300,7 @@ def OPEN(request, response, state):
         state["globals"]['locks'][state[clientid]['fh']][stateid] = (share_access, share_deny)
 
     #change_info
-    response += struct.pack("!IQQ", 0, 0, 0)
+    response += struct.pack("!IQQ", 1, 0, 0)
 
     #rflags, matches kernel
     response += struct.pack("!I", 0)
@@ -479,8 +480,26 @@ def READLINK(request, response, state):
 nfs_opnum4_append(READLINK, 27)
 
 def REMOVE(request, response, state):
-    #28
-    return
+    [namelen] = struct.unpack("!I", request.read(4))
+    name = request.read(namelen)
+    offset = 4 - (namelen % 4) if namelen % 4 else 0
+    request.seek(offset,1)
+
+    path = state["globals"]["fhs"][state["current"]["fh"]]
+
+    #Locks should be here
+    #os.sep
+    if os.path.isfile(path+"/"+name):
+        os.remove(path+"/"+name)
+    elif os.path.isdir(path+"/"+name):
+        os.rmdir(path+"/"+name)
+
+    #REMOVE, NFS4_OK
+    response += struct.pack("!II", 28, 0)
+    #change_info
+    response += struct.pack("!IQQ", 1, 0, 0)
+
+    return request, response
 nfs_opnum4_append(REMOVE, 28)
 
 def RENAME(request, response, state):
