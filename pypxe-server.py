@@ -2,6 +2,7 @@ import threading
 import os
 import sys
 import logging
+import logging.handlers
 
 try:
     import argparse
@@ -47,6 +48,7 @@ if __name__ == '__main__':
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
         parser.add_argument('--debug', action = 'store_true', dest = 'MODE_DEBUG', help = 'Adds verbosity to the selected services while they run', default = False)
         parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = None)
+        parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = 514)
 
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
@@ -72,7 +74,7 @@ if __name__ == '__main__':
         # setup logger
         logger = logging.getLogger(sys.argv[0])
         if args.SYSLOG_SERVER:
-            handler = logging.handlers.SysLogHandler(address = SYSLOG_SERVER)
+            handler = logging.handlers.SysLogHandler(address = (args.SYSLOG_SERVER, int(args.SYSLOG_PORT)))
         else:
             handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
