@@ -18,7 +18,8 @@ class HTTPD:
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 80)
         self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
-        self.logger = serverSettings.get('logger')
+        self.logger = serverSettings.get('logger', None)
+        self.mode_debug = serverSettings.get('mode_debug', False)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
@@ -28,6 +29,20 @@ class HTTPD:
         # this simplifies target later as well as offers a slight security increase
         os.chdir (self.netbootDirectory)
         os.chroot ('.')
+
+        if self.logger == None:
+            import logging
+            import logging.handlers
+            # setup logger
+            self.logger = logging.getLogger("http")
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+
+            if self.mode_debug:
+                self.logger.setLevel(logging.DEBUG)
+
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
         self.logger.debug('\tHTTP Server IP: ' + self.ip)

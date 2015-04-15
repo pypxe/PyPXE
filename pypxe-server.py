@@ -110,7 +110,7 @@ if __name__ == '__main__':
         #configure/start TFTP server
         if args.USE_TFTP:
             logger.info('Starting TFTP server...')
-            tftpServer = tftp.TFTPD(logger = logger)
+            tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG, logger = logger)
             tftpd = threading.Thread(target = tftpServer.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -136,6 +136,7 @@ if __name__ == '__main__':
                     useipxe = args.USE_IPXE,
                     usehttp = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
+                    mode_debug = args.MODE_DEBUG,
                     logger = logger)
             dhcpd = threading.Thread(target = dhcpServer.listen)
             dhcpd.daemon = True
@@ -146,7 +147,7 @@ if __name__ == '__main__':
         #configure/start HTTP server
         if args.USE_HTTP:
             logger.info('Starting HTTP server...')
-            httpServer = http.HTTPD(logger = logger)
+            httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG, logger = logger)
             httpd = threading.Thread(target = httpServer.listen)
             httpd.daemon = True
             httpd.start()

@@ -32,8 +32,22 @@ class DHCPD:
         self.ipxe = serverSettings.get('useipxe', False)
         self.http = serverSettings.get('usehttp', False)
         self.mode_proxy = serverSettings.get('mode_proxy', False) #ProxyDHCP mode
-        self.logger =  serverSettings.get('logger')
+        self.logger =  serverSettings.get('logger', None)
+        self.mode_debug =  serverSettings.get('mode_debug', False)
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
+
+        if self.logger == None:
+            import logging
+            import logging.handlers
+            # setup logger
+            self.logger = logging.getLogger("dhcp")
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+
+            if self.mode_debug:
+                self.logger.setLevel(logging.DEBUG)
 
         if self.http and not self.ipxe:
             self.logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')

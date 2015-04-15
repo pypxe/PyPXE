@@ -16,12 +16,26 @@ class TFTPD:
     '''
     def __init__(self, **serverSettings):
         self.ip = serverSettings.get('ip', '0.0.0.0')
-        self.port = serverSettings.get('port', 79)
+        self.port = serverSettings.get('port', 69)
         self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
-        self.logger = serverSettings.get('logger')
+        self.logger = serverSettings.get('logger', None)
+        self.mode_debug = serverSettings.get('mode_debug', False)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
+
+        if self.logger == None:
+            import logging
+            import logging.handlers
+            # setup logger
+            self.logger = logging.getLogger("tftp")
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+
+            if self.mode_debug:
+                self.logger.setLevel(logging.DEBUG)
 
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('\tTFTP Server IP: ' + self.ip)
@@ -35,6 +49,7 @@ class TFTPD:
         # this simplifies target later as well as offers a slight security increase
         os.chdir (self.netbootDirectory)
         os.chroot ('.')
+
 
     def filename(self, message):
         '''

@@ -58,6 +58,12 @@ The following are arguments that can be passed to `pypxe-server.py` when running
     * Description: Enable selected services in DEBUG mode
       * _This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give._
     * Default: `False`
+  * __`--syslog`__
+    * Description: Syslog server
+    * Default: `None`
+  * __`--syslog-port`__
+    * Description: Syslog server port
+    * Default: `514`
 * __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
   * __`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__
     * Description: Specify DHCP server IP address
