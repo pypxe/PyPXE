@@ -1,6 +1,8 @@
 import threading
 import os
 import sys
+import logging
+import logging.handlers
 
 try:
     import argparse
@@ -45,7 +47,9 @@ if __name__ == '__main__':
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
         parser.add_argument('--debug', action = 'store_true', dest = 'MODE_DEBUG', help = 'Adds verbosity to the selected services while they run', default = False)
-        
+        parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = None)
+        parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = 514)
+
         #argument group for DHCP server
         exclusive = parser.add_mutually_exclusive_group(required = False)
         exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
@@ -67,9 +71,22 @@ if __name__ == '__main__':
         #parse the arguments given
         args = parser.parse_args()
 
+        # setup logger
+        logger = logging.getLogger(sys.argv[0])
+        if args.SYSLOG_SERVER:
+            handler = logging.handlers.SysLogHandler(address = (args.SYSLOG_SERVER, int(args.SYSLOG_PORT)))
+        else:
+            handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        if args.MODE_DEBUG:
+            logger.setLevel(logging.DEBUG)
+
         #pass warning to user regarding starting HTTP server without iPXE
         if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
-            print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
+            logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
         
         #if the argument was pased to enabled ProxyDHCP then enable the DHCP server
         if args.DHCP_MODE_PROXY:
@@ -92,8 +109,8 @@ if __name__ == '__main__':
 
         #configure/start TFTP server
         if args.USE_TFTP:
-            print 'Starting TFTP server...'
-            tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG)
+            logger.info('Starting TFTP server...')
+            tftpServer = tftp.TFTPD(mode_debug = args.MODE_DEBUG, logger = logger)
             tftpd = threading.Thread(target = tftpServer.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -102,9 +119,9 @@ if __name__ == '__main__':
         #configure/start DHCP server
         if args.USE_DHCP:
             if args.DHCP_MODE_PROXY:
-                print 'Starting DHCP server in ProxyDHCP mode...'
+                logger.info('Starting DHCP server in ProxyDHCP mode...')
             else:
-                print 'Starting DHCP server...'
+                logger.info('Starting DHCP server...')
             dhcpServer = dhcp.DHCPD(
                     ip = args.DHCP_SERVER_IP,
                     port = args.DHCP_SERVER_PORT,
@@ -119,7 +136,8 @@ if __name__ == '__main__':
                     useipxe = args.USE_IPXE,
                     usehttp = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
-                    mode_debug = args.MODE_DEBUG)
+                    mode_debug = args.MODE_DEBUG,
+                    logger = logger)
             dhcpd = threading.Thread(target = dhcpServer.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -128,14 +146,14 @@ if __name__ == '__main__':
 
         #configure/start HTTP server
         if args.USE_HTTP:
-            print 'Starting HTTP server...'
-            httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG)
+            logger.info('Starting HTTP server...')
+            httpServer = http.HTTPD(mode_debug = args.MODE_DEBUG, logger = logger)
             httpd = threading.Thread(target = httpServer.listen)
             httpd.daemon = True
             httpd.start()
             runningServices.append(httpd)
 
-        print 'PyPXE successfully initialized and running!'
+        logger.info('PyPXE successfully initialized and running!')
 
         while map(lambda x: x.isAlive(), runningServices):
             sleep(1)

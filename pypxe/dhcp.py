@@ -32,30 +32,43 @@ class DHCPD:
         self.ipxe = serverSettings.get('useipxe', False)
         self.http = serverSettings.get('usehttp', False)
         self.mode_proxy = serverSettings.get('mode_proxy', False) #ProxyDHCP mode
-        self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
+        self.logger =  serverSettings.get('logger', None)
+        self.mode_debug =  serverSettings.get('mode_debug', False)
         self.magic = struct.pack('!I', 0x63825363) #magic cookie
 
+        if self.logger == None:
+            import logging
+            import logging.handlers
+            # setup logger
+            self.logger = logging.getLogger("dhcp")
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+
+            if self.mode_debug:
+                self.logger.setLevel(logging.DEBUG)
+
         if self.http and not self.ipxe:
-            print '\nWARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.\n'
+            self.logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
         if self.ipxe and self.http:
             self.filename = 'http://%s/%s' % (self.fileserver, self.filename)
         if self.ipxe and not self.http:
             self.filename = 'tftp://%s/%s' % (self.fileserver, self.filename)
 
-        if self.mode_debug:
-            print 'NOTICE: DHCP server started in debug mode. DHCP server is using the following:'
-            print '\tDHCP Server IP: ' + self.ip
-            print '\tDHCP Server Port: ' + str (self.port)
-            print '\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto
-            print '\tDHCP Subnet Mask: ' + self.subnetmask
-            print '\tDHCP Router: ' + self.router
-            print '\tDHCP DNS Server: ' + self.dnsserver
-            print '\tDHCP Broadcast Address: ' + self.broadcast
-            print '\tDHCP File Server IP: ' + self.fileserver
-            print '\tDHCP File Name: ' + self.filename
-            print '\tProxyDHCP Mode: ' + str(self.mode_proxy)
-            print '\tUsing iPXE: ' + str(self.ipxe)
-            print '\tUsing HTTP Server: ' + str(self.http)
+        self.logger.debug('NOTICE: DHCP server started in debug mode. DHCP server is using the following:')
+        self.logger.debug('\tDHCP Server IP: ' + self.ip)
+        self.logger.debug('\tDHCP Server Port: ' + str (self.port))
+        self.logger.debug('\tDHCP Lease Range: ' + self.offerfrom + ' - ' + self.offerto)
+        self.logger.debug('\tDHCP Subnet Mask: ' + self.subnetmask)
+        self.logger.debug('\tDHCP Router: ' + self.router)
+        self.logger.debug('\tDHCP DNS Server: ' + self.dnsserver)
+        self.logger.debug('\tDHCP Broadcast Address: ' + self.broadcast)
+        self.logger.debug('\tDHCP File Server IP: ' + self.fileserver)
+        self.logger.debug('\tDHCP File Name: ' + self.filename)
+        self.logger.debug('\tProxyDHCP Mode: ' + str(self.mode_proxy))
+        self.logger.debug('\tUsing iPXE: ' + str(self.ipxe))
+        self.logger.debug('\tUsing HTTP Server: ' + str(self.http))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -147,11 +160,11 @@ class DHCPD:
                 offer = self.nextIP()
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
-                if self.mode_debug:
-                    print '[DEBUG] New DHCP Assignment - MAC: ' + self.printMAC(clientmac) + ' -> IP: ' + self.leases[clientmac]['ip']
+                self.logger.debug('New DHCP Assignment - MAC: ' + self.printMAC(clientmac) + ' -> IP: ' + self.leases[clientmac]['ip'])
             response += socket.inet_aton(offer) #yiaddr
         else:
             response += socket.inet_aton('0.0.0.0')
+
         response += socket.inet_aton(self.fileserver) #siaddr
         response += socket.inet_aton('0.0.0.0') #giaddr
         response += chaddr #chaddr
@@ -201,11 +214,10 @@ class DHCPD:
         clientmac, headerResponse = self.craftHeader(message)
         optionsResponse = self.craftOptions(2, clientmac) #DHCPOFFER
         response = headerResponse + optionsResponse
-        if self.mode_debug:
-            print '[DEBUG] DHCPOFFER - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->'
-            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->'
-            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->'
+        self.logger.debug('DHCPOFFER - Sending the following')
+        self.logger.debug('\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->')
+        self.logger.debug('\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->')
+        self.logger.debug('\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->')
         self.sock.sendto(response, (self.broadcast, 68))
 
     def dhcpAck(self, message):
@@ -213,11 +225,10 @@ class DHCPD:
         clientmac, headerResponse = self.craftHeader(message)
         optionsResponse = self.craftOptions(5, clientmac) #DHCPACK
         response = headerResponse + optionsResponse
-        if self.mode_debug:
-            print '[DEBUG] DHCPACK - Sending the following'
-            print '\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->'
-            print '\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->'
-            print '\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->'
+        self.logger.debug('DHCPACK - Sending the following')
+        self.logger.debug('\t<--BEGIN HEADER-->\n\t' + repr(headerResponse) + '\n\t<--END HEADER-->')
+        self.logger.debug('\t<--BEGIN OPTIONS-->\n\t' + repr(optionsResponse) + '\n\t<--END OPTIONS-->')
+        self.logger.debug('\t<--BEGIN RESPONSE-->\n\t' + repr(response) + '\n\t<--END RESPONSE-->')
         self.sock.sendto(response, (self.broadcast, 68))
 
     def listen(self):
@@ -225,24 +236,19 @@ class DHCPD:
         while True:
             message, address = self.sock.recvfrom(1024)
             clientmac = struct.unpack('!28x6s', message[:34])
-            if self.mode_debug:
-                print '[DEBUG] Received message'
-                print '\t<--BEGIN MESSAGE-->\n\t' + repr(message) + '\n\t<--END MESSAGE-->'
+            self.logger.debug('Received message')
+            self.logger.debug('\t<--BEGIN MESSAGE-->\n\t' + repr(message) + '\n\t<--END MESSAGE-->')
             options = self.tlvParse(message[240:])
-            if self.mode_debug:
-                print '[DEBUG] Parsed received options'
-                print '\t<--BEGIN OPTIONS-->\n\t' + repr(options) + '\n\t<--END OPTIONS-->'
-            if not (60 in options and 'PXEClient' in options[60][0]) : continue
+            self.logger.debug('Parsed received options')
+            self.logger.debug('\t<--BEGIN OPTIONS-->\n\t' + repr(options) + '\n\t<--END OPTIONS-->')
+            #if not (60 in options and 'PXEClient' in options[60][0]) : continue
             type = ord(options[53][0]) #see RFC2131 page 10
             if type == 1:
-                if self.mode_debug:
-                    print '[DEBUG] Received DHCPOFFER'
+                self.logger.debug('Received DHCPOFFER')
                 self.dhcpOffer(message)
             elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
-                if self.mode_debug:
-                    print '[DEBUG] Received DHCPACK'
+                self.logger.debug('Received DHCPACK')
                 self.dhcpAck(message)
             elif type == 3 and address[0] != '0.0.0.0' and self.mode_proxy:
-                if self.mode_debug:
-                    print '[DEBUG] Received DHCPACK'
+                self.logger.debug('Received DHCPACK')
                 self.dhcpAck(message)
