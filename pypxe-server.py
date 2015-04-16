@@ -49,7 +49,7 @@ if __name__ == '__main__':
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
         parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
         parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
-        parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (sys,http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = '')
+        parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = '')
         parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a json file rather than the command line', default = JSON_CONFIG)
         parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = None)
         parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = 514)
@@ -97,11 +97,7 @@ if __name__ == '__main__':
         formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
         handler.setFormatter(formatter)
         sys_logger.addHandler(handler)
-
-        if "sys" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower():
-            sys_logger.setLevel(logging.DEBUG)
-        else:
-            sys_logger.setLevel(logging.INFO)
+        sys_logger.setLevel(logging.INFO)
 
         #pass warning to user regarding starting HTTP server without iPXE
         if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
@@ -130,11 +126,6 @@ if __name__ == '__main__':
         if args.USE_TFTP:
             # setup tftp logger
             tftp_logger = sys_logger.getChild("TFTP")
-            if "tftp" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower():
-                tftp_logger.setLevel(logging.DEBUG)
-            else:
-                tftp_logger.setLevel(logging.INFO)
-
             sys_logger.info('Starting TFTP server...')
             tftpServer = tftp.TFTPD(mode_debug = ("tftp" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()), logger = tftp_logger)
             tftpd = threading.Thread(target = tftpServer.listen)
@@ -146,11 +137,6 @@ if __name__ == '__main__':
         if args.USE_DHCP:
             # setup dhcp logger
             dhcp_logger = sys_logger.getChild("DHCP")
-            if "dhcp" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower():
-                dhcp_logger.setLevel(logging.DEBUG)
-            else:
-                dhcp_logger.setLevel(logging.INFO)
-
             if args.DHCP_MODE_PROXY:
                 sys_logger.info('Starting DHCP server in ProxyDHCP mode...')
             else:
@@ -176,16 +162,10 @@ if __name__ == '__main__':
             dhcpd.start()
             runningServices.append(dhcpd)
 
-
         #configure/start HTTP server
         if args.USE_HTTP:
             # setup http logger
             http_logger = sys_logger.getChild("HTTP")
-            if "http" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower():
-                http_logger.setLevel(logging.DEBUG)
-            else:
-                http_logger.setLevel(logging.INFO)
-
             sys_logger.info('Starting HTTP server...')
             httpServer = http.HTTPD(mode_debug = ("http" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()), logger = http_logger)
             httpd = threading.Thread(target = httpServer.listen)

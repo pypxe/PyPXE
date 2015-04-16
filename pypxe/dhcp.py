@@ -62,7 +62,7 @@ class DHCPD:
 
         self.logger.debug('NOTICE: DHCP server started in debug mode. DHCP server is using the following:')
         self.logger.debug('  DHCP Server IP: {}'.format(self.ip))
-        self.logger.debug(' DHCP Server Port: {}'.format(self.port))
+        self.logger.debug('  DHCP Server Port: {}'.format(self.port))
         self.logger.debug('  DHCP Lease Range: {} - {}'.format(self.offerfrom, self.offerto))
         self.logger.debug('  DHCP Subnet Mask: {}'.format(self.subnetmask))
         self.logger.debug('  DHCP Router: {}'.format(self.router))
