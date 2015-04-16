@@ -64,12 +64,6 @@ The following are arguments that can be passed to `pypxe-server.py` when running
     * Description: Amend configuration from json file
      * _Use the specified json file to amend the command line options. See example.json for more information._
     * Default: `None`
-  * __`--syslog`__
-    * Description: Syslog server
-    * Default: `None`
-  * __`--syslog-port`__
-    * Description: Syslog server port
-    * Default: `514`
 * __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
   * __`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__
     * Description: Specify DHCP server IP address
