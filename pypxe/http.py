@@ -7,6 +7,7 @@ This file contains classes and functions that implement the PyPXE HTTP service
 import socket
 import struct
 import os
+import logging
 
 class HTTPD:
     '''
@@ -19,6 +20,19 @@ class HTTPD:
         self.port = serverSettings.get('port', 80)
         self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
+        self.logger =  serverSettings.get('logger', None)
+
+        # setup logger
+        if self.logger == None:
+            self.logger = logging.getLogger("HTTP")
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+
+        if self.mode_debug:
+            self.logger.setLevel(logging.DEBUG)
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
@@ -29,18 +43,16 @@ class HTTPD:
         os.chdir (self.netbootDirectory)
         os.chroot ('.')
 
-        if self.mode_debug:
-            print 'NOTICE: HTTP server started in debug mode. HTTP server is using the following:'
-            print '\tHTTP Server IP: {}'.format(self.ip)
-            print '\tHTTP Server Port: {}'.format(self.port)
-            print '\tHTTP Network Boot Directory: {}'.format(self.netbootDirectory)
+        self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
+        self.logger.debug('  HTTP Server IP: {}'.format(self.ip))
+        self.logger.debug('  HTTP Server Port: {}'.format(self.port))
+        self.logger.debug('  HTTP Network Boot Directory: {}'.format(self.netbootDirectory))
 
     def handleRequest(self, connection, addr):
         '''This method handles HTTP request'''
         request = connection.recv(1024)
-        if self.mode_debug:
-            print '[DEBUG] HTTP Recieved message from {addr}'.format(addr = repr(addr))
-            print '\t<--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request))
+        self.logger.debug('HTTP Recieved message from {addr}'.format(addr = repr(addr)))
+        self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
         target = startline[1]
@@ -54,28 +66,25 @@ class HTTPD:
         if status[:3] in ('404', '501'): #fail out
             connection.send(response)
             connection.close()
-            if self.mode_debug:
-                print '[DEBUG] HTTP Sending message to {addr}'.format(addr = repr(addr))
-                print '\t<--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response))
+            self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
+            self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
             return
         response += 'Content-Length: %d\r\n' % os.path.getsize(target)
         response += '\r\n'
         if method == 'HEAD':
             connection.send(response)
             connection.close()
-            if self.mode_debug:
-                print '[DEBUG] HTTP Sending message to {addr}'.format(addr = repr(addr))
-                print '\t<--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response))
+            self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
+            self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
             return
         handle = open(target)
         response += handle.read()
         handle.close()
         connection.send(response)
         connection.close()
-        if self.mode_debug:
-            print '[DEBUG] HTTP Sending message to {addr}'.format(addr = repr(addr))
-            print '\t<--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response))
-            print '\tHTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr)
+        self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
+        self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
+        self.logger.debug('  HTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
 
     def listen(self):
         '''This method is the main loop that listens for requests'''
