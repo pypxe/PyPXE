@@ -1,1 +1,4 @@
 *.pyc
+pypxe/nfs/arch
+netboot/initramfs-linux.img
+netboot/vmlinuz-linux
