@@ -235,6 +235,16 @@ class DHCPD:
         self.logger.debug('  <--BEGIN RESPONSE-->\n\t{response}\n\t<--END RESPONSE-->'.format(response = repr(response)))
         self.sock.sendto(response, (self.broadcast, 68))
 
+    def validateReq(self):
+        # client request is valid only if contains Vendor-Class = PXEClient
+        if 60 in self.options and 'PXEClient' in self.options[60][0]:
+            if self.mode_debug:
+                self.logger.debug('Valid client request received')
+            return True
+        if self.mode_debug:
+            self.logger.debug('Invalid client request received')
+        return False
+
     def dhcpAck(self, message):
         '''This method responds to DHCP request with acknowledge'''
         clientmac, headerResponse = self.craftHeader(message)
@@ -256,7 +266,8 @@ class DHCPD:
             self.options = self.tlvParse(message[240:])
             self.logger.debug('Parsed received options')
             self.logger.debug('  <--BEGIN OPTIONS-->\n\t{options}\n\t<--END OPTIONS-->'.format(options = repr(self.options)))
-            if not (60 in self.options and 'PXEClient' in self.options[60][0]) : continue
+            if not self.validateReq():
+                continue
             type = ord(self.options[53][0]) #see RFC2131 page 10
             if type == 1:
                 self.logger.debug('Received DHCPOFFER')
