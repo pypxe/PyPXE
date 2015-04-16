@@ -80,6 +80,9 @@ The TFTP server class, __`TFTPD()`__, is constructed with the following __keywor
   * Description: This indicates whether or not the TFTP server should be started in debug mode or not.
   * Default: `False`
   * Type: bool
+* __`logger`__
+  * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created
+  * Default: `None`
 
 ##DHCP Server `pypxe.dhcp`
 
@@ -150,6 +153,9 @@ The DHCP server class, __`DHCPD()`__, is constructed with the following __keywor
   * Description: This indicates whether or not the DHCP server should be started in debug mode or not.
   * Default: `False`
   * Type: _bool_
+* __`logger`__
+  * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created
+  * Default: `None`
 
 ##HTTP Server `pypxe.http`
 
@@ -180,6 +186,9 @@ The HTTP server class, __`HTTPD()`__, is constructed with the following __keywor
   * Description: This indicates whether or not the HTTP server should be started in debug mode or not.
   * Default: `False`
   * Type: bool
+* __`logger`__
+  * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created
+  * Default: `None`
 
 ##Additional Information
 * The function `chr(0)` is used in multiple places throughout the servers. This denotes a `NULL` byte, or `\x00`
