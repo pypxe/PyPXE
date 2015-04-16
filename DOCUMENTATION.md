@@ -18,8 +18,6 @@ Also included in these options are our PXE options. The minimum required option 
 
 Once the four way handshake is complete, the client will send a TFTP read request to the given fileserver IP address requesting the given filename.
 
-By default only requests declaring the 'PXEClient' value dhcp option 60 are served, this is defined by [PXE specifications](http://www.pix.net/software/pxeboot/archive/pxespec.pdf)  If you're using PyPXE as a library you can change this behavior extending the *DHCP* class and overwriting the *validateReq* method.
-
 ###ProxyDHCP
 ProxyDHCP mode is useful for when you either cannot (or do not want to) change the main DHCP server on a network. The bulk of ProxyDHCP information can be found in the [Intel PXE spec](http://www.pix.net/software/pxeboot/archive/pxespec.pdf). The main idea behind ProxyDHCP is that the main network DHCP server can hand out the IP leases while the ProxyDHCP server hands out the PXE information to each client. Therefore, slightly different information is sent in the ProxyDHCP packets.
 
