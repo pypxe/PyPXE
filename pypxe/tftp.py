@@ -124,13 +124,13 @@ class TFTPD:
         socknew = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         socknew.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         socknew.bind((self.ip, 0))
+        self.ongoing[address]['sock'] = socknew
 
         if response:
             response = struct.pack('!H', 6) + response
             socknew.sendto(response, address)
-
-        self.ongoing[address]['sock'] = socknew
-        self.sendBlock(address)
+        else:
+            self.sendBlock(address)
 
     def listen(self):
         '''This method listens for incoming requests'''
