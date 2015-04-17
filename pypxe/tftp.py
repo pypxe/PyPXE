@@ -69,6 +69,7 @@ class TFTPD:
         response =  struct.pack('!H', 5) #error code
         response += struct.pack('!H', 1) #file not found
         response += 'File Not Found'
+        response += chr(0)
         self.logger.debug("TFTP Sending 'File Not Found'")
         self.sock.sendto(response, address)
 
@@ -119,13 +120,17 @@ class TFTPD:
             response += 'tsize' + chr(0)
             response += str(filesize)
             response += chr(0)
+
+        socknew = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        socknew.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        socknew.bind((self.ip, 0))
+        self.ongoing[address]['sock'] = socknew
+
         if response:
             response = struct.pack('!H', 6) + response
-            socknew = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            socknew.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            socknew.bind((self.ip, 0))
             socknew.sendto(response, address)
-            self.ongoing[address]['sock'] = socknew
+        else:
+            self.sendBlock(address)
 
     def listen(self):
         '''This method listens for incoming requests'''
@@ -139,7 +144,7 @@ class TFTPD:
                     self.logger.debug('TFTP receiving request')
                     self.read(address, message)
                 if opcode == 4:
-                     if self.ongoing.has_key(address):
+                    if self.ongoing.has_key(address):
                         blockack = struct.unpack("!H", message[:2])[0]
                         self.ongoing[address]['block'] = blockack + 1
                         self.ongoing[address]['retries'] = 3
