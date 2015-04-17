@@ -74,7 +74,7 @@ class NBD:
 
         # size of export
         exportinfo = struct.pack('!Q', self.bdsize)
-        flags = int((self.mode == 'r')) # readonly?
+        flags = (2 if self.mode == 'r' else 0) # readonly?
         exportinfo += struct.pack('!H', flags)
         exportinfo += "\x00"*(0 if (cflags&2) else 124)
         conn.send(exportinfo)
