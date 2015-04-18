@@ -1,11 +1,16 @@
 import logging
 import socket
 import struct
+import threading
+import sys
+import os
+import writes
 
 class NBD:
     def __init__(self, **serverSettings):
         self.bd = serverSettings.get('blockdevice', '')
-        self.mode = serverSettings.get('mode', 'r') #r/w
+        self.write = serverSettings.get('write', False) #w?
+        self.cow = serverSettings.get('cow', True) # COW is the safe default
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 10809)
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
@@ -25,9 +30,10 @@ class NBD:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
-        self.sock.listen(1)
+        self.sock.listen(4)
 
-        self.openbd = open(self.bd, 'r+b' if self.mode == 'rw' else 'rb')
+        # if we have COW on, we write elsewhere so we don't need write ability
+        self.openbd = open(self.bd, 'r+b' if self.write and not self.cow else 'rb')
         # go to EOF
         self.openbd.seek(0, 2)
         # we need this when clients mount us
@@ -39,9 +45,11 @@ class NBD:
         self.logger.debug('  NBD Server IP: {}'.format(self.ip))
         self.logger.debug('  NBD Server Port: {}'.format(self.port))
         self.logger.debug('  NBD Block Device: {}'.format(self.bd))
-        self.logger.debug('  NBD Block Device Mode: {}'.format(self.mode))
+        self.logger.debug('  NBD Block Device Writes: {}'.format(self.write))
+        self.logger.debug('  NBD Block Write Method: {}'.format("Copy-On-Write" if self.cow else "File"))
 
     def sendreply(self, conn, addr, code, data):
+        '''Send a reply with magic. only used for error codes'''
         reply = struct.pack("!Q", 0x3e889045565a9)
         reply += struct.pack("!I", code)
         reply += struct.pack("!I", len(data))
@@ -49,6 +57,7 @@ class NBD:
         conn.send(reply)
 
     def handshake(self, conn, addr):
+        '''Initiate the connection. Server sends first.'''
         # Mostly taken from https://github.com/yoe/nbd/blob/master/nbd-server.c
         conn.send('NBDMAGIC')
         # 0x49484156454F5054
@@ -76,52 +85,69 @@ class NBD:
 
         # size of export
         exportinfo = struct.pack('!Q', self.bdsize)
-        flags = (2 if self.mode == 'r' else 0) # readonly?
+        flags = (0 if self.write else 2) # readonly?
         exportinfo += struct.pack('!H', flags)
         exportinfo += "\x00"*(0 if (cflags&2) else 124)
         conn.send(exportinfo)
 
-    def handleClient(self, conn, addr):
+    def handleClient(self, conn, addr, seeklock):
+        '''Handle all client actions, R/W/Disconnect'''
         ret = self.handshake(conn, addr)
         if ret: return # client did something wrong, so we closed them
 
+        FS = writes.write(self.cow)(addr, self.openbd, self.logger, seeklock)
+
         while True:
-            # atrocious. but works. MSG_WAITALL seems non-functional
-            while not conn.recv(4): pass
-            [opcode, handle, offset, length] = struct.unpack("!IQQI", conn.recv(24))
+            conn.recv(4)
+            [opcode, handle, offset, length] = struct.unpack("!IQQI", conn.recv(24, socket.MSG_WAITALL))
             if opcode not in (0, 1, 2):
                 # NBD_REP_ERR_UNSUP
                 self.sendreply(conn, addr, 2**31+1, '')
                 continue
             if opcode == 0: # READ
-                self.openbd.seek(offset)
-                data = self.openbd.read(length)
+                data = FS.read(offset, length)
+
                 response = struct.pack("!I", 0x67446698)
                 response += struct.pack("!I", 0) # error
                 response += struct.pack("!Q", handle)
                 conn.send(response)
                 conn.send(data)
-                self.logger.debug('%s read %d bytes from %s', addr, length, hex(offset))
+
             elif opcode == 1: # WRITE
-                # don't think we need to check RO
-                # COW goes here
-                data = conn.recv(length)
-                self.openbd.seek(offset)
-                self.openbd.write(data)
+                # WAIT because if there's any lag at all we don't get the whole
+                # thing, we don't write the whole thing, and then we break
+                # trying to parse the rest of the data
+                data = conn.recv(length, socket.MSG_WAITALL)
+                FS.write(offset, data)
+
                 response = struct.pack("!I", 0x67446698)
                 response += struct.pack("!I", 0) # error
                 response += struct.pack("!Q", handle)
                 conn.send(response)
-                self.logger.debug('%s wrote %d bytes to %s', addr, length, hex(offset))
-                pass
+
             elif opcode == 2: # DISCONNECT
+                # delete COW diff
                 conn.close()
                 self.logger.debug('%s disconnected', addr)
                 return
 
     def listen(self):
         '''This method is the main loop that listens for requests'''
+        seeklock = threading.Lock()
+        cowfiles = []
         while True:
-            conn, addr = self.sock.accept()
-            # should probably fork these
-            self.handleClient(conn, addr)
+            try:
+                conn, addr = self.sock.accept()
+                # Split off on a thread. Allows us to handle multiple clients
+                dispatch = threading.Thread(target = self.handleClient, args = (conn, addr, seeklock))
+                # clients don't necessarily close the TCP connection
+                # so we use this to kill the program on Ctrl-c
+                dispatch.daemon = True
+                dispatch.start()
+                # this is for the cleanup at the end. Will need clarifying
+                # if MemCOW
+                if self.cow:
+                    cowfiles.append('PyPXE_NBD_COW_%s_%s' % addr)
+            except KeyboardInterrupt:
+                map(os.remove, cowfiles)
+                return
