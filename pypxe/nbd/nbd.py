@@ -27,9 +27,10 @@ class NBD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        self.openbd = open(self.bd, 'ra' if self.mode == 'w' else self.mode)
+        self.openbd = open(self.bd, 'r+b' if self.mode == 'rw' else 'rb')
         # go to EOF
         self.openbd.seek(0, 2)
+        # we need this when clients mount us
         self.bdsize = self.openbd.tell()
         # go back to start
         self.openbd.seek(0)
@@ -38,6 +39,7 @@ class NBD:
         self.logger.debug('  NBD Server IP: {}'.format(self.ip))
         self.logger.debug('  NBD Server Port: {}'.format(self.port))
         self.logger.debug('  NBD Block Device: {}'.format(self.bd))
+        self.logger.debug('  NBD Block Device Mode: {}'.format(self.mode))
 
     def sendreply(self, conn, addr, code, data):
         reply = struct.pack("!Q", 0x3e889045565a9)
@@ -101,7 +103,15 @@ class NBD:
                 conn.send(data)
                 self.logger.debug('%s read %d bytes from %s', addr, length, hex(offset))
             elif opcode == 1: # WRITE
+                # don't think we need to check RO
+                # COW goes here
                 data = conn.recv(length)
+                self.openbd.seek(offset)
+                self.openbd.write(data)
+                response = struct.pack("!I", 0x67446698)
+                response += struct.pack("!I", 0) # error
+                response += struct.pack("!Q", handle)
+                conn.send(response)
                 self.logger.debug('%s wrote %d bytes to %s', addr, length, hex(offset))
                 pass
             elif opcode == 2: # DISCONNECT
