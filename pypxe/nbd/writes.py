@@ -1,20 +1,6 @@
-class DiskCOW:
-    # Named to allow MemCOW at a later date
-    def __init__(self, addr, imagefd, logger, seeklock):
-        # Optional argset for:
-        #   disk diff path
-        self.addr = addr
-        self.imagefd = imagefd
-        self.seeklock = seeklock
-        self.logger = logger.getChild('FS')
-        self.logger.debug('Copy-On-Write for %s in PyPXE_NBD_COW_%s_%s', addr, *addr)
+import io
 
-        #never want readonly cow, also definately creating file
-        self.fh = open('PyPXE_NBD_COW_%s_%s' % addr, 'w+b')
-        # pages is a list of the addresses for which we have different pages
-        # should all be multiples of 4096.
-        self.pages = []
-
+class COW:
     def basepages(self, offset, length):
         # basepages is (page base addr, inter page offset, length of data in page)
         # it's unlikely we'll ever need sub 4096 reads, but just in case.
@@ -90,6 +76,36 @@ class DiskCOW:
                 self.fh.write(data[:length])
                 data = data[length:]
 
+class DiskCOW(COW):
+    def __init__(self, addr, imagefd, logger, seeklock):
+        # Optional argset for:
+        #   disk diff path
+        self.addr = addr
+        self.imagefd = imagefd
+        self.seeklock = seeklock
+        self.logger = logger.getChild('FS')
+        self.logger.debug('Copy-On-Write for %s in PyPXE_NBD_COW_%s_%s', addr, *addr)
+
+        #never want readonly cow, also definately creating file
+        self.fh = open('PyPXE_NBD_COW_%s_%s' % addr, 'w+b')
+        # pages is a list of the addresses for which we have different pages
+        # should all be multiples of 4096.
+        self.pages = []
+
+class MemCOW(COW):
+    def __init__(self, addr, imagefd, logger, seeklock):
+        self.addr = addr
+        self.imagefd = imagefd
+        self.seeklock = seeklock
+        self.logger = logger.getChild('FS')
+        self.logger.debug('Copy-On-Write for %s in Memory', addr)
+
+        #BytesIO looks exactly the same as a file, perfect for in memory disk
+        self.fh = io.BytesIO()
+        # pages is a list of the addresses for which we have different pages
+        # should all be multiples of 4096.
+        self.pages = []
+
 class RW:
     def __init__(self, addr, imagefd, logger, seeklock):
         self.addr = addr
@@ -114,7 +130,12 @@ class RW:
         self.imagefd.write(data)
         self.seeklock.release()
 
-def write(cow):
+def write(cow, inmem):
     '''Class signatures are identical so we can transparently
        use either.'''
-    return DiskCOW if cow else RW
+    if cow and inmem:
+        return MemCOW
+    elif cow and not inmem:
+        return DiskCOW
+    else:
+        return RW

@@ -4,6 +4,7 @@ import struct
 import threading
 import sys
 import os
+import io
 import writes
 
 class NBD:
@@ -11,6 +12,8 @@ class NBD:
         self.bd = serverSettings.get('blockdevice', '')
         self.write = serverSettings.get('write', False) #w?
         self.cow = serverSettings.get('cow', True) # COW is the safe default
+        self.inmem = serverSettings.get('inmem', False)
+        self.copytoram = serverSettings.get('copytoram', False)
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 10809)
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
@@ -23,6 +26,13 @@ class NBD:
             formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
+
+        self.logger.debug('NOTICE: NBD server started in debug mode. NBD server is using the following:')
+        self.logger.debug('  NBD Server IP: {}'.format(self.ip))
+        self.logger.debug('  NBD Server Port: {}'.format(self.port))
+        self.logger.debug('  NBD Block Device: {}'.format(self.bd))
+        self.logger.debug('  NBD Block Device Writes: {}'.format(self.write))
+        self.logger.debug('  NBD Block Write Method: {} ({})'.format("Copy-On-Write" if self.cow else "File", "Memory" if self.inmem else "Disk"))
 
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
@@ -40,13 +50,11 @@ class NBD:
         self.bdsize = self.openbd.tell()
         # go back to start
         self.openbd.seek(0)
+        if self.copytoram and self.cow:
+            self.logger.info('Starting copying %s to RAM', self.bd)
+            self.openbd = io.BytesIO(self.openbd.read())
+            self.logger.info('Finished copying %s to RAM', self.bd)
 
-        self.logger.debug('NOTICE: NBD server started in debug mode. NBD server is using the following:')
-        self.logger.debug('  NBD Server IP: {}'.format(self.ip))
-        self.logger.debug('  NBD Server Port: {}'.format(self.port))
-        self.logger.debug('  NBD Block Device: {}'.format(self.bd))
-        self.logger.debug('  NBD Block Device Writes: {}'.format(self.write))
-        self.logger.debug('  NBD Block Write Method: {}'.format("Copy-On-Write" if self.cow else "File"))
 
     def sendreply(self, conn, addr, code, data):
         '''Send a reply with magic. only used for error codes'''
@@ -95,7 +103,7 @@ class NBD:
         ret = self.handshake(conn, addr)
         if ret: return # client did something wrong, so we closed them
 
-        FS = writes.write(self.cow)(addr, self.openbd, self.logger, seeklock)
+        FS = writes.write(self.cow, self.inmem)(addr, self.openbd, self.logger, seeklock)
 
         while True:
             conn.recv(4)
@@ -146,7 +154,7 @@ class NBD:
                 dispatch.start()
                 # this is for the cleanup at the end. Will need clarifying
                 # if MemCOW
-                if self.cow:
+                if self.cow and not self.inmem:
                     cowfiles.append('PyPXE_NBD_COW_%s_%s' % addr)
             except KeyboardInterrupt:
                 map(os.remove, cowfiles)
