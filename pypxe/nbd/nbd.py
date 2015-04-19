@@ -27,6 +27,9 @@ class NBD:
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
+        if self.mode_debug:
+            self.logger.setLevel(logging.DEBUG)
+
         self.logger.debug('NOTICE: NBD server started in debug mode. NBD server is using the following:')
         self.logger.debug('  NBD Server IP: {}'.format(self.ip))
         self.logger.debug('  NBD Server Port: {}'.format(self.port))
@@ -107,7 +110,11 @@ class NBD:
 
         while True:
             conn.recv(4)
-            [opcode, handle, offset, length] = struct.unpack("!IQQI", conn.recv(24, socket.MSG_WAITALL))
+            try:
+                [opcode, handle, offset, length] = struct.unpack("!IQQI", conn.recv(24, socket.MSG_WAITALL))
+            except struct.error:
+                #Client sent us something malformed, or gave up (module not loaded)
+                continue
             if opcode not in (0, 1, 2):
                 # NBD_REP_ERR_UNSUP
                 self.sendreply(conn, addr, 2**31+1, '')

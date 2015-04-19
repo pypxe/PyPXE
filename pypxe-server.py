@@ -35,6 +35,13 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'USE_TFTP':True,
             'USE_DHCP':True,
             'DHCP_MODE_PROXY':False,
+            'NBD_BLOCKDEVICE':'',
+            'NBD_WRITE':False,
+            'NBD_COW':True,
+            'NBD_COWINMEM':False,
+            'NBD_COPYTORAM':False,
+            'NBD_SERVER_IP':'0.0.0.0',
+            'NBD_PORT':10809,
             'MODE_DEBUG':''}
 
 def parse_cli_arguments():
@@ -49,26 +56,39 @@ def parse_cli_arguments():
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
 
+    # NBD server arguments
+    nbd_group = parser.add_argument_group(title = 'Network Block Device', description = 'Arguments relevant to the NBD server')
+    nbd_group.add_argument('--nbd', action = 'store', dest = 'NBD_BLOCKDEVICE', help = 'Enable the NDB server with a specific block device (Can be a disk image)', default = NBD_BLOCKDEVICE)
+    nbd_group.add_argument('--nbd-write', action = 'store_true', dest = 'NBD_WRITE', help = 'Enable writes on the NBD device', default = NBD_WRITE)
+    nbd_group.add_argument('--nbd-cow', action = 'store_true', dest = 'NBD_COW', help = 'Enable copy-on-write for the NBD device (Non-persistent changes)', default = NBD_COW)
+    nbd_group.add_argument('--nbd-cowinmem', action = 'store_true', dest = 'NBD_COWINMEM', help = 'Store copy-on-write pages in memory', default = NBD_COWINMEM)
+    nbd_group.add_argument('--nbd-copytoram', action = 'store_true', dest = 'NBD_COPYTORAM', help = 'Copy the NBD device to memory before serving clients', default = NBD_COPYTORAM)
+    nbd_group.add_argument('--nbd-server', action = 'store', dest = 'NBD_SERVER_IP', help = 'NBD Server IP', default = NBD_SERVER_IP)
+    nbd_group.add_argument('--nbd-port', action = 'store', dest = 'NBD_PORT', help = 'NBD Server Port', default = NBD_PORT)
+
     # DHCP server arguments
-    exclusive = parser.add_mutually_exclusive_group(required = False)
+    dhcp_group = parser.add_argument_group(title = 'DHCP', description = 'Arguments relevant to the DHCP server')
+    exclusive = dhcp_group.add_mutually_exclusive_group(required = False)
     exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = SETTINGS['DHCP_MODE_PROXY'])
-    parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = SETTINGS['DHCP_SERVER_IP'])
-    parser.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = SETTINGS['DHCP_SERVER_PORT'])
-    parser.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = SETTINGS['DHCP_OFFER_BEGIN'])
-    parser.add_argument('-e', '--dhcp-end', action = 'store', dest = 'DHCP_OFFER_END', help = 'DHCP lease range end', default = SETTINGS['DHCP_OFFER_END'])
-    parser.add_argument('-n', '--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = SETTINGS['DHCP_SUBNET'])
-    parser.add_argument('-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = SETTINGS['DHCP_ROUTER'])
-    parser.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
-    parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
-    parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
-    parser.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = False)
+    dhcp_group.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = SETTINGS['DHCP_SERVER_IP'])
+    dhcp_group.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = SETTINGS['DHCP_SERVER_PORT'])
+    dhcp_group.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = SETTINGS['DHCP_OFFER_BEGIN'])
+    dhcp_group.add_argument('-e', '--dhcp-end', action = 'store', dest = 'DHCP_OFFER_END', help = 'DHCP lease range end', default = SETTINGS['DHCP_OFFER_END'])
+    dhcp_group.add_argument('-n', '--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = SETTINGS['DHCP_SUBNET'])
+    dhcp_group.add_argument('-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = SETTINGS['DHCP_ROUTER'])
+    dhcp_group.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
+    dhcp_group.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
+    dhcp_group.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
+    dhcp_group.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = False)
 
     # network boot directory and file name arguments
     parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
     parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = SETTINGS['NETBOOT_FILE'])
 
     return parser.parse_args()
+
+#NBD Default Server Settings
 
 if __name__ == '__main__':
     try:
@@ -138,7 +158,13 @@ if __name__ == '__main__':
             else:
                 args.NETBOOT_FILE = 'boot.http.ipxe'
 
-        # serve all files from one directory
+        if args.NBD_WRITE and not args.NBD_COW:
+            sys_logger.warning('NBD Write enabled but copy-on-write is not. Multiple clients may cause corruption')
+
+        if args.NBD_COWINMEM or args.NBD_COPYTORAM:
+            sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
+
+        #serve all files from one directory
         os.chdir (args.NETBOOT_DIR)
 
         # make a list of running threads for each service
@@ -205,6 +231,29 @@ if __name__ == '__main__':
             httpd.daemon = True
             httpd.start()
             running_services.append(httpd)
+
+        #configure/start NBD server
+        if args.NBD_BLOCKDEVICE:
+            #setup nbd logger
+            nbd_logger = sys_logger.getChild('NBD')
+            sys_logger.info('Starting NBD server...')
+            nbdServer = nbd.NBD(
+                    blockdevice = args.NBD_BLOCKDEVICE,
+                    write = args.NBD_WRITE,
+                    cow = args.NBD_COW,
+                    inmem = args.NBD_COWINMEM,
+                    copytoram = args.NBD_COPYTORAM,
+                    ip = args.NBD_SERVER_IP,
+                    port = args.NBD_PORT,
+                    mode_debug = ("nbd" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()),
+                    logger = nbd_logger
+                    )
+            nbd = threading.Thread(target = nbdServer.listen)
+            nbd.daemon = True
+            nbd.start()
+            runningServices.append(nbd)
+
+
 
         sys_logger.info('PyPXE successfully initialized and running!')
 

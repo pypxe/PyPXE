@@ -27,6 +27,7 @@ class COW:
     def read(self, offset, length):
         basepages = self.basepages(offset, length)
 
+        # this probably wants to be 2nd debug level
         self.logger.debug('%s reading %d bytes from %s. Pages: %s', self.addr, length, hex(offset), len(basepages))
 
         data = ""
@@ -51,6 +52,7 @@ class COW:
     def write(self, offset, data):
         basepages = self.basepages(offset, len(data))
 
+        # this probably wants to be 2nd debug level
         self.logger.debug('%s writing %d bytes to %s. Pages: %s', self.addr, len(data), hex(offset), len(basepages))
 
         for major, minor, length in basepages:
@@ -115,6 +117,7 @@ class RW:
         self.logger.debug('File for %s', addr)
 
     def read(self, offset, length):
+        # this probably wants to be 2nd debug level
         self.logger.debug('%s reading %d bytes from %s', self.addr, length, hex(offset))
         # see COW.read() for lock reason
         self.seeklock.acquire()
@@ -124,6 +127,7 @@ class RW:
         return data
 
     def write(self, offset, data):
+        # this probably wants to be 2nd debug level
         self.logger.debug('%s writing %d bytes to %s', self.addr, len(data), hex(offset))
         self.seeklock.acquire()
         self.imagefd.seek(offset)
