@@ -66,7 +66,7 @@ class TFTPD:
             short int 5 -> Error Opcode
             This method sends the error message to the client
 
-            Error codes:
+            Error codes from RFC1350 page 10:
             Value     Meaning
             0         Not defined, see error message (if any).
             1         File not found.
@@ -125,6 +125,7 @@ class TFTPD:
             return
         filename = self.filename(message)
         if not os.path.lexists(filename):
+            self.logger.debug("File '{filename}' not found, sending error message to the client".format(filename = filename) )
             self.tftpError(address, 1, 'File Not Found')
             return
 
@@ -204,4 +205,4 @@ class TFTPD:
 
             # Clean up dead connections
             for i in dead_conn:
-                self.ongoing.pop(i)
+                self.ongoing.remove(i)
