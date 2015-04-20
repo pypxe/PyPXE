@@ -169,7 +169,7 @@ if __name__ == '__main__':
             # setup http logger
             http_logger = sys_logger.getChild("HTTP")
             sys_logger.info('Starting HTTP server...')
-            httpServer = http.HTTPD(mode_debug = ("http" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()), logger = http_logger, port = 8090)
+            httpServer = http.HTTPD(mode_debug = ("http" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()), logger = http_logger)
             httpd = threading.Thread(target = httpServer.listen)
             httpd.daemon = True
             httpd.start()
