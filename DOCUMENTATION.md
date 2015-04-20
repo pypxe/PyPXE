@@ -32,7 +32,7 @@ There are a few vendor-specific options under the DHCP option 43:
 The client should receive two DHCP OFFER packets in ProxyDHCP mode: the first from the main DHCP server and the second from the ProxyDHCP server. Once both are received, the client will continue on with the DHCP handshake and, after it is complete, the client will boot using the settings in the DHCP OFFER from the ProxyDHCP server.
 
 ##TFTP
-We have only implemented the read OPCODE for the TFTP server, as PXE does not use write. The main TFTP protocol is defined in [RFC1350](http://www.ietf.org/rfc/rfc1350.txt)
+We have only implemented the read OPCODE for the TFTP server, as PXE does not use write. Only *octet* transfer mode is supported. The main TFTP protocol is defined in [RFC1350](http://www.ietf.org/rfc/rfc1350.txt)
 
 ###blksize
 The blksize option, as defined in [RFC2348](http://www.ietf.org/rfc/rfc2348.txt) allows the client to specify the block size for each transfer packet. The blksize option is passed along with the read opcode, following the filename and mode. The format is blksize, followed by a null byte, followed by the ASCII base-10 representation of the blksize (i.e 512 rather than 0x200), followed by another null byte.
@@ -83,6 +83,12 @@ The TFTP server class, __`TFTPD()`__, is constructed with the following __keywor
 * __`logger`__
   * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created
   * Default: `None`
+* __`default_retries`__
+  * Description: The number of data retransmissions before dropping a connection
+  * Default: `3`
+* __`timeout`__
+ * Description: The time in seconds before re-sending an un-acked data block
+ * Default: `5`
 
 ##DHCP Server `pypxe.dhcp`
 
