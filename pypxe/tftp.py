@@ -40,6 +40,8 @@ class TFTPD:
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
 
+        self.chroot()
+        
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('  TFTP Server IP: {}'.format(self.ip))
         self.logger.debug('TFTP Server Port: {}'.format(self.port))
@@ -48,10 +50,14 @@ class TFTPD:
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512, 'sock': None, 'sent_time': float("inf"), 'retries': self.default_retries})
 
+    def chroot(self):
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
         os.chdir (self.netbootDirectory)
-        os.chroot ('.')
+        try:
+            os.chroot ('.')
+        except Exception, e:
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirector))
 
     def filename(self, message):
         '''
