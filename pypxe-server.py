@@ -18,7 +18,7 @@ from pypxe import http #PyPXE HTTP service
 JSON_CONFIG = ''
 
 #Default Network Boot File Directory
-NETBOOT_DIR = os.path.abspath(os.path.join(os.getcwd(), 'netboot'))
+NETBOOT_DIR = 'netboot'
 
 #Default PXE Boot File
 NETBOOT_FILE = ''
@@ -119,7 +119,7 @@ if __name__ == '__main__':
                 args.NETBOOT_FILE = 'boot.http.ipxe'
 
         #serve all files from one directory
-        os.chdir(args.NETBOOT_DIR)
+        os.chdir(os.path.abspath(args.NETBOOT_DIR))
         
         #make a list of running threads for each service
         runningServices = []

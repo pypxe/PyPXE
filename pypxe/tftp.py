@@ -20,7 +20,7 @@ class TFTPD:
     def __init__(self, **serverSettings):
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 69)
-        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
+        self.netbootDirectory = serverSettings.get('netbootDirectory',  os.getcwd())
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.logger = serverSettings.get('logger', None)
         self.default_retries = serverSettings.get('default_retries', 3)
@@ -131,7 +131,7 @@ class TFTPD:
             return
         req_file = self.filename(message)
         # avoid directory traversal: strip all ../ and make it relative
-        filename = os.path.normpath(os.sep + self.netbootDirectory + os.sep + req_file).lstrip(os.sep)
+        filename = os.path.normpath(os.sep + os.getcwd() + os.sep + req_file).lstrip(os.sep)
         
         if not os.path.lexists(filename):
             self.logger.debug("File '{filename}' not found, sending error message to the client".format(filename = filename) )

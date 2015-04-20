@@ -64,7 +64,7 @@ class HTTPD:
         req_file = startline[1]
 
         # avoid directory traversal: strip all ../ and make it relative
-        target = os.path.normpath(os.sep + self.netbootDirectory + os.sep + req_file).lstrip(os.sep)
+        target = os.path.normpath(os.sep + os.getcwd() + os.sep + req_file).lstrip(os.sep)
 
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
