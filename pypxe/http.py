@@ -51,7 +51,7 @@ class HTTPD:
         os.chdir (self.netbootDirectory)
         try:
             os.chroot ('.')
-        except Exception, e:
+        except AttributeError:
             self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
 
@@ -62,7 +62,7 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
-        target = os.path.abspath(self.netbootDirectory + os.sep + startline[1])
+        target = os.path.abspath(os.path.join(self.netbootDirectory, startline[1]))
 
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'

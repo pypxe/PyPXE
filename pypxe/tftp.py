@@ -56,7 +56,7 @@ class TFTPD:
         os.chdir (self.netbootDirectory)
         try:
             os.chroot ('.')
-        except Exception, e:
+        except AttributeError:
             self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
     def filename(self, message):
@@ -130,7 +130,7 @@ class TFTPD:
             self.tftpError(address, 5, 'Mode {mode} not supported'.format(mode = mode))
             return
         req_file = self.filename(message)
-        filename = os.path.abspath(self.netbootDirectory + os.sep + req_file)
+        filename = os.path.abspath(os.path.join(self.netbootDirectory, req_file))
         if not os.path.lexists(filename):
             self.logger.debug("File '{filename}' not found, sending error message to the client".format(filename = filename) )
             self.tftpError(address, 1, 'File Not Found')
