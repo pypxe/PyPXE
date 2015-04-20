@@ -62,6 +62,7 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
+        req_file = startline[1]    
         target = os.path.abspath(os.path.join(self.netbootDirectory, startline[1]))
 
         if not os.path.lexists(target) or not os.path.isfile(target):
@@ -92,7 +93,7 @@ class HTTPD:
         connection.close()
         self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
         self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
-        self.logger.debug('  HTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
+        self.logger.debug('  HTTP File Sent - http://{req_file} -> {addr[0]}:{addr[1]}'.format(req_file = req_file, addr = addr))
 
     def listen(self):
         '''This method is the main loop that listens for requests'''

@@ -136,7 +136,7 @@ class TFTPD:
             self.tftpError(address, 1, 'File Not Found')
             return
 
-        self.ongoing[address]['filename'] = filename
+        self.ongoing[address]['filename'] = req_file
         self.ongoing[address]['handle'] = open(filename, 'r')
         options = message.split(chr(0))[2: -1]
         options = dict(zip(options[0::2], options[1::2]))
