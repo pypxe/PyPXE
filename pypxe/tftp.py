@@ -130,7 +130,9 @@ class TFTPD:
             self.tftpError(address, 5, 'Mode {mode} not supported'.format(mode = mode))
             return
         req_file = self.filename(message)
-        filename = os.path.abspath(os.path.join(self.netbootDirectory, req_file))
+        # avoid directory traversal: strip all ../ and make it relative
+        filename = os.path.normpath(os.sep + self.netbootDirectory + os.sep + req_file).lstrip(os.sep)
+        
         if not os.path.lexists(filename):
             self.logger.debug("File '{filename}' not found, sending error message to the client".format(filename = filename) )
             self.tftpError(address, 1, 'File Not Found')

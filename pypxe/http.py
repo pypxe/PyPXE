@@ -18,7 +18,7 @@ class HTTPD:
         
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 80)
-        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
+        self.netbootDirectory = serverSettings.get('netbootDirectory', os.getcwd())
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.logger =  serverSettings.get('logger', None)
 
@@ -54,7 +54,6 @@ class HTTPD:
         except AttributeError:
             self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
-
     def handleRequest(self, connection, addr):
         '''This method handles HTTP request'''
         request = connection.recv(1024)
@@ -62,8 +61,10 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
-        req_file = startline[1]    
-        target = os.path.abspath(os.path.join(self.netbootDirectory, startline[1]))
+        req_file = startline[1]
+
+        # avoid directory traversal: strip all ../ and make it relative
+        target = os.path.normpath(os.sep + self.netbootDirectory + os.sep + req_file).lstrip(os.sep)
 
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
