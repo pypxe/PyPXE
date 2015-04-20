@@ -62,7 +62,7 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
-        target = os.path.abspath(self.netbootDirectory + startline[1])
+        target = os.path.abspath(self.netbootDirectory + os.sep + startline[1])
 
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
