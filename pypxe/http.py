@@ -18,7 +18,7 @@ class HTTPD:
         
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 80)
-        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
+        self.netbootDirectory = serverSettings.get('netbootDirectory', os.getcwd())
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.logger =  serverSettings.get('logger', None)
 
@@ -38,15 +38,21 @@ class HTTPD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        # Start in network boot file directory and then chroot, 
-        # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netbootDirectory)
-        os.chroot ('.')
+        self.chroot()
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
         self.logger.debug('  HTTP Server IP: {}'.format(self.ip))
         self.logger.debug('  HTTP Server Port: {}'.format(self.port))
         self.logger.debug('  HTTP Network Boot Directory: {}'.format(self.netbootDirectory))
+
+    def chroot(self):
+        # Start in network boot file directory and then chroot, 
+        # this simplifies target later as well as offers a slight security increase
+        os.chdir (self.netbootDirectory)
+        try:
+            os.chroot ('.')
+        except AttributeError:
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
     def handleRequest(self, connection, addr):
         '''This method handles HTTP request'''
@@ -55,7 +61,11 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
-        target = startline[1]
+        req_file = startline[1]
+
+        # avoid directory traversal: strip all ../ and make it relative
+        target = os.path.normpath(os.sep + os.getcwd() + os.sep + req_file).lstrip(os.sep)
+
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
         elif method not in ('GET', 'HEAD'):
@@ -84,7 +94,7 @@ class HTTPD:
         connection.close()
         self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
         self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
-        self.logger.debug('  HTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
+        self.logger.debug('  HTTP File Sent - http://{req_file} -> {addr[0]}:{addr[1]}'.format(req_file = req_file, addr = addr))
 
     def listen(self):
         '''This method is the main loop that listens for requests'''

@@ -20,7 +20,7 @@ class TFTPD:
     def __init__(self, **serverSettings):
         self.ip = serverSettings.get('ip', '0.0.0.0')
         self.port = serverSettings.get('port', 69)
-        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
+        self.netbootDirectory = serverSettings.get('netbootDirectory',  os.getcwd())
         self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
         self.logger = serverSettings.get('logger', None)
         self.default_retries = serverSettings.get('default_retries', 3)
@@ -40,6 +40,8 @@ class TFTPD:
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
 
+        self.chroot()
+
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('  TFTP Server IP: {}'.format(self.ip))
         self.logger.debug('TFTP Server Port: {}'.format(self.port))
@@ -48,10 +50,14 @@ class TFTPD:
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512, 'sock': None, 'sent_time': float("inf"), 'retries': self.default_retries})
 
+    def chroot(self):
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
         os.chdir (self.netbootDirectory)
-        os.chroot ('.')
+        try:
+            os.chroot ('.')
+        except AttributeError:
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
     def filename(self, message):
         '''
@@ -123,13 +129,16 @@ class TFTPD:
             self.logger.error("Mode '{mode}' not supported".format(mode = mode))
             self.tftpError(address, 5, 'Mode {mode} not supported'.format(mode = mode))
             return
-        filename = self.filename(message)
+        req_file = self.filename(message)
+        # avoid directory traversal: strip all ../ and make it relative
+        filename = os.path.normpath(os.sep + os.getcwd() + os.sep + req_file).lstrip(os.sep)
+        
         if not os.path.lexists(filename):
             self.logger.debug("File '{filename}' not found, sending error message to the client".format(filename = filename) )
             self.tftpError(address, 1, 'File Not Found')
             return
 
-        self.ongoing[address]['filename'] = filename
+        self.ongoing[address]['filename'] = req_file
         self.ongoing[address]['handle'] = open(filename, 'r')
         options = message.split(chr(0))[2: -1]
         options = dict(zip(options[0::2], options[1::2]))
