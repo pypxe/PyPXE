@@ -52,7 +52,7 @@ class HTTPD:
         try:
             os.chroot ('.')
         except Exception, e:
-            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirector))
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
 
     def handleRequest(self, connection, addr):
@@ -62,7 +62,8 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
-        target = startline[1]
+        target = os.path.abspath(self.netbootDirectory + startline[1])
+
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
         elif method not in ('GET', 'HEAD'):

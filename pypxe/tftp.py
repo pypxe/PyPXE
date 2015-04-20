@@ -57,7 +57,7 @@ class TFTPD:
         try:
             os.chroot ('.')
         except Exception, e:
-            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirector))
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
     def filename(self, message):
         '''
