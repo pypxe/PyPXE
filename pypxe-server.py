@@ -37,9 +37,11 @@ DHCP_FILESERVER = '192.168.2.2'
 if __name__ == '__main__':
     try:
         #warn the user that they are starting PyPXE as non-root user
-        if os.getuid() != 0:
-            print '\nWARNING: Not root. Servers will probably fail to bind.\n'
-        
+        try:
+            if os.getuid() != 0:
+                print '\nWARNING: Not root. Servers will probably fail to bind.\n'
+        except AttributeError:
+            print '\nWARNING: Unable to check your user privileges'
         #
         # Define Command Line Arguments
         #

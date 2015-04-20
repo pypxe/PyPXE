@@ -38,15 +38,22 @@ class HTTPD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        # Start in network boot file directory and then chroot, 
-        # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netbootDirectory)
-        os.chroot ('.')
+        self.chroot()
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
         self.logger.debug('  HTTP Server IP: {}'.format(self.ip))
         self.logger.debug('  HTTP Server Port: {}'.format(self.port))
         self.logger.debug('  HTTP Network Boot Directory: {}'.format(self.netbootDirectory))
+
+    def chroot(self):
+        # Start in network boot file directory and then chroot, 
+        # this simplifies target later as well as offers a slight security increase
+        os.chdir (self.netbootDirectory)
+        try:
+            os.chroot ('.')
+        except Exception, e:
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
+
 
     def handleRequest(self, connection, addr):
         '''This method handles HTTP request'''
@@ -55,7 +62,8 @@ class HTTPD:
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
-        target = startline[1]
+        target = os.path.abspath(self.netbootDirectory + os.sep + startline[1])
+
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
         elif method not in ('GET', 'HEAD'):

@@ -40,6 +40,8 @@ class TFTPD:
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
 
+        self.chroot()
+
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('  TFTP Server IP: {}'.format(self.ip))
         self.logger.debug('TFTP Server Port: {}'.format(self.port))
@@ -48,10 +50,14 @@ class TFTPD:
         #key is (address, port) pair
         self.ongoing = defaultdict(lambda: {'filename': '', 'handle': None, 'block': 1, 'blksize': 512, 'sock': None, 'sent_time': float("inf"), 'retries': self.default_retries})
 
+    def chroot(self):
         # Start in network boot file directory and then chroot, 
         # this simplifies target later as well as offers a slight security increase
         os.chdir (self.netbootDirectory)
-        os.chroot ('.')
+        try:
+            os.chroot ('.')
+        except Exception, e:
+            self.logger.warning("Cannot chroot in '{dir}', maybe os.chroot() unsupported by your platform ?".format(dir = self.netbootDirectory))
 
     def filename(self, message):
         '''
@@ -123,7 +129,8 @@ class TFTPD:
             self.logger.error("Mode '{mode}' not supported".format(mode = mode))
             self.tftpError(address, 5, 'Mode {mode} not supported'.format(mode = mode))
             return
-        filename = self.filename(message)
+        req_file = self.filename(message)
+        filename = os.path.abspath(self.netbootDirectory + os.sep + req_file)
         if not os.path.lexists(filename):
             self.logger.debug("File '{filename}' not found, sending error message to the client".format(filename = filename) )
             self.tftpError(address, 1, 'File Not Found')
