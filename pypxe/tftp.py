@@ -145,7 +145,17 @@ class Client:
         self.replyOptions()
 
     def sendError(self, code = 1, message = "File Not Found"):
-        '''Send an error code and string to a client'''
+        '''Send an error code and string to a client
+        Error codes from RFC1350 page 10:
+        Value     Meaning
+        0         Not defined, see error message (if any).
+        1         File not found.
+        2         Access violation.
+        3         Disk full or allocation exceeded.
+        4         Illegal TFTP operation.
+        5         Unknown transfer ID.
+        6         File already exists.
+        7         No such user.'''
         response =  struct.pack('!H', 5) # error opcode
         response += struct.pack('!H', code) # error code
         response += message
