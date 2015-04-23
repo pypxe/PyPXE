@@ -11,6 +11,9 @@ import logging
 from collections import defaultdict
 from time import time
 
+class OutOfLeasesError(Exception):
+    pass
+
 class DHCPD:
     '''
         This class implements a DHCP Server, limited to pxe options,
@@ -111,6 +114,7 @@ class DHCPD:
         for offset in xrange(tohost - fromhost):
             if (fromhost + offset) % 256 and fromhost + offset not in leased:
                 return decode(fromhost + offset)
+        raise OutOfLeasesError("Ran out of IP addresses to lease")
 
     def tlvEncode(self, tag, value):
         '''
@@ -270,7 +274,10 @@ class DHCPD:
             type = ord(self.options[53][0]) #see RFC2131 page 10
             if type == 1:
                 self.logger.debug('Received DHCPOFFER')
-                self.dhcpOffer(message)
+                try:
+                    self.dhcpOffer(message)
+                except OutOfLeasesError:
+                    self.logger.critical("Ran out of DHCP leases")
             elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
                 self.logger.debug('Received DHCPACK')
                 self.dhcpAck(message)
