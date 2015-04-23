@@ -82,7 +82,7 @@ class Client:
         if os.path.lexists(filename) and os.path.isfile(filename):
             self.filename = filename
             return True
-        self.sendError(1, 'File Not Found')
+        self.sendError(1, 'File Not Found', filename = filename)
         return False
 
     def parseOptions(self):
@@ -144,7 +144,7 @@ class Client:
         # we got some options, so ack those first
         self.replyOptions()
 
-    def sendError(self, code = 1, message = "File Not Found"):
+    def sendError(self, code = 1, message = "File Not Found", filename = ""):
         '''Send an error code and string to a client
         Error codes from RFC1350 page 10:
         Value     Meaning
@@ -161,12 +161,16 @@ class Client:
         response += message
         response += chr(0)
         self.sock.sendto(response, self.address)
-        self.logger.debug("TFTP Sending '%d: %s'", code, message)
+        self.logger.debug("TFTP Sending '%d: %s' %s", code, message, filename)
 
     def complete(self):
         '''When we've finished sending a file, we need to close it, the
         socket, and mark ourselves as dead to be cleaned up'''
-        self.fh.close()
+        try:
+            self.fh.close()
+        except AttributeError:
+            #We've not opened yet, or file-not-found
+            pass
         self.sock.close()
         self.dead = True
 
