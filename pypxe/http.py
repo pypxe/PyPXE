@@ -38,7 +38,7 @@ class HTTPD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        # Start in network boot file directory and then chroot, 
+        # Start in network boot file directory and then chroot,
         # this simplifies target later as well as offers a slight security increase
         os.chdir (self.netbootDirectory)
         os.chroot ('.')
@@ -51,11 +51,9 @@ class HTTPD:
     def handleRequest(self, connection, addr):
         '''This method handles HTTP request'''
         request = connection.recv(1024)
-        self.logger.debug('HTTP Recieved message from {addr}'.format(addr = repr(addr)))
+        self.logger.debug('Recieved message from {addr}'.format(addr = addr))
         self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
-        startline = request.split('\r\n')[0].split(' ')
-        method = startline[0]
-        target = startline[1]
+        method, target, version = request.split('\r\n')[0].split(' ')
         if not os.path.lexists(target) or not os.path.isfile(target):
             status = '404 Not Found'
         elif method not in ('GET', 'HEAD'):
@@ -66,15 +64,15 @@ class HTTPD:
         if status[:3] in ('404', '501'): #fail out
             connection.send(response)
             connection.close()
-            self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
+            self.logger.debug('Sending message to {addr}'.format(addr = repr(addr)))
             self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
             return
-        response += 'Content-Length: %d\r\n' % os.path.getsize(target)
+        response += 'Content-Length: {}\r\n'.format(os.path.getsize(target))
         response += '\r\n'
         if method == 'HEAD':
             connection.send(response)
             connection.close()
-            self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
+            self.logger.debug('Sending message to {addr}'.format(addr = repr(addr)))
             self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
             return
         handle = open(target)
@@ -82,9 +80,9 @@ class HTTPD:
         handle.close()
         connection.send(response)
         connection.close()
-        self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
+        self.logger.debug('Sending message to {addr}'.format(addr = repr(addr)))
         self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
-        self.logger.debug('  HTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
+        self.logger.debug('  File Sent - http://{target} -> {addr}'.format(target = target, addr = addr))
 
     def listen(self):
         '''This method is the main loop that listens for requests'''
