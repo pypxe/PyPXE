@@ -76,7 +76,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
         if args.JSON_CONFIG:
             try:
-                config = open(args.JSON_CONFIG)
+                config = open(args.JSON_CONFIG, 'rb')
             except IOError:
                 sys.exit("Failed to open %s" % args.JSON_CONFIG)
             try:
@@ -94,14 +94,14 @@ if __name__ == '__main__':
             handler = logging.handlers.SysLogHandler(address = (args.SYSLOG_SERVER, int(args.SYSLOG_PORT)))
         else:
             handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
         handler.setFormatter(formatter)
         sys_logger.addHandler(handler)
         sys_logger.setLevel(logging.INFO)
 
         #pass warning to user regarding starting HTTP server without iPXE
         if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
-            sys_logger.warning('WARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
+            sys_logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
         
         #if the argument was pased to enabled ProxyDHCP then enable the DHCP server
         if args.DHCP_MODE_PROXY:

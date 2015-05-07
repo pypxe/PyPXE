@@ -16,10 +16,10 @@ class OutOfLeasesError(Exception):
 
 class DHCPD:
     '''
-        This class implements a DHCP Server, limited to pxe options,
-        where the subnet /24 is hard coded. Implemented from RFC2131,
-        RFC2132, https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
-        and http://www.pix.net/software/pxeboot/archive/pxespec.pdf
+        This class implements a DHCP Server, limited to pxe options.
+        Implemented from RFC2131, RFC2132,
+        https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol and
+        http://www.pix.net/software/pxeboot/archive/pxespec.pdf
     '''
     def __init__(self, **serverSettings):
         
@@ -49,7 +49,7 @@ class DHCPD:
         if self.logger == None:
             self.logger = logging.getLogger("DHCP")
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
+            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
@@ -57,7 +57,7 @@ class DHCPD:
             self.logger.setLevel(logging.DEBUG)
 
         if self.http and not self.ipxe:
-            self.logger.warning('WARNING: HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
+            self.logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
         if self.ipxe and self.http:
             self.filename = 'http://{fileserver}/{filename}'.format(fileserver = self.fileserver, filename = self.filename)
         if self.ipxe and not self.http:
@@ -66,15 +66,18 @@ class DHCPD:
         self.logger.debug('NOTICE: DHCP server started in debug mode. DHCP server is using the following:')
         self.logger.debug('  DHCP Server IP: {}'.format(self.ip))
         self.logger.debug('  DHCP Server Port: {}'.format(self.port))
-        self.logger.debug('  DHCP Lease Range: {} - {}'.format(self.offerfrom, self.offerto))
-        self.logger.debug('  DHCP Subnet Mask: {}'.format(self.subnetmask))
-        self.logger.debug('  DHCP Router: {}'.format(self.router))
-        self.logger.debug('  DHCP DNS Server: {}'.format(self.dnsserver))
-        self.logger.debug('  DHCP Broadcast Address: {}'.format(self.broadcast))
+
+        if not self.mode_proxy:
+            self.logger.debug('  DHCP Lease Range: {} - {}'.format(self.offerfrom, self.offerto))
+            self.logger.debug('  DHCP Subnet Mask: {}'.format(self.subnetmask))
+            self.logger.debug('  DHCP Router: {}'.format(self.router))
+            self.logger.debug('  DHCP DNS Server: {}'.format(self.dnsserver))
+            self.logger.debug('  DHCP Broadcast Address: {}'.format(self.broadcast))
+
         self.logger.debug('  DHCP File Server IP: {}'.format(self.fileserver))
         self.logger.debug('  DHCP File Name: {}'.format(self.filename))
         self.logger.debug('  ProxyDHCP Mode: {}'.format(self.mode_proxy))
-        self.logger.debug('  tUsing iPXE: {}'.format(self.ipxe))
+        self.logger.debug('  Using iPXE: {}'.format(self.ipxe))
         self.logger.debug('  Using HTTP Server: {}'.format(self.http))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -128,13 +131,13 @@ class DHCPD:
         '''
         ret = {}
         while(raw):
-            tag = struct.unpack('B', raw[0])[0]
+            [tag] = struct.unpack('B', raw[0])
             if tag == 0:  #padding
                 raw = raw[1:]
                 continue
             if tag == 255:  #end marker
                 break
-            length = struct.unpack('B', raw[1])[0]
+            [length] = struct.unpack('B', raw[1])
             value = raw[2:2 + length]
             raw = raw[2 + length:]
             if tag in ret:
@@ -168,7 +171,7 @@ class DHCPD:
                 offer = self.nextIP()
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
-                self.logger.debug('New DHCP Assignment - MAC: {MAC} -> IP: {IP}'.format(MAC = self.printMAC(clientmac), IP = self.leases[clientmac]['ip']))
+                self.logger.debug('New Assignment - MAC: {MAC} -> IP: {IP}'.format(MAC = self.printMAC(clientmac), IP = self.leases[clientmac]['ip']))
             response += socket.inet_aton(offer) #yiaddr
         else:
             response += socket.inet_aton('0.0.0.0')
@@ -208,18 +211,18 @@ class DHCPD:
             #http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
             if 93 in self.options and not self.forcefilename:
                 [arch] = struct.unpack("!H", self.options[93][0])
-                if arch == 6: #EFI IA32
+                if arch == 0: #BIOS/default
+                    response += self.tlvEncode(67, "pxelinux.0" + chr(0))
+                elif arch == 6: #EFI IA32
                     response += self.tlvEncode(67, "syslinux.efi32" + chr(0))
                 elif arch == 7: #EFI BC, x86-64 according to link above
                     response += self.tlvEncode(67, "syslinux.efi64" + chr(0))
                 elif arch == 9: #EFI x86-64
                     response += self.tlvEncode(67, "syslinux.efi64" + chr(0))
-                if arch == 0: #BIOS/default
-                    response += self.tlvEncode(67, "pxelinux.0" + chr(0))
             else:
                 response += self.tlvEncode(67, self.filename + chr(0))
         else:
-            response += self.tlvEncode(67, '/chainload.kpxe' + chr(0)) #chainload iPXE
+            response += self.tlvEncode(67, 'chainload.kpxe' + chr(0)) #chainload iPXE
             if opt53 == 5: #ACK
                 self.leases[clientmac]['ipxe'] = False
         if self.mode_proxy:
@@ -253,10 +256,10 @@ class DHCPD:
     def validateReq(self):
         # client request is valid only if contains Vendor-Class = PXEClient
         if 60 in self.options and 'PXEClient' in self.options[60][0]:
-            self.logger.debug('Valid client request received')
+            self.logger.debug('PXE client request received')
             return True
         if self.mode_debug:
-            self.logger.debug('Invalid client request received')
+            self.logger.debug('Non-PXE client request received')
         return False
 
     def listen(self):
@@ -277,7 +280,7 @@ class DHCPD:
                 try:
                     self.dhcpOffer(message)
                 except OutOfLeasesError:
-                    self.logger.critical("Ran out of DHCP leases")
+                    self.logger.critical("Ran out of leases")
             elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
                 self.logger.debug('Received DHCPACK')
                 self.dhcpAck(message)

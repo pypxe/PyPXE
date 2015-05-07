@@ -28,7 +28,7 @@ class Client:
         self.ip = parent.ip
         self.message, self.address = mainsock.recvfrom(1024)
         self.logger = parent.logger.getChild('Client.{}'.format(self.address))
-        self.logger.debug('TFTP recieving request')
+        self.logger.debug('Recieving request')
         self.retries = self.default_retries
         self.block = 1
         self.blksize = 512
@@ -94,7 +94,7 @@ class Client:
         self.lastblock = math.ceil(self.filesize / float(self.blksize))
         self.tsize = True if 'tsize' in options else False
         if self.filesize > (2**16)*self.blksize:
-            self.logger.warning('TFTP request too big, attempting transfer anyway.')
+            self.logger.warning('Request too big, attempting transfer anyway.')
             self.logger.debug('  Details: Filesize %s is too big for blksize %s.\n', self.filesize, self.blksize)
 
         if len(options):
@@ -161,7 +161,7 @@ class Client:
         response += message
         response += chr(0)
         self.sock.sendto(response, self.address)
-        self.logger.debug("TFTP Sending '%d: %s' %s", code, message, filename)
+        self.logger.debug("Sending '%d: %s' %s", code, message, filename)
 
     def complete(self):
         '''When we've finished sending a file, we need to close it, the
@@ -217,7 +217,7 @@ class TFTPD:
         if self.logger == None:
             self.logger = logging.getLogger("TFTP")
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
@@ -226,7 +226,7 @@ class TFTPD:
 
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('  TFTP Server IP: {}'.format(self.ip))
-        self.logger.debug('TFTP Server Port: {}'.format(self.port))
+        self.logger.debug('  TFTP Server Port: {}'.format(self.port))
         self.logger.debug('  TFTP Network Boot Directory: {}'.format(self.netbootDirectory))
 
         self.ongoing = []
