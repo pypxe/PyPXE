@@ -82,7 +82,7 @@ class HTTPD:
         connection.close()
         self.logger.debug('Sending message to {addr}'.format(addr = repr(addr)))
         self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
-        self.logger.debug('  File Sent - http://{target} -> {addr}'.format(target = target, addr = addr))
+        self.logger.debug('File Sent - http://{target} -> {addr}'.format(target = target, addr = addr))
 
     def listen(self):
         '''This method is the main loop that listens for requests'''

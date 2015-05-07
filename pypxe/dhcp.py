@@ -67,7 +67,7 @@ class DHCPD:
         self.logger.debug('  DHCP Server IP: {}'.format(self.ip))
         self.logger.debug('  DHCP Server Port: {}'.format(self.port))
 
-        if not self.mode_proxy
+        if not self.mode_proxy:
             self.logger.debug('  DHCP Lease Range: {} - {}'.format(self.offerfrom, self.offerto))
             self.logger.debug('  DHCP Subnet Mask: {}'.format(self.subnetmask))
             self.logger.debug('  DHCP Router: {}'.format(self.router))
