@@ -12,19 +12,19 @@ import logging
 class HTTPD:
     '''
         This class implements a HTTP Server, limited to GET and HEAD,
-        from RFC2616, RFC7230
+        from RFC2616, RFC7230.
     '''
-    def __init__(self, **serverSettings):
-        
-        self.ip = serverSettings.get('ip', '0.0.0.0')
-        self.port = serverSettings.get('port', 80)
-        self.netbootDirectory = serverSettings.get('netbootDirectory', '.')
-        self.mode_debug = serverSettings.get('mode_debug', False) #debug mode
-        self.logger =  serverSettings.get('logger', None)
+    def __init__(self, **server_settings):
+
+        self.ip = server_settings.get('ip', '0.0.0.0')
+        self.port = server_settings.get('port', 80)
+        self.netboot_directory = server_settings.get('netboot_directory', '.')
+        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
+        self.logger =  server_settings.get('logger', None)
 
         # setup logger
         if self.logger == None:
-            self.logger = logging.getLogger("HTTP")
+            self.logger = logging.getLogger('HTTP')
             handler = logging.StreamHandler()
             formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
             handler.setFormatter(formatter)
@@ -38,21 +38,23 @@ class HTTPD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        # Start in network boot file directory and then chroot, 
+        # start in network boot file directory and then chroot,
         # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netbootDirectory)
+        os.chdir (self.netboot_directory)
         os.chroot ('.')
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
-        self.logger.debug('  HTTP Server IP: {}'.format(self.ip))
-        self.logger.debug('  HTTP Server Port: {}'.format(self.port))
-        self.logger.debug('  HTTP Network Boot Directory: {}'.format(self.netbootDirectory))
+        self.logger.debug('HTTP Server IP: {0}'.format(self.ip))
+        self.logger.debug('HTTP Server Port: {0}'.format(self.port))
+        self.logger.debug('HTTP Network Boot Directory: {0}'.format(self.netboot_directory))
 
-    def handleRequest(self, connection, addr):
-        '''This method handles HTTP request'''
+    def handle_request(self, connection, addr):
+        '''This method handles HTTP request.'''
         request = connection.recv(1024)
         self.logger.debug('HTTP Recieved message from {addr}'.format(addr = repr(addr)))
-        self.logger.debug('  <--BEGIN MESSAGE-->\n\t{request}\n\t<--END MESSAGE-->'.format(request = repr(request)))
+        self.logger.debug('<--BEGIN MESSAGE-->')
+        self.logger.debug('{0}'.format(repr(request)))
+        self.logger.debug('<--END MESSAGE-->')
         startline = request.split('\r\n')[0].split(' ')
         method = startline[0]
         target = startline[1]
@@ -62,32 +64,38 @@ class HTTPD:
             status = '501 Not Implemented'
         else:
             status = '200 OK'
-        response = 'HTTP/1.1 %s\r\n' % status
-        if status[:3] in ('404', '501'): #fail out
+        response = 'HTTP/1.1 {0}\r\n'.format(status)
+        if status[:3] in ('404', '501'): # fail out
             connection.send(response)
             connection.close()
-            self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
-            self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
+            self.logger.debug('HTTP Sending message to {0}'.format(repr(addr)))
+            self.logger.debug('<--BEING MESSAGE-->'
+            self.logger.debug('{0}'.format(repr(response)))
+            self.logger.debug('<--END MESSAGE-->')
             return
-        response += 'Content-Length: %d\r\n' % os.path.getsize(target)
+        response += 'Content-Length: {0}\r\n'.format(os.path.getsize(target))
         response += '\r\n'
         if method == 'HEAD':
             connection.send(response)
             connection.close()
-            self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
-            self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
+            self.logger.debug('HTTP Sending message to {0}'.format(repr(addr)))
+            self.logger.debug('<--BEING MESSAGE-->')
+            self.logger.debug('{0}'.format(repr(response)))
+            self.logger.debug('<--END MESSAGE-->')
             return
         handle = open(target)
         response += handle.read()
         handle.close()
         connection.send(response)
         connection.close()
-        self.logger.debug('HTTP Sending message to {addr}'.format(addr = repr(addr)))
-        self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
-        self.logger.debug('  HTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
+        self.logger.debug('HTTP Sending message to {0}'.format(repr(addr)))
+        self.logger.debug('<--BEING MESSAGE-->'
+        self.logger.debug('{0}'.format(repr(response)))
+        self.logger.debug('<--END MESSAGE-->')
+        self.logger.debug('HTTP File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
 
     def listen(self):
-        '''This method is the main loop that listens for requests'''
+        '''This method is the main loop that listens for requests.'''
         while True:
             conn, addr = self.sock.accept()
-            self.handleRequest(conn, addr)
+            self.handle_request(conn, addr)

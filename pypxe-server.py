@@ -121,7 +121,7 @@ if __name__ == '__main__':
         os.chdir (args.NETBOOT_DIR)
 
         # make a list of running threads for each service
-        runningServices = []
+        running_services = []
 
         # configure/start TFTP server
         if args.USE_TFTP:
@@ -131,11 +131,11 @@ if __name__ == '__main__':
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftpServer = tftp.TFTPD(mode_debug = ('tftp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = tftp_logger)
-            tftpd = threading.Thread(target = tftpServer.listen)
+            tftp_server = tftp.TFTPD(mode_debug = ('tftp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = tftp_logger)
+            tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
-            runningServices.append(tftpd)
+            running_services.append(tftpd)
 
         # configure/start DHCP server
         if args.USE_DHCP:
@@ -148,26 +148,26 @@ if __name__ == '__main__':
                 sys_logger.info('Starting DHCP server...')
 
             # setup the thread
-            dhcpServer = dhcp.DHCPD(
+            dhcp_server = dhcp.DHCPD(
                     ip = args.DHCP_SERVER_IP,
                     port = args.DHCP_SERVER_PORT,
-                    offerfrom = args.DHCP_OFFER_BEGIN,
-                    offerto = args.DHCP_OFFER_END,
-                    subnet = args.DHCP_SUBNET,
+                    offer_from = args.DHCP_OFFER_BEGIN,
+                    offer_to = args.DHCP_OFFER_END,
+                    subnet_mask = args.DHCP_SUBNET,
                     router = args.DHCP_ROUTER,
-                    dnsserver = args.DHCP_DNS,
+                    dns_server = args.DHCP_DNS,
                     broadcast = args.DHCP_BROADCAST,
-                    fileserver = args.DHCP_FILESERVER,
-                    filename = args.NETBOOT_FILE,
-                    useipxe = args.USE_IPXE,
-                    usehttp = args.USE_HTTP,
+                    file_server = args.DHCP_FILESERVER,
+                    file_name = args.NETBOOT_FILE,
+                    use_ipxe = args.USE_IPXE,
+                    use_http = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
                     mode_debug = ('dhcp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
                     logger = dhcp_logger)
-            dhcpd = threading.Thread(target = dhcpServer.listen)
+            dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
-            runningServices.append(dhcpd)
+            running_services.append(dhcpd)
 
         # configure/start HTTP server
         if args.USE_HTTP:
@@ -177,15 +177,15 @@ if __name__ == '__main__':
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            httpServer = http.HTTPD(mode_debug = ("http" in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = http_logger)
-            httpd = threading.Thread(target = httpServer.listen)
+            http_server = http.HTTPD(mode_debug = ('http' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = http_logger)
+            httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
-            runningServices.append(httpd)
+            running_services.append(httpd)
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
-        while map(lambda x: x.isAlive(), runningServices):
+        while map(lambda x: x.isAlive(), running_services):
             sleep(1)
 
     except KeyboardInterrupt:
