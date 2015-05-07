@@ -26,7 +26,7 @@ class HTTPD:
         if self.logger == None:
             self.logger = logging.getLogger("HTTP")
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
+            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
@@ -75,7 +75,7 @@ class HTTPD:
             self.logger.debug('Sending message to {addr}'.format(addr = repr(addr)))
             self.logger.debug('  <--BEING MESSAGE-->\n\t{response}\n\t<--END MESSAGE-->'.format(response = repr(response)))
             return
-        handle = open(target)
+        handle = open(target, 'rb')
         response += handle.read()
         handle.close()
         connection.send(response)

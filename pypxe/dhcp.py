@@ -49,7 +49,7 @@ class DHCPD:
         if self.logger == None:
             self.logger = logging.getLogger("DHCP")
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname)s] %(message)s')
+            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
@@ -171,7 +171,7 @@ class DHCPD:
                 offer = self.nextIP()
                 self.leases[clientmac]['ip'] = offer
                 self.leases[clientmac]['expire'] = time() + 86400
-                self.logger.debug('New DHCP Assignment - MAC: {MAC} -> IP: {IP}'.format(MAC = self.printMAC(clientmac), IP = self.leases[clientmac]['ip']))
+                self.logger.debug('New Assignment - MAC: {MAC} -> IP: {IP}'.format(MAC = self.printMAC(clientmac), IP = self.leases[clientmac]['ip']))
             response += socket.inet_aton(offer) #yiaddr
         else:
             response += socket.inet_aton('0.0.0.0')
@@ -280,7 +280,7 @@ class DHCPD:
                 try:
                     self.dhcpOffer(message)
                 except OutOfLeasesError:
-                    self.logger.critical("Ran out of DHCP leases")
+                    self.logger.critical("Ran out of leases")
             elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
                 self.logger.debug('Received DHCPACK')
                 self.dhcpAck(message)
