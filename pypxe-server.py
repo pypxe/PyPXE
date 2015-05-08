@@ -77,12 +77,12 @@ if __name__ == '__main__':
             except IOError:
                 sys.exit('Failed to open {0}'.format(args.JSON_CONFIG))
             try:
-                loadedcfg = json.load(config)
+                loaded_config = json.load(config)
                 config.close()
             except ValueError:
                 sys.exit('{0} does not contain valid JSON'.format(args.JSON_CONFIG))
             dargs = vars(args)
-            dargs.update(loadedcfg)
+            dargs.update(loaded_config)
             args = argparse.Namespace(**dargs)
 
         # setup main logger
