@@ -71,14 +71,14 @@ if __name__ == '__main__':
 
         # parse the arguments given
         args = parser.parse_args()
-        if args.JSON_CONFIG:
+        if args.JSON_CONFIG: # load from configuration file
             try:
-                config = open(args.JSON_CONFIG, 'rb')
+                config_file = open(args.JSON_CONFIG, 'rb')
             except IOError:
                 sys.exit('Failed to open {0}'.format(args.JSON_CONFIG))
             try:
-                loaded_config = json.load(config)
-                config.close()
+                loaded_config = json.load(config_file)
+                config_file.close()
             except ValueError:
                 sys.exit('{0} does not contain valid JSON'.format(args.JSON_CONFIG))
             dargs = vars(args)

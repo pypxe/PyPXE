@@ -12,6 +12,6 @@
     "USE_IPXE" : false,
     "USE_HTTP" : false,
     "USE_TFTP" : true,
-    "MODE_DEBUG" : false,
-    "USE_DHCP" : false,
+    "MODE_DEBUG" : "",
+    "USE_DHCP" : true,
     "DHCP_MODE_PROXY" : false   }
