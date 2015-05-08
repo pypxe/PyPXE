@@ -198,6 +198,7 @@ class DHCPD:
         if not self.mode_proxy:
             response += self.tlv_encode(1, socket.inet_aton(self.subnet_mask)) # Subnet Mask
             response += self.tlv_encode(3, socket.inet_aton(self.router)) # Router
+            response += self.tlv_encode(6, socket.inet_aton(self.dns_server)) # DNS
             response += self.tlv_encode(51, struct.pack('!I', 86400)) # lease time
 
         # TFTP Server OR HTTP Server; if iPXE, need both
