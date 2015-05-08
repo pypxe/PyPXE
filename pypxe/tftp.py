@@ -153,18 +153,19 @@ class Client:
 
     def sendError(self, code = 1, message = 'File Not Found', filename = ''):
         '''
-            Sends an error code and string to a client.
+            Sends an error code and string to a client. See RFC1350, page 10 for
+            details.
 
-            Error codes from RFC1350 page 10:
-            Value     Meaning
-            0         Not defined, see error message (if any).
-            1         File not found.
-            2         Access violation.
-            3         Disk full or allocation exceeded.
-            4         Illegal TFTP operation.
-            5         Unknown transfer ID.
-            6         File already exists.
-            7         No such user.
+            Value   Meaning
+            =====   =======
+            0       Not defined, see error message (if any).
+            1       File not found.
+            2       Access violation.
+            3       Disk full or allocation exceeded.
+            4       Illegal TFTP operation.
+            5       Unknown transfer ID.
+            6       File already exists.
+            7       No such user.
         '''
         response =  struct.pack('!H', 5) # error opcode
         response += struct.pack('!H', code) # error code
@@ -181,7 +182,7 @@ class Client:
         try:
             self.fh.close()
         except AttributeError:
-            # we've not opened yet, or file-not-found
+            # we have not opened yet, or file-not-found
             pass
         self.sock.close()
         self.dead = True
@@ -189,12 +190,12 @@ class Client:
     def handle(self):
         '''Takes the message from the parent socket and act accordingly.'''
         # if addr not in ongoing, call this, else ready()
-        [opcode] = struct.unpack("!H", self.message[:2])
+        [opcode] = struct.unpack('!H', self.message[:2])
         if opcode == 1:
             self.message = self.message[2:]
             self.newRequest()
         elif opcode == 4:
-            [block] = struct.unpack("!H", self.message[2:4])
+            [block] = struct.unpack('!H', self.message[2:4])
             if block < self.block:
                 self.logger.warning('Ignoring duplicated ACK received for block {0}'.format(self.block))
             elif block > self.block:
@@ -264,5 +265,5 @@ class TFTPD:
                     sock.parent.ready()
             # if we haven't recieved an ACK in timeout time, retry
             [client.send_block() for client in self.ongoing if client.no_ack()]
-            # if we have run out of retries, kill the client.
+            # if we have run out of retries, kill the client
             [client.complete() for client in self.ongoing if client.no_retries()]

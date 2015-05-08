@@ -35,7 +35,7 @@ class DHCPD:
         self.file_name = server_settings.get('file_name', '')
         if not self.file_name:
             self.force_file_name = False
-            self.file_name = "pxelinux.0"
+            self.file_name = 'pxelinux.0'
         else:
             self.force_file_name = True
         self.ipxe = server_settings.get('use_ipxe', False)
@@ -52,7 +52,6 @@ class DHCPD:
             formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
-
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
 
@@ -67,7 +66,8 @@ class DHCPD:
         self.logger.debug('DHCP Server IP: {0}'.format(self.ip))
         self.logger.debug('DHCP Server Port: {0}'.format(self.port))
 
-        if not self.mod_proxy:
+        # debug info for ProxyDHCP mode
+        if not self.mode_proxy:
             self.logger.debug('DHCP Lease Range: {0} - {1}'.format(self.offer_from, self.offer_to))
             self.logger.debug('DHCP Subnet Mask: {0}'.format(self.subnet_mask))
             self.logger.debug('DHCP Router: {0}'.format(self.router))
@@ -196,7 +196,7 @@ class DHCPD:
         response = self.tlv_encode(53, chr(opt53)) # message type, OFFER
         response += self.tlv_encode(54, socket.inet_aton(self.ip)) # DHCP Server
         if not self.mode_proxy:
-            response += self.tlv_encode(1, socket.inet_aton(self.subnet_mask)) # SubnetMask
+            response += self.tlv_encode(1, socket.inet_aton(self.subnet_mask)) # Subnet Mask
             response += self.tlv_encode(3, socket.inet_aton(self.router)) # Router
             response += self.tlv_encode(51, struct.pack('!I', 86400)) # lease time
 

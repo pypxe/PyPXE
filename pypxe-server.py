@@ -24,7 +24,7 @@ NETBOOT_DIR = 'netboot'
 # default PXE boot file
 NETBOOT_FILE = ''
 
-# DHCP sefault server settings
+# DHCP default server settings
 DHCP_SERVER_IP = '192.168.2.2'
 DHCP_SERVER_PORT = 67
 DHCP_OFFER_BEGIN = '192.168.2.100'
@@ -41,10 +41,6 @@ if __name__ == '__main__':
         if os.getuid() != 0:
             print '\nWARNING: Not root. Servers will probably fail to bind.\n'
 
-        #
-        # define command line arguments
-        #
-
         # main service arguments
         parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
@@ -55,7 +51,7 @@ if __name__ == '__main__':
         parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = None)
         parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = 514)
 
-        # argument group for DHCP server
+        # DHCP server arguments
         exclusive = parser.add_mutually_exclusive_group(required = False)
         exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
         exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = False)
@@ -108,7 +104,8 @@ if __name__ == '__main__':
         if args.DHCP_MODE_PROXY:
             args.USE_DHCP = True
 
-        # if the network boot file name was not specified in the argument, set it based on what services were enabled/disabled
+        # if the network boot file name was not specified in the argument,
+        # set it based on what services were enabled/disabled
         if args.NETBOOT_FILE == '':
             if not args.USE_IPXE:
                 args.NETBOOT_FILE = 'pxelinux.0'
