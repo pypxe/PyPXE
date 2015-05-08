@@ -26,7 +26,7 @@ class Client:
         self.ip = parent.ip
         self.message, self.address = mainsock.recvfrom(1024)
         self.logger = parent.logger.getChild('Client.{0}'.format(self.address))
-        self.logger.debug('TFTP recieving request...')
+        self.logger.debug('Recieving request...')
         self.retries = self.default_retries
         self.block = 1
         self.blksize = 512
@@ -99,7 +99,7 @@ class Client:
         self.lastblock = math.ceil(self.filesize / float(self.blksize))
         self.tsize = True if 'tsize' in options else False
         if self.filesize > (2**16)*self.blksize:
-            self.logger.warning('TFTP request too big, attempting transfer anyway.')
+            self.logger.warning('Request too big, attempting transfer anyway.')
             self.logger.debug('Details: Filesize {0} is too big for blksize {1}.'.format(self.filesize, self.blksize))
 
         if len(options):
@@ -229,7 +229,7 @@ class TFTPD:
         if self.logger == None:
             self.logger = logging.getLogger('TFTP')
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
