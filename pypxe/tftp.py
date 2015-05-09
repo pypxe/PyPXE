@@ -172,7 +172,7 @@ class Client:
         response += message
         response += chr(0)
         self.sock.sendto(response, self.address)
-        self.logger.debug('TFTP Sending {0}: {1} {2}'.format(code, message, filename))
+        self.logger.debug('Sending {0}: {1} {2}'.format(code, message, filename))
 
     def complete(self):
         '''
