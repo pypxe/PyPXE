@@ -7,6 +7,7 @@ This file contains classes and functions that implement the PyPXE HTTP service
 import socket
 import struct
 import os
+import threading
 import logging
 
 class HTTPD:
@@ -96,4 +97,6 @@ class HTTPD:
         '''This method is the main loop that listens for requests.'''
         while True:
             conn, addr = self.sock.accept()
-            self.handle_request(conn, addr)
+            client = threading.Thread(target = self.handle_request, args = (conn, addr))
+            client.daemon = True;
+            client.start()
