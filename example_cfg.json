@@ -9,9 +9,11 @@
     "DHCP_DNS" : "8.8.8.8",
     "DHCP_BROADCAST" : "<broadcast>",
     "DHCP_FILESERVER" : "192.168.2.2",
+    "SYSLOG_SERVER" : null,
+    "SYSLOG_PORT" : 514,
     "USE_IPXE" : false,
     "USE_HTTP" : false,
     "USE_TFTP" : true,
-    "MODE_DEBUG" : "",
     "USE_DHCP" : true,
-    "DHCP_MODE_PROXY" : false   }
+    "DHCP_MODE_PROXY" : false,
+    "MODE_DEBUG" : ""   }

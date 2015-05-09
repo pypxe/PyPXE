@@ -16,25 +16,57 @@ from pypxe import tftp # PyPXE TFTP service
 from pypxe import dhcp # PyPXE DHCP service
 from pypxe import http # PyPXE HTTP service
 
-# JSON default
-JSON_CONFIG = ''
+# default settings
+SETTINGS = {'NETBOOT_DIR':'netboot',
+            'NETBOOT_FILE':'',
+            'DHCP_SERVER_IP':'192.168.2.2',
+            'DHCP_SERVER_PORT':67,
+            'DHCP_OFFER_BEGIN':'192.168.2.100',
+            'DHCP_OFFER_END':'192.168.2.150',
+            'DHCP_SUBNET':'255.255.255.0',
+            'DHCP_DNS':'8.8.8.8',
+            'DHCP_ROUTER':'192.168.2.1',
+            'DHCP_BROADCAST':'<broadcast>',
+            'DHCP_FILESERVER':'192.168.2.2',
+            'SYSLOG_SERVER':None,
+            'SYSLOG_PORT':514,
+            'USE_IPXE':False,
+            'USE_HTTP':False,
+            'USE_TFTP':True,
+            'USE_DHCP':True,
+            'DHCP_MODE_PROXY':False,
+            'MODE_DEBUG':''}
 
-# default network boot file directory
-NETBOOT_DIR = 'netboot'
+def parse_cli_arguments(default = SETTINGS):
+    # main service arguments
+    parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = default['USE_IPXE'])
+    parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = default['USE_HTTP'])
+    parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = default['USE_TFTP'])
+    parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = default['MODE_DEBUG'])
+    parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = '')
+    parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = default['SYSLOG_SERVER'])
+    parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = default['SYSLOG_PORT'])
 
-# default PXE boot file
-NETBOOT_FILE = ''
+    # DHCP server arguments
+    exclusive = parser.add_mutually_exclusive_group(required = False)
+    exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = default['USE_DHCP'])
+    exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = default['DHCP_MODE_PROXY'])
+    parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = default['DHCP_SERVER_IP'])
+    parser.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = default['DHCP_SERVER_PORT'])
+    parser.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = default['DHCP_OFFER_BEGIN'])
+    parser.add_argument('-e', '--dhcp-end', action = 'store', dest = 'DHCP_OFFER_END', help = 'DHCP lease range end', default = default['DHCP_OFFER_END'])
+    parser.add_argument('-n', '--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = default['DHCP_SUBNET'])
+    parser.add_argument('-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = default['DHCP_ROUTER'])
+    parser.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = default['DHCP_DNS'])
+    parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = default['DHCP_BROADCAST'])
+    parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = default['DHCP_FILESERVER'])
 
-# DHCP default server settings
-DHCP_SERVER_IP = '192.168.2.2'
-DHCP_SERVER_PORT = 67
-DHCP_OFFER_BEGIN = '192.168.2.100'
-DHCP_OFFER_END = '192.168.2.150'
-DHCP_SUBNET = '255.255.255.0'
-DHCP_ROUTER = '192.168.2.1'
-DHCP_DNS = '8.8.8.8'
-DHCP_BROADCAST = '<broadcast>'
-DHCP_FILESERVER = '192.168.2.2'
+    # network boot directory and file name arguments
+    parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = default['NETBOOT_DIR'])
+    parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = default['NETBOOT_FILE'])
+
+    return parser.parse_args()
 
 if __name__ == '__main__':
     try:
@@ -42,37 +74,9 @@ if __name__ == '__main__':
         if os.getuid() != 0:
             print '\nWARNING: Not root. Servers will probably fail to bind.\n'
 
-        # main service arguments
-        parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = False)
-        parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = False)
-        parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = True)
-        parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = '')
-        parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = JSON_CONFIG)
-        parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = None)
-        parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = 514)
-
-        # DHCP server arguments
-        exclusive = parser.add_mutually_exclusive_group(required = False)
-        exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = False)
-        exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = False)
-        parser.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = DHCP_SERVER_IP)
-        parser.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = DHCP_SERVER_PORT)
-        parser.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = DHCP_OFFER_BEGIN)
-        parser.add_argument('-e', '--dhcp-end', action = 'store', dest = 'DHCP_OFFER_END', help = 'DHCP lease range end', default = DHCP_OFFER_END)
-        parser.add_argument('-n', '--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = DHCP_SUBNET)
-        parser.add_argument('-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = DHCP_ROUTER)
-        parser.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = DHCP_DNS)
-        parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = DHCP_BROADCAST)
-        parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = DHCP_FILESERVER)
-
-        # network boot directory and file name arguments
-        parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = NETBOOT_DIR)
-        parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = NETBOOT_FILE)
-
-        # parse the arguments given
-        args = parser.parse_args()
-        if args.JSON_CONFIG: # load from configuration file
+        # configure
+        args = parse_cli_arguments()
+        if args.JSON_CONFIG: # load from configuration file if specified
             try:
                 config_file = open(args.JSON_CONFIG, 'rb')
             except IOError:
@@ -82,9 +86,8 @@ if __name__ == '__main__':
                 config_file.close()
             except ValueError:
                 sys.exit('{0} does not contain valid JSON'.format(args.JSON_CONFIG))
-            dargs = vars(args)
-            dargs.update(loaded_config)
-            args = argparse.Namespace(**dargs)
+            SETTINGS.update(loaded_config) # update settings with JSON config
+            args = parse_cli_arguments(SETTINGS) # CLI options take precedence
 
         # setup main logger
         sys_logger = logging.getLogger('PyPXE')
