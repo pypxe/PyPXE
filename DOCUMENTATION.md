@@ -64,31 +64,16 @@ import pypxe.tftp
 
 ### Usage
 The TFTP server class, __`TFTPD()`__, is constructed with the following __keyword arguments__:
-* __`ip`__
-  * Description: This is the IP address that the TFTP server will bind to.
-  * Default: `'0.0.0.0'` (so that it binds to all available interfaces)
-  * Type: _string_
-* __`port`__
-  * Description: This it the port that the TFTP server will run on.
-  * Default: `69` (default port for TFTP)
-  * Type: _int_
-* __`netbootDirectory`__
-  * Description: This is the directory that the TFTP server will serve files from similarly to that of `tftpboot`.
-  * Default: `'.'` (current directory)
-  * Type: _string_
-* __`mode_debug`__
-  * Description: This indicates whether or not the TFTP server should be started in debug mode or not.
-  * Default: `False`
-  * Type: bool
-* __`logger`__
-  * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.
-  * Default: `None`
-* __`default_retries`__
-  * Description: The number of data retransmissions before dropping a connection.
-  * Default: `3`
-* __`timeout`__
- * Description: The time in seconds before re-sending an un-acked data block.
- * Default: `5`
+
+|Keyword Argument|Description|Default|Type|
+|---|---|---|---|
+|__`ip`__|This is the IP address that the TFTP server will bind to.|`'0.0.0.0'` (so that it binds to all available interfaces)| _string_|
+|__`port`__|This it the port that the TFTP server will run on.|`69` (default port for TFTP)|_int_|
+|__`netboot_directory`__|This is the directory that the TFTP server will serve files from similarly to that of `tftpboot`.|`'.'` (current directory)|_string_|
+|__`mode_debug`__|This indicates whether or not the TFTP server should be started in debug mode or not.|`False`|`bool`|
+|__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
+|__`default_retries`__|The number of data retransmissions before dropping a connection.|`3`|_int_|
+|__`timeout`__|The time in seconds before re-sending an un-acknowledged data block.|`5`|_int_|
 
 ## DHCP Server `pypxe.dhcp`
 
@@ -103,65 +88,24 @@ import pypxe.dhcp
 
 ###Usage
 The DHCP server class, __`DHCPD()`__, is constructed with the following __keyword arguments__:
-* __`ip`__
-  * Description: This is the IP address that the DHCP server itself binds to.
-  * Default: `'192.168.2.2'`
-  * Type: _string_
-* __`port`__
-  * Description: This it the port that the TFTP server will run on.
-  * Default: `67` (default port to listen for DHCP requests)
-  * Type: _int_
-* __`offerfrom`__
-  * Description: This specifies the beginning of the range of IP addreses that the DHCP server will hand out to clients.
-  * Default: `'192.168.2.100'`
-  * Type: _string_
-* __`offerto`__
-  * Description: This specifies the end of the range of IP addresses that the DHCP server will hand out to clients.
-  * Default: `'192.168.2.150'`
-  * Type: _string_
-* __`subnetmask`__
-  * Description: This specifies the subnet mask that the DHCP server will specify to clients.
-  * Default: `'255.255.255.0'`
-  * Type: _string_
-* __`router`__
-  * Description: This specifies the IP address of the router that the DHCP server will specify to clients.
-  * Default: `'192.168.2.1'`
-  * Type: _string_
-* __`dnsserver`__
-  * Description: This specifies the DNS server that the DHCP server will specify to clients. Only one DNS server can be passed.
-  * Default: `'8.8.8.8'` ([Google Public DNS](https://developers.google.com/speed/public-dns/))
-  * Type: _string_
-* __`broadcast`__
-  * Description: This specifies the broadcast address the DHCP will broadcast packets to.
-  * Default: `'<broadcast>'`
-  * Type: _string_
-* __`fileserver`__
-  * Description: This is the IP address of the file server containing network boot files that the DHCP server will specify to clients.
-  * Default: `'192.168.2.2'`
-  * Type: _string_
-* __`filename`__
-  * Description: This specifies the file name that the client should look for on the remote server.
-  * Default: `'pxelinux.0'`
-  * Type: _string_
-* __`useipxe`__
-  * Description: This indicates whether or not iPXE is being used and adjusts itself accordingly.
-  * Default: `False`
-  * Type: _bool_
-* __`usehttp`__
-  * Description: This indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly.
-  * Default: `False`
-  * Type: _bool_
-* __`mode_proxy`__
-  * Description: This indicates whether or not the DHCP server should be started in ProxyDHCP mode or not.
-  * Default: `False`
-  * Type: _bool_
-* __`mode_debug`__
-  * Description: This indicates whether or not the DHCP server should be started in debug mode or not.
-  * Default: `False`
-  * Type: _bool_
-* __`logger`__
-  * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.
-  * Default: `None`
+
+|Keyword Argument|Description|Default|Type|
+|---|---|---|---|
+|__`ip`__|This is the IP address that the DHCP server itself binds to.|``'192.168.2.2'`|_string_|
+|__`port`__|This it the port that the TFTP server will run on.|`67` (default port to listen for DHCP requests)|_int_|
+|__`offer_from`__|This specifies the beginning of the range of IP addresses that the DHCP server will hand out to clients.|`'192.168.2.100'`|_string_|
+|__`offer_to`__|This specifies the end of the range of IP addresses that the DHCP server will hand out to clients.|`'192.168.2.150'`|_string_|
+|__`subnet_mask`__|This specifies the subnet mask that the DHCP server will specify to clients.|`'255.255.255.0'`|_string_|
+|__`router`__|This specifies the IP address of the router that the DHCP server will specify to clients.|`'192.168.2.1'`|_string_|
+|__`dns_server`__|This specifies the DNS server that the DHCP server will specify to clients. Only one DNS server can be passed.|`'8.8.8.8'` ([Google Public DNS](https://developers.google.com/speed/public-dns/))|_string_|
+|__`broadcast`__|This specifies the broadcast address the DHCP will broadcast packets to.|`'<broadcast>'`|_string_|
+|__`file_server`__|This is the IP address of the file server containing network boot files that the DHCP server will specify to clients.|`'192.168.2.2'`|_string_|
+|__`file_name`__|This specifies the file name that the client should look for on the remote server.|`'pxelinux.0'`|_string_|
+|__`use_ipxe`__|This indicates whether or not iPXE is being used and adjusts itself accordingly.|`False`|_bool_|
+|__`use_http`__|This indicates whether or not the built-in HTTP server is being used and adjusts itself accordingly.|`False`|_bool_|
+|__`mode_proxy`__|This indicates whether or not the DHCP server should be started in ProxyDHCP mode or not.|`False`|_bool_|
+|__`mode_debug`__|This indicates whether or not the DHCP server should be started in debug mode or not.|`False`|_bool_|
+|__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 ## HTTP Server `pypxe.http`
 
@@ -176,25 +120,14 @@ import pypxe.http
 
 ### Usage
 The HTTP server class, __`HTTPD()`__, is constructed with the following __keyword arguments__:
-* __`ip`__
-  * Description: This is the IP address that the HTTP server will bind to.
-  * Default: `'0.0.0.0'` (so that it binds to all available interfaces)
-  * Type: _string_
-* __`port`__
-  * Description: This it the port that the HTTP server will run on.
-  * Default: `80` (default port for HTTP)
-  * Type: _int_
-* __`netbootDirectory`__
-  * Description: This is the directory that the HTTP server will serve files from similarly to that of `tftpboot`.
-  * Default: `'.'` (current directory)
-  * Type: _string_
-* __`mode_debug`__
-  * Description: This indicates whether or not the HTTP server should be started in debug mode or not.
-  * Default: `False`
-  * Type: bool
-* __`logger`__
-  * Description: A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.
-  * Default: `None`
+
+|Keyword Argument|Description|Default|Type|
+|---|---|---|---|
+|__`ip`__|This is the IP address that the HTTP server will bind to.|`'0.0.0.0'` (so that it binds to all available interfaces)|_string_|
+|__`port`__|This it the port that the HTTP server will run on.|`80` (default port for HTTP)|_int_|
+|__`netboot_directory`__|This is the directory that the HTTP server will serve files from similarly to that of `tftpboot`.|`'.'` (current directory)|_string_|
+|__`mode_debug`__|This indicates whether or not the HTTP server should be started in debug mode or not.|`False`|bool|
+|__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 ## Additional Information
 * The function `chr(0)` is used in multiple places throughout the servers. This denotes a `NULL` byte, or `\x00`
