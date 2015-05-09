@@ -55,8 +55,6 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 
 ##### DHCP Service Arguments
 
-**_each of the following can be set one of two ways, you can use either/or_**
-
 |Argument|Description|Default|
 |---|---|---|
 |__`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__|Specify DHCP server IP address|`192.168.2.2`|

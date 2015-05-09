@@ -91,7 +91,7 @@ The DHCP server class, __`DHCPD()`__, is constructed with the following __keywor
 
 |Keyword Argument|Description|Default|Type|
 |---|---|---|---|
-|__`ip`__|This is the IP address that the DHCP server itself binds to.|``'192.168.2.2'`|_string_|
+|__`ip`__|This is the IP address that the DHCP server itself binds to.|`'192.168.2.2'`|_string_|
 |__`port`__|This it the port that the TFTP server will run on.|`67` (default port to listen for DHCP requests)|_int_|
 |__`offer_from`__|This specifies the beginning of the range of IP addresses that the DHCP server will hand out to clients.|`'192.168.2.100'`|_string_|
 |__`offer_to`__|This specifies the end of the range of IP addresses that the DHCP server will hand out to clients.|`'192.168.2.150'`|_string_|
