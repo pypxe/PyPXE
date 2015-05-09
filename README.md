@@ -48,7 +48,7 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 |__`--dhcp-proxy`__|Enable built-in DHCP server in proxy mode (implies `--dhcp`)|`False`|
 |__`--no-tftp`__|Disable built-in TFTP server which is enabled by default|`False`|
 |__`--debug`__|Enable selected services in DEBUG mode; services are selected by passing the name in a comma separated list. **Options are: http, tftp and dhcp** _This adds a level of verbosity so that you can see what's happening in the background._|`''`|
-|__`--config`__|Load configuration from JSON file. (see `example_cfg.json`)|`None`|
+|__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
 |__`--syslog`__|Specify a syslog server|`None`|
 |__`--syslog-port`__|Specify a syslog server port|`514`|
 
