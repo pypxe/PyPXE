@@ -87,10 +87,7 @@ class HTTPD:
         handle.close()
         connection.send(response)
         connection.close()
-        self.logger.debug('Sending message to {0}'.format(repr(addr)))
-        self.logger.debug('<--BEING MESSAGE-->')
-        self.logger.debug('{0}'.format(repr(response)))
-        self.logger.debug('<--END MESSAGE-->')
+        self.logger.debug('Sending file to {0}'.format(repr(addr)))
         self.logger.debug('File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
 
     def listen(self):
