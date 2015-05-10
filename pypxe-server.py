@@ -56,15 +56,6 @@ def parse_cli_arguments():
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
 
-    # NBD server arguments
-    nbd_group = parser.add_argument_group(title = 'Network Block Device', description = 'Arguments relevant to the NBD server')
-    nbd_group.add_argument('--nbd', action = 'store', dest = 'NBD_BLOCKDEVICE', help = 'Enable the NDB server with a specific block device (Can be a disk image)', default = NBD_BLOCKDEVICE)
-    nbd_group.add_argument('--nbd-write', action = 'store_true', dest = 'NBD_WRITE', help = 'Enable writes on the NBD device', default = NBD_WRITE)
-    nbd_group.add_argument('--nbd-cow', action = 'store_true', dest = 'NBD_COW', help = 'Enable copy-on-write for the NBD device (Non-persistent changes)', default = NBD_COW)
-    nbd_group.add_argument('--nbd-cowinmem', action = 'store_true', dest = 'NBD_COWINMEM', help = 'Store copy-on-write pages in memory', default = NBD_COWINMEM)
-    nbd_group.add_argument('--nbd-copytoram', action = 'store_true', dest = 'NBD_COPYTORAM', help = 'Copy the NBD device to memory before serving clients', default = NBD_COPYTORAM)
-    nbd_group.add_argument('--nbd-server', action = 'store', dest = 'NBD_SERVER_IP', help = 'NBD Server IP', default = NBD_SERVER_IP)
-    nbd_group.add_argument('--nbd-port', action = 'store', dest = 'NBD_PORT', help = 'NBD Server Port', default = NBD_PORT)
 
     # DHCP server arguments
     dhcp_group = parser.add_argument_group(title = 'DHCP', description = 'Arguments relevant to the DHCP server')
@@ -85,6 +76,16 @@ def parse_cli_arguments():
     # network boot directory and file name arguments
     parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
     parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = SETTINGS['NETBOOT_FILE'])
+
+    # NBD server arguments
+    nbd_group = parser.add_argument_group(title = 'Network Block Device', description = 'Arguments relevant to the NBD server')
+    nbd_group.add_argument('--nbd', action = 'store', dest = 'NBD_BLOCKDEVICE', help = 'Enable the NDB server with a specific block device (Can be a disk image)', default = SETTINGS['NBD_BLOCKDEVICE'])
+    nbd_group.add_argument('--nbd-write', action = 'store_true', dest = 'NBD_WRITE', help = 'Enable writes on the NBD device', default = SETTINGS['NBD_WRITE'])
+    nbd_group.add_argument('--nbd-cow', action = 'store_true', dest = 'NBD_COW', help = 'Enable copy-on-write for the NBD device (Non-persistent changes)', default = SETTINGS['NBD_COW'])
+    nbd_group.add_argument('--nbd-cowinmem', action = 'store_true', dest = 'NBD_COWINMEM', help = 'Store copy-on-write pages in memory', default = SETTINGS['NBD_COWINMEM'])
+    nbd_group.add_argument('--nbd-copytoram', action = 'store_true', dest = 'NBD_COPYTORAM', help = 'Copy the NBD device to memory before serving clients', default = SETTINGS['NBD_COPYTORAM'])
+    nbd_group.add_argument('--nbd-server', action = 'store', dest = 'NBD_SERVER_IP', help = 'NBD Server IP', default = SETTINGS['NBD_SERVER_IP'])
+    nbd_group.add_argument('--nbd-port', action = 'store', dest = 'NBD_PORT', help = 'NBD Server Port', default = SETTINGS['NBD_PORT'])
 
     return parser.parse_args()
 
