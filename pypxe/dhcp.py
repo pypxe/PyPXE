@@ -43,6 +43,7 @@ class DHCPD:
         self.mode_proxy = server_settings.get('mode_proxy', False) # ProxyDHCP mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.static_config = server_settings.get('static_config', dict())
+        self.whitelist = server_settings.get('whitelist', False)
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
         self.logger = server_settings.get('logger', None)
 
@@ -277,6 +278,9 @@ class DHCPD:
 
     def validate_req(self, client_mac):
         # client request is valid only if contains Vendor-Class = PXEClient
+        if self.whitelist and self.print_mac(client_mac) not in self.getNamespacedStatic('dhcp.binding'):
+            self.logger.debug('Non-whitelisted client request received')
+            return False
         if 60 in self.leases[client_mac]["options"] and 'PXEClient' in self.leases[client_mac]["options"][60][0]:
             self.logger.debug('PXE client request received')
             return True
@@ -288,7 +292,7 @@ class DHCPD:
         '''Main listen loop.'''
         while True:
             message, address = self.sock.recvfrom(1024)
-            client_mac = struct.unpack('!28x6s', message[:34])
+            [client_mac] = struct.unpack('!28x6s', message[:34])
             self.logger.debug('Received message')
             self.logger.debug('<--BEGIN MESSAGE-->')
             self.logger.debug('{0}'.format(repr(message)))

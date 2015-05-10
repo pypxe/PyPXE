@@ -62,6 +62,7 @@ def parse_cli_arguments():
     parser.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
     parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
     parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
+    parser.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = False)
 
     # network boot directory and file name arguments
     parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
@@ -183,6 +184,7 @@ if __name__ == '__main__':
                     use_http = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
                     mode_debug = ('dhcp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
+                    whitelist = args.DHCP_WHITELIST,
                     logger = dhcp_logger,
                     static_config = loaded_statics)
             dhcpd = threading.Thread(target = dhcp_server.listen)
