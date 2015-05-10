@@ -42,7 +42,7 @@ class DHCPD:
         self.http = server_settings.get('use_http', False)
         self.mode_proxy = server_settings.get('mode_proxy', False) # ProxyDHCP mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
-        self.static_config = serverSettings.get('static_config', dict())
+        self.static_config = server_settings.get('static_config', dict())
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
         self.logger = server_settings.get('logger', None)
 
@@ -219,8 +219,8 @@ class DHCPD:
         # file_name null terminated
         if not self.ipxe or not self.leases[client_mac]['ipxe']:
             # http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
-            if 93 in self.options and not self.force_file_name:
-                [arch] = struct.unpack("!H", self.options[93][0])
+            if 93 in self.leases[client_mac]["options"] and not self.force_file_name:
+                [arch] = struct.unpack("!H", self.leases[client_mac]["options"][93][0])
                 if arch == 0: # BIOS/default
                     response += self.tlv_encode(67, "pxelinux.0" + chr(0))
                 elif arch == 6: # EFI IA32
@@ -275,9 +275,9 @@ class DHCPD:
         self.logger.debug('<--END RESPONSE-->')
         self.sock.sendto(response, (self.broadcast, 68))
 
-    def validate_req(self):
+    def validate_req(self, client_mac):
         # client request is valid only if contains Vendor-Class = PXEClient
-        if 60 in self.options and 'PXEClient' in self.options[60][0]:
+        if 60 in self.leases[client_mac]["options"] and 'PXEClient' in self.leases[client_mac]["options"][60][0]:
             self.logger.debug('PXE client request received')
             return True
         if self.mode_debug:
@@ -293,14 +293,14 @@ class DHCPD:
             self.logger.debug('<--BEGIN MESSAGE-->')
             self.logger.debug('{0}'.format(repr(message)))
             self.logger.debug('<--END MESSAGE-->')
-            self.options = self.tlv_parse(message[240:])
+            self.leases[client_mac]["options"] = self.tlv_parse(message[240:])
             self.logger.debug('Parsed received options')
             self.logger.debug('<--BEGIN OPTIONS-->')
-            self.logger.debug('{0}'.format(repr(self.options)))
+            self.logger.debug('{0}'.format(repr(self.leases[client_mac]["options"])))
             self.logger.debug('<--END OPTIONS-->')
-            if not self.validate_req():
+            if not self.validate_req(client_mac):
                 continue
-            type = ord(self.options[53][0]) # see RFC2131, page 10
+            type = ord(self.leases[client_mac]["options"][53][0]) # see RFC2131, page 10
             if type == 1:
                 self.logger.debug('Received DHCPOFFER')
                 try:
