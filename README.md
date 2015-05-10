@@ -1,11 +1,11 @@
-#About
+# About
 This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported. Please read [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation of the PyPXE project as well as recommended use. See the [issues page](https://github.com/psychomario/PyPXE/issues) for open issues, bugs, and enhancements/improvements.
 
 **DISCLAIMER:** None of thes implemented services are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
 
-##Usage
+## Usage
 
-###Using PyPXE as a Library
+### Using PyPXE as a Library
 PyPXE implements the following services for the purpose of creating a Python-based PXE environment: TFTP, HTTP, and DHCP. Each PyPXE service must be imported individually. For example, to import the TFTP service simply use:
 ```python
 from pypxe import tftp
@@ -16,7 +16,7 @@ import pypxe.tftp
 ```
 For more information on how each service works and how to manipulate them, see  [`DOCUMENTATION.md`](DOCUMENTATION.md).
 
-###QuickStart
+### QuickStart
 `pypxe-server.py` uses all three services in combination with the option of enabling/disabling them individually while also setting some options. Edit the `pypxe-server.py` settings to your preferred settings or run with `--help` or `-h` to see what command line arguments you can pass. Treat the provided `netboot` directory as `tftpboot` that you would typically see on a TFTP server, put all of your network-bootable files in there and setup your menu(s) in `netboot/pxelinux.cfg/default`.
 
 **Note:** Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `pypxe-server.py` will not run without it.
@@ -34,79 +34,48 @@ $ sudo python pypxe-server.py --dhcp
 $ sudo python pypxe-server.py --dhcp-proxy
 ```
 
-**PyPXE Server Arguments**
+#### PyPXE Server Arguments
 
-The following are arguments that can be passed to `pypxe-server.py` when running from the command line
+The following are arguments that can be passed to `pypxe-server.py` when running from the command line:
 
-* __Main Arguments__
-  * __`--ipxe`__
-    * Description: Enable iPXE ROM
-    * Default: `False`
-  * __`--http`__
-    * Description: Enable built-in HTTP server
-    * Default: `False`
-  * __`--dhcp`__
-    * Description: Enable built-in DHCP server
-    * Default: `False`
-  * __`--dhcp-proxy`__
-    * Description: Enable built-in DHCP server in proxy mode (implies `--dhcp`)
-    * Default: `False`
-  * __`--no-tftp`__
-    * Description: Disable built-in TFTP server which is enabled by default
-    * Default: `False`
-  * __`--debug`__
-    * Description: Enable selected services in DEBUG mode. Services are
-      selected by passing the name in a comma seperated list. Options are http,
-      tftp and dhcp
-      * _This adds a level of verbosity so that you can see what's happening in the background. Debug statements are prefixed with `[DEBUG]` and indented to distinguish between normal output that the services give._
-    * Default: `False`
-  * __`--config`__
-    * Description: Amend configuration from json file
-     * _Use the specified json file to amend the command line options. See example.json for more information._
-    * Default: `None`
-  * __`--syslog`__
-    * Description: Syslog server
-    * Default: `None`
-  * __`--syslog-port`__
-    * Description: Syslog server port
-    * Default: `514`
-* __DHCP Service Arguments__ _each of the following can be set one of two ways, you can use either/or_
-  * __`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__
-    * Description: Specify DHCP server IP address
-    * Default: `192.168.2.2`
-  * __`-p DHCP_SERVER_PORT`__ or __`--dhcp-server-port DHCP_SERVER_PORT`__
-    * Description: Specify DHCP server port
-    * Default: `67`
-  * __`-b DHCP_OFFER_BEGIN`__ or __`--dhcp-begin DHCP_OFFER_BEGIN`__
-    * Description: Specify DHCP lease range start
-    * Default: `192.168.2.100`
-  * __`-e DHCP_OFFER_END`__ or __`--dhcp-end DHCP_OFFER_END`__
-    * Description: Specify DHCP lease range end
-    * Default: `192.168.2.150`
-  * __`-n DHCP_SUBNET`__ or __`--dhcp-subnet DHCP_SUBNET`__
-    * Description: Specify DHCP subnet
-    * Default: `255.255.255.0`
-  * __`-r DHCP_ROUTER`__ or __`--dhcp-router DHCP_ROUTER`__
-    * Description: Specify DHCP lease router
-    * Default: `192.168.2.1`
-  * __`-d DHCP_DNS`__ or __`--dhcp-dns DHCP_DNS`__
-    * Description: Specify DHCP lease DNS server 
-    * Default: `8.8.8.8`
-  * __`-c DHCP_BROADCAST`__ or __`--dhcp-broadcast DHCP_BROADCAST`__
-    * Description: Specify DHCP broadcast address
-    * Default: `'<broadcast>'`
-  * __`-f DHCP_FILESERVER_IP`__ or __`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__
-    * Description: Specify DHCP file server IP address
-    * Default: `192.168.2.2`
-* __File Name/Directory Arguments__
-  * __`-a NETBOOT_DIR`__ or __`--netboot-dir NETBOOT_DIR`__
-    * Description: Specify the local directory where network boot files will be served 
-    * Default: `'netboot'`
-  * __`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__
-    * Description: Specify the PXE boot file name
-    * Default: _automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_
+##### Main Arguments
 
-##Notes
+|Argument|Description|Default|
+|---|---|---|
+|__`--ipxe`__|Enable iPXE ROM|`False`|
+|__`--http`__|Enable built-in HTTP server|`False`|
+|__`--dhcp`__|Enable built-in DHCP server|`False`|
+|__`--dhcp-proxy`__|Enable built-in DHCP server in proxy mode (implies `--dhcp`)|`False`|
+|__`--no-tftp`__|Disable built-in TFTP server which is enabled by default|`False`|
+|__`--debug`__|Enable selected services in DEBUG mode; services are selected by passing the name in a comma separated list. **Options are: http, tftp and dhcp** _This adds a level of verbosity so that you can see what's happening in the background._|`''`|
+|__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
+|__`--syslog`__|Specify a syslog server|`None`|
+|__`--syslog-port`__|Specify a syslog server port|`514`|
+
+
+##### DHCP Service Arguments
+
+|Argument|Description|Default|
+|---|---|---|
+|__`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__|Specify DHCP server IP address|`192.168.2.2`|
+|__`-p DHCP_SERVER_PORT`__ or __`--dhcp-server-port DHCP_SERVER_PORT`__|Specify DHCP server port|`67`|
+|__`-b DHCP_OFFER_BEGIN`__ or __`--dhcp-begin DHCP_OFFER_BEGIN`__|Specify DHCP lease range start|`192.168.2.100`|
+|__`-e DHCP_OFFER_END`__ or __`--dhcp-end DHCP_OFFER_END`__|Specify DHCP lease range end|`192.168.2.150`|
+|__`-n DHCP_SUBNET`__ or __`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
+|__`-r DHCP_ROUTER`__ or __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
+|__`-d DHCP_DNS`__ or __`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
+|__`-c DHCP_BROADCAST`__ or __`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
+|__`-f DHCP_FILESERVER_IP`__ or __`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
+
+
+##### File Name/Directory Arguments
+
+|Argument|Description|Default|
+|---|---|---|
+|__`-a NETBOOT_DIR`__ or __`--netboot-dir NETBOOT_DIR`__|Specify the local directory where network boot files will be served|`'netboot'`|
+|__`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__|Specify the PXE boot file name|_automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_|
+
+## Notes
 * `Core.iso` located in `netboot` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
 * `chainload.kpxe` located in `netboot` is the `undionly.kpxe` from the [iPXE Project](http://ipxe.org/)  
 * `ldlinux.c32`, `libutil.c32`, `pxelinux.0`, `menu.c32`, and `memdisk` located in `netboot` are from the [SYSLINUX Project](http://www.syslinux.org/) version [6.02](http://www.syslinux.org/wiki/index.php/Syslinux_6_Changelog#Changes_in_6.02)
