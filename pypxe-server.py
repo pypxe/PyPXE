@@ -89,8 +89,6 @@ def parse_cli_arguments():
 
     return parser.parse_args()
 
-#NBD Default Server Settings
-
 if __name__ == '__main__':
     try:
         # warn the user that they are starting PyPXE as non-root user
