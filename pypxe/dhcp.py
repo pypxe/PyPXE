@@ -76,11 +76,17 @@ class DHCPD:
             self.logger.debug('DHCP DNS Server: {0}'.format(self.dns_server))
             self.logger.debug('DHCP Broadcast Address: {0}'.format(self.broadcast))
 
+        if self.static_config:
+            self.logger.debug('DHCP Using Static Leasing')
+            self.logger.debug('DHCP Using Static Leasing Whitelist: {0}'.format(self.whitelist))
+
         self.logger.debug('DHCP File Server IP: {0}'.format(self.file_server))
         self.logger.debug('DHCP File Name: {0}'.format(self.file_name))
         self.logger.debug('ProxyDHCP Mode: {0}'.format(self.mode_proxy))
         self.logger.debug('Using iPXE: {0}'.format(self.ipxe))
         self.logger.debug('Using HTTP Server: {0}'.format(self.http))
+
+
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -172,7 +178,7 @@ class DHCPD:
             if self.leases[client_mac]['ip']: # OFFER
                 offer = self.leases[client_mac]['ip']
             else: # ACK
-                offer = self.getNamespacedStatic('dhcp.binding.{}.ipaddr'.format(self.printMAC(clientmac)))
+                offer = self.getNamespacedStatic('dhcp.binding.{}.ipaddr'.format(self.print_mac(client_mac)))
                 offer = offer if offer else self.next_ip()
                 self.leases[client_mac]['ip'] = offer
                 self.leases[client_mac]['expire'] = time() + 86400
@@ -205,14 +211,14 @@ class DHCPD:
         response = self.tlv_encode(53, chr(opt53)) # message type, OFFER
         response += self.tlv_encode(54, socket.inet_aton(self.ip)) # DHCP Server
         if not self.mode_proxy:
-            subnetmask = self.getNamespacedStatic('dhcp.binding.{}.subnet'.format(self.printMAC(clientmac)), self.subnetmask)
-            response += self.tlvEncode(1, socket.inet_aton(subnetmask)) #SubnetMask
-            router = self.getNamespacedStatic('dhcp.binding.{}.router'.format(self.printMAC(clientmac)), self.router)
-            response += self.tlvEncode(3, socket.inet_aton(router)) #Router
-            dnsserver = self.getNamespacedStatic('dhcp.binding.{}.dns'.format(self.printMAC(clientmac)), [self.dnsserver])
+            subnetmask = self.getNamespacedStatic('dhcp.binding.{}.subnet'.format(self.print_mac(client_mac)), self.subnet_mask)
+            response += self.tlv_encode(1, socket.inet_aton(subnetmask)) #SubnetMask
+            router = self.getNamespacedStatic('dhcp.binding.{}.router'.format(self.print_mac(client_mac)), self.router)
+            response += self.tlv_encode(3, socket.inet_aton(router)) #Router
+            dnsserver = self.getNamespacedStatic('dhcp.binding.{}.dns'.format(self.print_mac(client_mac)), [self.dns_server])
             dnsserver = ''.join([socket.inet_aton(i) for i in dnsserver])
-            response += self.tlvEncode(6, dnsserver)
-            response += self.tlvEncode(51, struct.pack('!I', 86400)) #lease time
+            response += self.tlv_encode(6, dnsserver)
+            response += self.tlv_encode(51, struct.pack('!I', 86400)) #lease time
 
         # TFTP Server OR HTTP Server; if iPXE, need both
         response += self.tlv_encode(66, self.file_server)
