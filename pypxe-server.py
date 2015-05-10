@@ -15,6 +15,7 @@ from time import sleep
 from pypxe import tftp # PyPXE TFTP service
 from pypxe import dhcp # PyPXE DHCP service
 from pypxe import http # PyPXE HTTP service
+from pypxe import nbd  # PyPXE NBD service
 
 # default settings
 SETTINGS = {'NETBOOT_DIR':'netboot',
@@ -245,12 +246,11 @@ if __name__ == '__main__':
                     ip = args.NBD_SERVER_IP,
                     port = args.NBD_PORT,
                     mode_debug = ("nbd" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()),
-                    logger = nbd_logger
-                    )
+                    logger = nbd_logger)
             nbd = threading.Thread(target = nbdServer.listen)
             nbd.daemon = True
             nbd.start()
-            runningServices.append(nbd)
+            running_services.append(nbd)
 
 
 
