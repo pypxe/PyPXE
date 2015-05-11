@@ -102,6 +102,12 @@ def parse_cli_arguments():
 
     return parser.parse_args()
 
+def do_debug(service):
+    return ((service in args.MODE_DEBUG.lower()
+            or 'all' in args.MODE_DEBUG.lower())
+            and '-{0}'.format(service) not in args.MODE_DEBUG.lower())
+
+
 if __name__ == '__main__':
     try:
         # warn the user that they are starting PyPXE as non-root user
@@ -190,7 +196,7 @@ if __name__ == '__main__':
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftp_server = tftp.TFTPD(mode_debug = ('tftp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = tftp_logger)
+            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), logger = tftp_logger)
             tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -221,10 +227,10 @@ if __name__ == '__main__':
                     use_ipxe = args.USE_IPXE,
                     use_http = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
-                    mode_debug = ('dhcp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
+                    mode_debug = do_debug('dhcp'),
                     whitelist = args.DHCP_WHITELIST,
-                    logger = dhcp_logger,
-                    static_config = loaded_statics)
+                    static_config = loaded_statics,
+                    logger = dhcp_logger)
             dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -238,7 +244,7 @@ if __name__ == '__main__':
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = ('http' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = http_logger)
+            http_server = http.HTTPD(mode_debug = do_debug('http'), logger = http_logger)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
