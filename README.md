@@ -77,7 +77,18 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 |__`-a NETBOOT_DIR`__ or __`--netboot-dir NETBOOT_DIR`__|Specify the local directory where network boot files will be served|`'netboot'`|
 |__`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__|Specify the PXE boot file name|_automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_|
 
+
+##### Network Block Device Arguments
+|Argument|Description|Default|
+|__`--nbd NBD_BLOCKDEVICE`__|Specify the block device to be served by NBD and enable NBD. This can be a disk image.|`''`|
+|__`--nbd-write`__|Open the block device for write access. UNSAFE: Multiple clients can cause corruption|`False`|
+|__`--nbd-cow`__|When write is enabled, create a *volatile* file per client with their changes. Clients can write but changes are not shared or kept.|`True (Only applies if write is on)`|
+|__`--nbd-cowinmem`__|Client volatile changes are stored in RAM rather than on disk. WARNING: High RAM usage (up to sizeof(block device)*clients)|`False`|
+|__`--nbd-copytoram`__|Disk image is copied to RAM on start to speed up access. Changes are lost when write is used without cow.|`False`|
+|__`--nbd-server`__|The NBD server IP address to bind to|`0.0.0.0`|
+|__`--nbd-port`__|The NBD server port to bind to|`10809`|
+
 ## Notes
 * `Core.iso` located in `netboot` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
-* `chainload.kpxe` located in `netboot` is the `undionly.kpxe` from the [iPXE Project](http://ipxe.org/)  
+* `chainload.kpxe` located in `netboot` is the `undionly.kpxe` from the [iPXE Project](http://ipxe.org/)
 * `ldlinux.c32`, `libutil.c32`, `pxelinux.0`, `menu.c32`, and `memdisk` located in `netboot` are from the [SYSLINUX Project](http://www.syslinux.org/) version [6.02](http://www.syslinux.org/wiki/index.php/Syslinux_6_Changelog#Changes_in_6.02)
