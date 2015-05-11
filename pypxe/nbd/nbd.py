@@ -97,7 +97,7 @@ class NBD:
         exportinfo = struct.pack('!Q', self.bdsize)
         flags = (0 if self.write else 2) # readonly?
         exportinfo += struct.pack('!H', flags)
-        exportinfo += '\x00' * (0 if (cflags & 2) else 124)
+        exportinfo += chr(0) * (0 if (cflags & 2) else 124)
         conn.send(exportinfo)
 
     def handle_client(self, conn, addr, seeklock):
