@@ -43,14 +43,14 @@ We have implemented GET and HEAD, as there is no requirement for any other metho
 The HEAD method is used by some PXE ROMs to find the Content-Length before the GET is sent.
 
 ## NBD
-NBD is similar to NFS in that it can act as a root device for Linux systems. Defined in the specification [here](https://github.com/yoe/nbd/blob/master/doc/proto.txt), NBD allows access to block devices over the network by performing read and write requests on the block device itself.
+NBD is similar to NFS in that it can act as a root device for Linux systems. Defined in the [specification](https://github.com/yoe/nbd/blob/master/doc/proto.txt), NBD allows access to block devices over the network by performing read and write requests on the block device itself.
 
 This is different to NFS as it does not act as a filesystem, merely a single file. NBD supports read/write access along with copy-on-write support, both in memory and on disk. Read/write without copy-on-write is potentially dangerous if the file-system layer does not support multiple systems accessing it at the same time. Copy-on-write alleviates these potential problems by providing a volatile layer in which per-client changes are saved. Both the on-disk and in-memory configurations delete changes after the client disconnects, but the in-memory configuration may offer a speed increase as the changes are stored in the system RAM.
 
-WARNING: The use of this option can potentially consume a large amount of RAM. Up to the size of the disk image multiplied by the number of connected clients may be used. The same can be said for the on-disk configuration, where this configuration uses disk space rather than memory space. A further configuration option to store the original disk image in memory is provided to potentially allow for read/write speed up.
+WARNING: The use of this option can potentially consume a large amount of RAM; up to the size of the disk image multiplied by the number of connected clients may be used. The same can be said for the on-disk configuration, where this configuration uses disk space rather than memory space. A further configuration option to store the original disk image in memory is provided to potentially allow for read/write speed up.
 
 # PyPXE Services
-The PyPXE library provies the following services for the purpose of creating a Python-based PXE environment: TFTP, HTTP, DHCP, and NBD. Each service must be imported independently as such:
+The PyPXE library provides the following services for the purpose of creating a Python-based PXE environment: TFTP, HTTP, DHCP, and NBD. Each service must be imported independently as such:
 
 * `from pypxe import tftp` or `import pypxe.tftp` imports the TFTP service
 * `from pypxe import dhcp` or `import pypxe.dhcp` imports the DHCP service
@@ -94,7 +94,7 @@ from pypxe import dhcp
 import pypxe.dhcp
 ```
 
-###Usage
+### Usage
 The DHCP server class, __`DHCPD()`__, is constructed with the following __keyword arguments__:
 
 |Keyword Argument|Description|Default|Type|
@@ -157,11 +157,11 @@ The NBD server class, __`NBD()`__, is constructed with the following __keyword a
 |---|---|---|---|
 |__`ip`__|This is the IP address that the NBD server will bind to.|`'0.0.0.0'` (so that it binds to all available interfaces)|_string_|
 |__`port`__|This it the port that the NBD server will run on.|`10809` (default port for NBD)|_int_|
-|__`block_device`__|The filename of the block device to be used as the root device|`''`|_string_|
-|__`write`__|Enable write support on the block device|`False`|_bool_|
-|__`cow`__|Enable copy-on-write support on the block device|`True`|_bool_|
-|__`in_mem`__|Enable _in-memory_ copy-on-write support on the block device. `False` causes changes to be stored on disk|`False`|_bool_|
-|__`copy_to_ram`__|Copy the disk image to RAM when the service starts|`False`|_bool_|
+|__`block_device`__|The filename of the block device to be used as the root device.|`''`|_string_|
+|__`write`__|Enable write support on the block device.|`False`|_bool_|
+|__`cow`__|Enable copy-on-write support on the block device.|`True`|_bool_|
+|__`in_mem`__|Enable _in-memory_ copy-on-write support on the block device. `False` causes changes to be stored on disk.|`False`|_bool_|
+|__`copy_to_ram`__|Copy the disk image to RAM when the service starts.|`False`|_bool_|
 |__`mode_debug`__|This indicates whether or not the NBD server should be started in debug mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
