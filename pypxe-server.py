@@ -61,7 +61,7 @@ def parse_cli_arguments():
     tftpexclusive.add_argument('--tftp', action = 'store_true', dest = 'USE_TFTP', help = 'Enable built-in TFTP server, by default it is enabled', default = SETTINGS['USE_TFTP'])
     tftpexclusive.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = not SETTINGS['USE_TFTP'])
 
-    parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = SETTINGS['MODE_DEBUG'])
+    parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services. Precede an option with \'-\' to disable debugging for that service; as an example, one can pass in the following to enable debugging for all services except the DHCP service: \'--debug all,-dhcp\'', default = SETTINGS['MODE_DEBUG'])
     parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = '')
     parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
