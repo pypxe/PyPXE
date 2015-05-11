@@ -75,20 +75,20 @@ def parse_cli_arguments():
     exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = SETTINGS['DHCP_MODE_PROXY'])
 
-    dhcp_group.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = SETTINGS['DHCP_SERVER_IP'])
-    dhcp_group.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = SETTINGS['DHCP_SERVER_PORT'])
-    dhcp_group.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = SETTINGS['DHCP_OFFER_BEGIN'])
-    dhcp_group.add_argument('-e', '--dhcp-end', action = 'store', dest = 'DHCP_OFFER_END', help = 'DHCP lease range end', default = SETTINGS['DHCP_OFFER_END'])
-    dhcp_group.add_argument('-n', '--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = SETTINGS['DHCP_SUBNET'])
-    dhcp_group.add_argument('-r', '--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = SETTINGS['DHCP_ROUTER'])
-    dhcp_group.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
-    dhcp_group.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
-    dhcp_group.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
+    dhcp_group.add_argument('--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = SETTINGS['DHCP_SERVER_IP'])
+    dhcp_group.add_argument('--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = SETTINGS['DHCP_SERVER_PORT'])
+    dhcp_group.add_argument('--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = SETTINGS['DHCP_OFFER_BEGIN'])
+    dhcp_group.add_argument('--dhcp-end', action = 'store', dest = 'DHCP_OFFER_END', help = 'DHCP lease range end', default = SETTINGS['DHCP_OFFER_END'])
+    dhcp_group.add_argument('--dhcp-subnet', action = 'store', dest = 'DHCP_SUBNET', help = 'DHCP lease subnet', default = SETTINGS['DHCP_SUBNET'])
+    dhcp_group.add_argument('--dhcp-router', action = 'store', dest = 'DHCP_ROUTER', help = 'DHCP lease router', default = SETTINGS['DHCP_ROUTER'])
+    dhcp_group.add_argument('--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
+    dhcp_group.add_argument('--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
+    dhcp_group.add_argument('--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
     dhcp_group.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = False)
 
     # network boot directory and file name arguments
-    parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
-    parser.add_argument('-i', '--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = SETTINGS['NETBOOT_FILE'])
+    parser.add_argument('--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
+    parser.add_argument('--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = SETTINGS['NETBOOT_FILE'])
 
     # NBD server arguments
     nbd_group = parser.add_argument_group(title = 'Network Block Device', description = 'Arguments relevant to the NBD server')
