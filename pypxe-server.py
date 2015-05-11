@@ -48,9 +48,19 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
 def parse_cli_arguments():
     # main service arguments
     parser = argparse.ArgumentParser(description = 'Set options at runtime. Defaults are in %(prog)s', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = SETTINGS['USE_IPXE'])
-    parser.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = SETTINGS['USE_HTTP'])
-    parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = SETTINGS['USE_TFTP'])
+
+    ipxeexclusive = parser.add_mutually_exclusive_group(required = False)
+    ipxeexclusive.add_argument('--ipxe', action = 'store_true', dest = 'USE_IPXE', help = 'Enable iPXE ROM', default = SETTINGS['USE_IPXE'])
+    ipxeexclusive.add_argument('--no-ipxe', action = 'store_false', dest = 'USE_IPXE', help = 'Disable iPXE ROM', default = not SETTINGS['USE_IPXE'])
+
+    httpexclusive = parser.add_mutually_exclusive_group(required = False)
+    httpexclusive.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Disable built-in HTTP server', default = SETTINGS['USE_HTTP'])
+    httpexclusive.add_argument('--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = not SETTINGS['USE_HTTP'])
+
+    tftpexclusive = parser.add_mutually_exclusive_group(required = False)
+    tftpexclusive.add_argument('--tftp', action = 'store_true', dest = 'USE_TFTP', help = 'Enable built-in TFTP server, by default it is enabled', default = SETTINGS['USE_TFTP'])
+    tftpexclusive.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = not SETTINGS['USE_TFTP'])
+
     parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = SETTINGS['MODE_DEBUG'])
     parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = '')
     parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
@@ -61,8 +71,10 @@ def parse_cli_arguments():
     # DHCP server arguments
     dhcp_group = parser.add_argument_group(title = 'DHCP', description = 'Arguments relevant to the DHCP server')
     exclusive = dhcp_group.add_mutually_exclusive_group(required = False)
+    exclusive.add_argument('--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Disable built-in DHCP server', default = not SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = SETTINGS['DHCP_MODE_PROXY'])
+
     dhcp_group.add_argument('-s', '--dhcp-server-ip', action = 'store', dest = 'DHCP_SERVER_IP', help = 'DHCP Server IP', default = SETTINGS['DHCP_SERVER_IP'])
     dhcp_group.add_argument('-p', '--dhcp-server-port', action = 'store', dest = 'DHCP_SERVER_PORT', help = 'DHCP Server Port', default = SETTINGS['DHCP_SERVER_PORT'])
     dhcp_group.add_argument('-b', '--dhcp-begin', action = 'store', dest = 'DHCP_OFFER_BEGIN', help = 'DHCP lease range start', default = SETTINGS['DHCP_OFFER_BEGIN'])
@@ -89,6 +101,12 @@ def parse_cli_arguments():
     nbd_group.add_argument('--nbd-port', action = 'store', dest = 'NBD_PORT', help = 'NBD Server Port', default = SETTINGS['NBD_PORT'])
 
     return parser.parse_args()
+
+def do_debug(service):
+    return ((service in args.MODE_DEBUG.lower()
+            or 'all' in args.MODE_DEBUG.lower())
+            and '-{0}'.format(service) not in args.MODE_DEBUG.lower())
+
 
 if __name__ == '__main__':
     try:
@@ -178,7 +196,7 @@ if __name__ == '__main__':
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftp_server = tftp.TFTPD(mode_debug = ('tftp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = tftp_logger)
+            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), logger = tftp_logger)
             tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -209,10 +227,10 @@ if __name__ == '__main__':
                     use_ipxe = args.USE_IPXE,
                     use_http = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
-                    mode_debug = ('dhcp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
+                    mode_debug = do_debug('dhcp'),
                     whitelist = args.DHCP_WHITELIST,
-                    logger = dhcp_logger,
-                    static_config = loaded_statics)
+                    static_config = loaded_statics,
+                    logger = dhcp_logger)
             dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -226,7 +244,7 @@ if __name__ == '__main__':
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = ('http' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()), logger = http_logger)
+            http_server = http.HTTPD(mode_debug = do_debug('http'), logger = http_logger)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
