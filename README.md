@@ -43,9 +43,13 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 |Argument|Description|Default|
 |---|---|---|
 |__`--ipxe`__|Enable iPXE ROM|`False`|
+|__`--no-ipxe`__|Disable iPXE ROM|`True`|
 |__`--http`__|Enable built-in HTTP server|`False`|
+|__`--no-http`__|Disable built-in HTTP server|`True`|
 |__`--dhcp`__|Enable built-in DHCP server|`False`|
 |__`--dhcp-proxy`__|Enable built-in DHCP server in proxy mode (implies `--dhcp`)|`False`|
+|__`--no-dhcp`__|Disable built-in DHCP server|`True`|
+|__`--tftp`__|Enable built-in TFTP server which is enabled by default|`True`|
 |__`--no-tftp`__|Disable built-in TFTP server which is enabled by default|`False`|
 |__`--debug`__|Enable selected services in DEBUG mode; services are selected by passing the name in a comma separated list. **Options are: http, tftp and dhcp** _This adds a level of verbosity so that you can see what's happening in the background._|`''`|
 |__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
@@ -58,15 +62,15 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 
 |Argument|Description|Default|
 |---|---|---|
-|__`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__|Specify DHCP server IP address|`192.168.2.2`|
-|__`-p DHCP_SERVER_PORT`__ or __`--dhcp-server-port DHCP_SERVER_PORT`__|Specify DHCP server port|`67`|
-|__`-b DHCP_OFFER_BEGIN`__ or __`--dhcp-begin DHCP_OFFER_BEGIN`__|Specify DHCP lease range start|`192.168.2.100`|
-|__`-e DHCP_OFFER_END`__ or __`--dhcp-end DHCP_OFFER_END`__|Specify DHCP lease range end|`192.168.2.150`|
-|__`-n DHCP_SUBNET`__ or __`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
-|__`-r DHCP_ROUTER`__ or __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
-|__`-d DHCP_DNS`__ or __`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
-|__`-c DHCP_BROADCAST`__ or __`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
-|__`-f DHCP_FILESERVER_IP`__ or __`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
+|__`--dhcp-server-ip DHCP_SERVER_IP`__|Specify DHCP server IP address|`192.168.2.2`|
+|__`--dhcp-server-port DHCP_SERVER_PORT`__|Specify DHCP server port|`67`|
+|__`--dhcp-begin DHCP_OFFER_BEGIN`__|Specify DHCP lease range start|`192.168.2.100`|
+|__`--dhcp-end DHCP_OFFER_END`__|Specify DHCP lease range end|`192.168.2.150`|
+|__`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
+| __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
+|__`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
+|__`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
+|__`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
 |__`--dhcp-whitelist`__|Only serve clients specified in the static lease file (`--static-config`)|`False`|
 
 
@@ -74,19 +78,21 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 
 |Argument|Description|Default|
 |---|---|---|
-|__`-a NETBOOT_DIR`__ or __`--netboot-dir NETBOOT_DIR`__|Specify the local directory where network boot files will be served|`'netboot'`|
-|__`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__|Specify the PXE boot file name|_automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_|
+|__`--netboot-dir NETBOOT_DIR`__|Specify the local directory where network boot files will be served|`'netboot'`|
+|__`--netboot-file NETBOOT_FILE`__|Specify the PXE boot file name|_automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_|
 
 
 ##### Network Block Device Arguments
 |Argument|Description|Default|
-|__`--nbd NBD_BLOCKDEVICE`__|Specify the block device to be served by NBD and enable NBD. This can be a disk image.|`''`|
+|---|---|---|
+|__`--nbd NBD_BLOCK_DEVICE`__|Specify the block device to be served by NBD and enable NBD. This can be a disk image.|`''`|
 |__`--nbd-write`__|Open the block device for write access. UNSAFE: Multiple clients can cause corruption|`False`|
 |__`--nbd-cow`__|When write is enabled, create a *volatile* file per client with their changes. Clients can write but changes are not shared or kept.|`True (Only applies if write is on)`|
-|__`--nbd-cowinmem`__|Client volatile changes are stored in RAM rather than on disk. WARNING: High RAM usage (up to sizeof(block device)*clients)|`False`|
-|__`--nbd-copytoram`__|Disk image is copied to RAM on start to speed up access. Changes are lost when write is used without cow.|`False`|
+|__`--nbd-cow-in-mem`__|Client volatile changes are stored in RAM rather than on disk. WARNING: High RAM usage (up to sizeof(block device)*clients)|`False`|
+|__`--nbd-copy-to-ram`__|Disk image is copied to RAM on start to speed up access. Changes are lost when write is used without cow.|`False`|
 |__`--nbd-server`__|The NBD server IP address to bind to|`0.0.0.0`|
 |__`--nbd-port`__|The NBD server port to bind to|`10809`|
+
 
 ## Notes
 * `Core.iso` located in `netboot` is from the [TinyCore Project](http://distro.ibiblio.org/tinycorelinux/) and is provided as an example to network boot from using PyPXE
