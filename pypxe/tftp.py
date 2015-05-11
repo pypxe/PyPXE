@@ -98,7 +98,7 @@ class Client:
         self.blksize = options.get('blksize', self.blksize)
         self.lastblock = math.ceil(self.filesize / float(self.blksize))
         self.tsize = True if 'tsize' in options else False
-        if self.filesize > (2**16)*self.blksize:
+        if self.filesize > (2 ** 16) * self.blksize:
             self.logger.warning('Request too big, attempting transfer anyway.')
             self.logger.debug('Details: Filesize {0} is too big for blksize {1}.'.format(self.filesize, self.blksize))
 
@@ -148,7 +148,7 @@ class Client:
                 self.send_block()
             return
 
-        # we got some options, so ack those first
+        # we got some options so ACK those first
         self.reply_options()
 
     def sendError(self, code = 1, message = 'File Not Found', filename = ''):
@@ -182,7 +182,7 @@ class Client:
         try:
             self.fh.close()
         except AttributeError:
-            # we have not opened yet, or file-not-found
+            # we have not opened yet or file-not-found
             pass
         self.sock.close()
         self.dead = True

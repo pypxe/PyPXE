@@ -36,11 +36,11 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'USE_TFTP':True,
             'USE_DHCP':True,
             'DHCP_MODE_PROXY':False,
-            'NBD_BLOCKDEVICE':'',
+            'NBD_BLOCK_DEVICE':'',
             'NBD_WRITE':False,
             'NBD_COW':True,
-            'NBD_COWINMEM':False,
-            'NBD_COPYTORAM':False,
+            'NBD_COW_IN_MEM':False,
+            'NBD_COPY_TO_RAM':False,
             'NBD_SERVER_IP':'0.0.0.0',
             'NBD_PORT':10809,
             'MODE_DEBUG':''}
@@ -92,11 +92,11 @@ def parse_cli_arguments():
 
     # NBD server arguments
     nbd_group = parser.add_argument_group(title = 'Network Block Device', description = 'Arguments relevant to the NBD server')
-    nbd_group.add_argument('--nbd', action = 'store', dest = 'NBD_BLOCKDEVICE', help = 'Enable the NDB server with a specific block device (Can be a disk image)', default = SETTINGS['NBD_BLOCKDEVICE'])
+    nbd_group.add_argument('--nbd', action = 'store', dest = 'NBD_BLOCK_DEVICE', help = 'Enable the NDB server with a specific block device (Can be a disk image)', default = SETTINGS['NBD_BLOCK_DEVICE'])
     nbd_group.add_argument('--nbd-write', action = 'store_true', dest = 'NBD_WRITE', help = 'Enable writes on the NBD device', default = SETTINGS['NBD_WRITE'])
     nbd_group.add_argument('--nbd-cow', action = 'store_true', dest = 'NBD_COW', help = 'Enable copy-on-write for the NBD device (Non-persistent changes)', default = SETTINGS['NBD_COW'])
-    nbd_group.add_argument('--nbd-cowinmem', action = 'store_true', dest = 'NBD_COWINMEM', help = 'Store copy-on-write pages in memory', default = SETTINGS['NBD_COWINMEM'])
-    nbd_group.add_argument('--nbd-copytoram', action = 'store_true', dest = 'NBD_COPYTORAM', help = 'Copy the NBD device to memory before serving clients', default = SETTINGS['NBD_COPYTORAM'])
+    nbd_group.add_argument('--nbd-cow-in-mem', action = 'store_true', dest = 'NBD_COW_IN_MEM', help = 'Store copy-on-write pages in memory', default = SETTINGS['NBD_COW_IN_MEM'])
+    nbd_group.add_argument('--nbd-copy-to-ram', action = 'store_true', dest = 'NBD_COPY_TO_RAM', help = 'Copy the NBD device to memory before serving clients', default = SETTINGS['NBD_COPY_TO_RAM'])
     nbd_group.add_argument('--nbd-server', action = 'store', dest = 'NBD_SERVER_IP', help = 'NBD Server IP', default = SETTINGS['NBD_SERVER_IP'])
     nbd_group.add_argument('--nbd-port', action = 'store', dest = 'NBD_PORT', help = 'NBD Server Port', default = SETTINGS['NBD_PORT'])
 
@@ -106,7 +106,6 @@ def do_debug(service):
     return ((service in args.MODE_DEBUG.lower()
             or 'all' in args.MODE_DEBUG.lower())
             and '-{0}'.format(service) not in args.MODE_DEBUG.lower())
-
 
 if __name__ == '__main__':
     try:
@@ -214,23 +213,23 @@ if __name__ == '__main__':
 
             # setup the thread
             dhcp_server = dhcp.DHCPD(
-                    ip = args.DHCP_SERVER_IP,
-                    port = args.DHCP_SERVER_PORT,
-                    offer_from = args.DHCP_OFFER_BEGIN,
-                    offer_to = args.DHCP_OFFER_END,
-                    subnet_mask = args.DHCP_SUBNET,
-                    router = args.DHCP_ROUTER,
-                    dns_server = args.DHCP_DNS,
-                    broadcast = args.DHCP_BROADCAST,
-                    file_server = args.DHCP_FILESERVER,
-                    file_name = args.NETBOOT_FILE,
-                    use_ipxe = args.USE_IPXE,
-                    use_http = args.USE_HTTP,
-                    mode_proxy = args.DHCP_MODE_PROXY,
-                    mode_debug = do_debug('dhcp'),
-                    whitelist = args.DHCP_WHITELIST,
-                    static_config = loaded_statics,
-                    logger = dhcp_logger)
+                ip = args.DHCP_SERVER_IP,
+                port = args.DHCP_SERVER_PORT,
+                offer_from = args.DHCP_OFFER_BEGIN,
+                offer_to = args.DHCP_OFFER_END,
+                subnet_mask = args.DHCP_SUBNET,
+                router = args.DHCP_ROUTER,
+                dns_server = args.DHCP_DNS,
+                broadcast = args.DHCP_BROADCAST,
+                file_server = args.DHCP_FILESERVER,
+                file_name = args.NETBOOT_FILE,
+                use_ipxe = args.USE_IPXE,
+                use_http = args.USE_HTTP,
+                mode_proxy = args.DHCP_MODE_PROXY,
+                mode_debug = do_debug('dhcp'),
+                whitelist = args.DHCP_WHITELIST,
+                static_config = loaded_statics,
+                logger = dhcp_logger)
             dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -250,27 +249,25 @@ if __name__ == '__main__':
             httpd.start()
             running_services.append(httpd)
 
-        #configure/start NBD server
-        if args.NBD_BLOCKDEVICE:
-            #setup nbd logger
+        # configure/start NBD server
+        if args.NBD_BLOCK_DEVICE:
+            # setup NBD logger
             nbd_logger = sys_logger.getChild('NBD')
             sys_logger.info('Starting NBD server...')
-            nbdServer = nbd.NBD(
-                    blockdevice = args.NBD_BLOCKDEVICE,
-                    write = args.NBD_WRITE,
-                    cow = args.NBD_COW,
-                    inmem = args.NBD_COWINMEM,
-                    copytoram = args.NBD_COPYTORAM,
-                    ip = args.NBD_SERVER_IP,
-                    port = args.NBD_PORT,
-                    mode_debug = ("nbd" in args.MODE_DEBUG.lower() or "all" in args.MODE_DEBUG.lower()),
-                    logger = nbd_logger)
-            nbd = threading.Thread(target = nbdServer.listen)
+            nbd_server = nbd.NBD(
+                block_device = args.NBD_BLOCK_DEVICE,
+                write = args.NBD_WRITE,
+                cow = args.NBD_COW,
+                in_mem = args.NBD_COW_IN_MEM,
+                copy_to_ram = args.NBD_COPY_TO_RAM,
+                ip = args.NBD_SERVER_IP,
+                port = args.NBD_PORT,
+                mode_debug = ('nbd' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
+                logger = nbd_logger)
+            nbd = threading.Thread(target = nbd_server.listen)
             nbd.daemon = True
             nbd.start()
             running_services.append(nbd)
-
-
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
