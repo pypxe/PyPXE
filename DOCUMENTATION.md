@@ -50,11 +50,12 @@ This is different to NFS as it does not act as a filesystem, merely a single fil
 WARNING: The use of this option can potentially consume a large amount of RAM. Up to the size of the disk image multiplied by the number of connected clients may be used. The same can be said for the on-disk configuration, where this configuration uses disk space rather than memory space. A further configuration option to store the original disk image in memory is provided to potentially allow for read/write speed up.
 
 # PyPXE Services
-The PyPXE library provies the following services for the purpose of creating a Python-based PXE environment: TFTP, HTTP, and DHCP. Each service must be imorted independently as such:
+The PyPXE library provies the following services for the purpose of creating a Python-based PXE environment: TFTP, HTTP, DHCP, and NBD. Each service must be imported independently as such:
 
 * `from pypxe import tftp` or `import pypxe.tftp` imports the TFTP service
 * `from pypxe import dhcp` or `import pypxe.dhcp` imports the DHCP service
 * `from pypxe import http` or `import pypxe.http` imports the HTTP service
+* `from pypxe import nbd` or `import pypxe.nbd` imports the NBD service
 
 **See [`pypxe-server.py`](pypxe-server.py) in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
@@ -77,7 +78,7 @@ The TFTP server class, __`TFTPD()`__, is constructed with the following __keywor
 |__`ip`__|This is the IP address that the TFTP server will bind to.|`'0.0.0.0'` (so that it binds to all available interfaces)| _string_|
 |__`port`__|This it the port that the TFTP server will run on.|`69` (default port for TFTP)|_int_|
 |__`netboot_directory`__|This is the directory that the TFTP server will serve files from similarly to that of `tftpboot`.|`'.'` (current directory)|_string_|
-|__`mode_debug`__|This indicates whether or not the TFTP server should be started in debug mode or not.|`False`|`bool`|
+|__`mode_debug`__|This indicates whether or not the TFTP server should be started in debug mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 |__`default_retries`__|The number of data retransmissions before dropping a connection.|`3`|_int_|
 |__`timeout`__|The time in seconds before re-sending an un-acknowledged data block.|`5`|_int_|
@@ -135,7 +136,7 @@ The HTTP server class, __`HTTPD()`__, is constructed with the following __keywor
 |__`ip`__|This is the IP address that the HTTP server will bind to.|`'0.0.0.0'` (so that it binds to all available interfaces)|_string_|
 |__`port`__|This it the port that the HTTP server will run on.|`80` (default port for HTTP)|_int_|
 |__`netboot_directory`__|This is the directory that the HTTP server will serve files from similarly to that of `tftpboot`.|`'.'` (current directory)|_string_|
-|__`mode_debug`__|This indicates whether or not the HTTP server should be started in debug mode or not.|`False`|bool|
+|__`mode_debug`__|This indicates whether or not the HTTP server should be started in debug mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 ## NBD Server `pypxe.nbd`
@@ -161,7 +162,7 @@ The NBD server class, __`NBD()`__, is constructed with the following __keyword a
 |__`cow`__|Enable copy-on-write support on the block device|`True`|_bool_|
 |__`in_mem`__|Enable _in-memory_ copy-on-write support on the block device. `False` causes changes to be stored on disk|`False`|_bool_|
 |__`copy_to_ram`__|Copy the disk image to RAM when the service starts|`False`|_bool_|
-|__`mode_debug`__|This indicates whether or not the NBD server should be started in debug mode or not.|`False`|bool|
+|__`mode_debug`__|This indicates whether or not the NBD server should be started in debug mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 
