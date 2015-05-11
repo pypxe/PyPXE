@@ -45,6 +45,7 @@ def parse_cli_arguments():
     parser.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = SETTINGS['USE_TFTP'])
     parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services', default = SETTINGS['MODE_DEBUG'])
     parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = '')
+    parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
 
@@ -61,6 +62,7 @@ def parse_cli_arguments():
     parser.add_argument('-d', '--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
     parser.add_argument('-c', '--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
     parser.add_argument('-f', '--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
+    parser.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = False)
 
     # network boot directory and file name arguments
     parser.add_argument('-a', '--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
@@ -91,6 +93,21 @@ if __name__ == '__main__':
                     loaded_config[setting] = loaded_config[setting].encode('ascii')
             SETTINGS.update(loaded_config) # update settings with JSON config
             args = parse_cli_arguments() # re-parse, CLI options take precedence
+
+        # ideally this would be in dhcp itself, but the chroot below *probably*
+        # breaks the ability to open the config file.
+        if args.STATIC_CONFIG:
+            try:
+                static_config = open(args.STATIC_CONFIG, 'rb')
+            except IOError:
+                sys.exit("Failed to open {0}".format(args.STATIC_CONFIG))
+            try:
+                loaded_statics = json.load(static_config)
+                static_config.close()
+            except ValueError:
+                sys.exit("{0} does not contain valid json".format(args.STATIC_CONFIG))
+        else:
+            loaded_statics = dict()
 
         # setup main logger
         sys_logger = logging.getLogger('PyPXE')
@@ -167,7 +184,9 @@ if __name__ == '__main__':
                     use_http = args.USE_HTTP,
                     mode_proxy = args.DHCP_MODE_PROXY,
                     mode_debug = ('dhcp' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
-                    logger = dhcp_logger)
+                    whitelist = args.DHCP_WHITELIST,
+                    logger = dhcp_logger,
+                    static_config = loaded_statics)
             dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()

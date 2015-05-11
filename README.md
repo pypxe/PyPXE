@@ -49,6 +49,7 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 |__`--no-tftp`__|Disable built-in TFTP server which is enabled by default|`False`|
 |__`--debug`__|Enable selected services in DEBUG mode; services are selected by passing the name in a comma separated list. **Options are: http, tftp and dhcp** _This adds a level of verbosity so that you can see what's happening in the background._|`''`|
 |__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
+|__`--static-config`__|Load DHCP lease configuration from JSON file. (see [`example-leases.json`](example-leases.json))|`None`|
 |__`--syslog`__|Specify a syslog server|`None`|
 |__`--syslog-port`__|Specify a syslog server port|`514`|
 
@@ -66,6 +67,7 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 |__`-d DHCP_DNS`__ or __`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
 |__`-c DHCP_BROADCAST`__ or __`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
 |__`-f DHCP_FILESERVER_IP`__ or __`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
+|__`--dhcp-whitelist`__|Only serve clients specified in the static lease file (`--static-config`)|`False`|
 
 
 ##### File Name/Directory Arguments
