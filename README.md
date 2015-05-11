@@ -43,9 +43,13 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 |Argument|Description|Default|
 |---|---|---|
 |__`--ipxe`__|Enable iPXE ROM|`False`|
+|__`--no-ipxe`__|Disable iPXE ROM|`True`|
 |__`--http`__|Enable built-in HTTP server|`False`|
+|__`--no-http`__|Disable built-in HTTP server|`True`|
 |__`--dhcp`__|Enable built-in DHCP server|`False`|
 |__`--dhcp-proxy`__|Enable built-in DHCP server in proxy mode (implies `--dhcp`)|`False`|
+|__`--no-dhcp`__|Disable built-in DHCP server|`True`|
+|__`--tftp`__|Enable built-in TFTP server which is enabled by default|`True`|
 |__`--no-tftp`__|Disable built-in TFTP server which is enabled by default|`False`|
 |__`--debug`__|Enable selected services in DEBUG mode; services are selected by passing the name in a comma separated list. **Options are: http, tftp and dhcp** _This adds a level of verbosity so that you can see what's happening in the background._|`''`|
 |__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
