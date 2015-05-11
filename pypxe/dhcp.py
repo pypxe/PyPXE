@@ -42,11 +42,11 @@ class DHCPD:
         self.ipxe = server_settings.get('use_ipxe', False)
         self.http = server_settings.get('use_http', False)
         self.mode_proxy = server_settings.get('mode_proxy', False) # ProxyDHCP mode
-        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.static_config = server_settings.get('static_config', dict())
         self.whitelist = server_settings.get('whitelist', False)
-        self.magic = struct.pack('!I', 0x63825363) # magic cookie
+        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
+        self.magic = struct.pack('!I', 0x63825363) # magic cookie
 
         # setup logger
         if self.logger == None:
@@ -210,13 +210,13 @@ class DHCPD:
         response = self.tlv_encode(53, chr(opt53)) # message type, OFFER
         response += self.tlv_encode(54, socket.inet_aton(self.ip)) # DHCP Server
         if not self.mode_proxy:
-            subnetmask = self.get_namespaced_static('dhcp.binding.{0}.subnet'.format(self.get_mac(client_mac)), self.subnet_mask)
-            response += self.tlv_encode(1, socket.inet_aton(subnetmask)) # subnet mask
+            subent_mask = self.get_namespaced_static('dhcp.binding.{0}.subnet'.format(self.get_mac(client_mac)), self.subnet_mask)
+            response += self.tlv_encode(1, socket.inet_aton(subent_mask)) # subnet mask
             router = self.get_namespaced_static('dhcp.binding.{0}.router'.format(self.get_mac(client_mac)), self.router)
             response += self.tlv_encode(3, socket.inet_aton(router)) # router
-            dnsserver = self.get_namespaced_static('dhcp.binding.{0}.dns'.format(self.get_mac(client_mac)), [self.dns_server])
-            dnsserver = ''.join([socket.inet_aton(i) for i in dnsserver])
-            response += self.tlv_encode(6, dnsserver)
+            dns_server = self.get_namespaced_static('dhcp.binding.{0}.dns'.format(self.get_mac(client_mac)), [self.dns_server])
+            dns_server = ''.join([socket.inet_aton(i) for i in dns_server])
+            response += self.tlv_encode(6, dns_server)
             response += self.tlv_encode(51, struct.pack('!I', 86400)) # lease time
 
         # TFTP Server OR HTTP Server; if iPXE, need both
