@@ -58,15 +58,15 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 
 |Argument|Description|Default|
 |---|---|---|
-|__`-s DHCP_SERVER_IP`__ or __`--dhcp-server-ip DHCP_SERVER_IP`__|Specify DHCP server IP address|`192.168.2.2`|
-|__`-p DHCP_SERVER_PORT`__ or __`--dhcp-server-port DHCP_SERVER_PORT`__|Specify DHCP server port|`67`|
-|__`-b DHCP_OFFER_BEGIN`__ or __`--dhcp-begin DHCP_OFFER_BEGIN`__|Specify DHCP lease range start|`192.168.2.100`|
-|__`-e DHCP_OFFER_END`__ or __`--dhcp-end DHCP_OFFER_END`__|Specify DHCP lease range end|`192.168.2.150`|
-|__`-n DHCP_SUBNET`__ or __`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
-|__`-r DHCP_ROUTER`__ or __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
-|__`-d DHCP_DNS`__ or __`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
-|__`-c DHCP_BROADCAST`__ or __`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
-|__`-f DHCP_FILESERVER_IP`__ or __`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
+|__`--dhcp-server-ip DHCP_SERVER_IP`__|Specify DHCP server IP address|`192.168.2.2`|
+|__`--dhcp-server-port DHCP_SERVER_PORT`__|Specify DHCP server port|`67`|
+|__`--dhcp-begin DHCP_OFFER_BEGIN`__|Specify DHCP lease range start|`192.168.2.100`|
+|__`--dhcp-end DHCP_OFFER_END`__|Specify DHCP lease range end|`192.168.2.150`|
+|__`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
+| __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
+|__`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
+|__`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
+|__`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
 |__`--dhcp-whitelist`__|Only serve clients specified in the static lease file (`--static-config`)|`False`|
 
 
@@ -74,8 +74,8 @@ The following are arguments that can be passed to `pypxe-server.py` when running
 
 |Argument|Description|Default|
 |---|---|---|
-|__`-a NETBOOT_DIR`__ or __`--netboot-dir NETBOOT_DIR`__|Specify the local directory where network boot files will be served|`'netboot'`|
-|__`-i NETBOOT_FILE`__ or __`--netboot-file NETBOOT_FILE`__|Specify the PXE boot file name|_automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_|
+|__`--netboot-dir NETBOOT_DIR`__|Specify the local directory where network boot files will be served|`'netboot'`|
+|__`--netboot-file NETBOOT_FILE`__|Specify the PXE boot file name|_automatically set based on what services are enabled or disabled, see [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation_|
 
 
 ##### Network Block Device Arguments
