@@ -16,4 +16,11 @@
     "USE_TFTP" : true,
     "USE_DHCP" : true,
     "DHCP_MODE_PROXY" : false,
+    "NBD_BLOCK_DEVICE" : "",
+    "NBD_WRITE" : false,
+    "NBD_COW" : true,
+    "NBD_COW_IN_MEM" : false,
+    "NBD_COPY_TO_RAM" : false,
+    "NBD_SERVER_IP" : "0.0.0.0",
+    "NBD_SERVER_PORT" : 10809,
     "MODE_DEBUG" : ""   }
