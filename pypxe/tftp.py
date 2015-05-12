@@ -201,6 +201,9 @@ class Client:
             elif block > self.block:
                 self.logger.warning('Ignoring out of sequence ACK received for block {0}'.format(self.block))
             elif block == self.lastblock:
+                if self.filesize % self.blksize == 0:
+                    self.block = block + 1
+                    self.send_block()
                 self.logger.debug('Completed sending {0}'.format(self.filename))
                 self.complete()
             else:
