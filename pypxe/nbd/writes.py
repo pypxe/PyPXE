@@ -83,7 +83,7 @@ class DiskCOW(COW):
         self.addr = addr
         self.imagefd = imagefd
         self.seek_lock = seek_lock
-        self.logger = logger.get_child('FS')
+        self.logger = logger.getChild('FS')
         self.logger.debug('Copy-On-Write for {addr} in PyPXE_NBD_COW_{addr[0]}_{addr[1]}'.format(addr = addr))
 
         # never want readonly cow, also definately creating file
@@ -97,7 +97,7 @@ class MemCOW(COW):
         self.addr = addr
         self.imagefd = imagefd
         self.seek_lock = seek_lock
-        self.logger = logger.get_child('FS')
+        self.logger = logger.getChild('FS')
         self.logger.debug('Copy-On-Write for {0} in Memory'.format(addr))
 
         # BytesIO looks exactly the same as a file, perfect for in memory disk
@@ -111,7 +111,7 @@ class RW:
         self.addr = addr
         self.seek_lock = seek_lock
         self.imagefd = imagefd
-        self.logger = logger.get_child('FS')
+        self.logger = logger.getChild('FS')
         self.logger.debug('File for {0}'.format(addr))
 
     def read(self, offset, length):

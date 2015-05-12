@@ -178,7 +178,7 @@ if __name__ == '__main__':
         if args.NBD_WRITE and not args.NBD_COW:
             sys_logger.warning('NBD Write enabled but copy-on-write is not. Multiple clients may cause corruption')
 
-        if args.NBD_COWINMEM or args.NBD_COPYTORAM:
+        if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
 
         #serve all files from one directory
