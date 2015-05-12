@@ -31,11 +31,11 @@ class NBD:
             self.logger.setLevel(logging.DEBUG)
 
         self.logger.debug('NOTICE: NBD server started in debug mode. NBD server is using the following:')
-        self.logger.debug('NBD Server IP: {0}'.format(self.ip))
-        self.logger.debug('NBD Server Port: {0}'.format(self.port))
-        self.logger.debug('NBD Block Device: {0}'.format(self.bd))
-        self.logger.debug('NBD Block Device Writes: {0}'.format(self.write))
-        self.logger.debug('NBD Block Write Method: {0} ({1})'.format("Copy-On-Write" if self.cow else 'File', 'Memory' if self.in_mem else 'Disk'))
+        self.logger.debug('Server IP: {0}'.format(self.ip))
+        self.logger.debug('Server Port: {0}'.format(self.port))
+        self.logger.debug('Block Device: {0}'.format(self.bd))
+        self.logger.debug('Block Device Writes: {0}'.format(self.write))
+        self.logger.debug('Block Write Method: {0} ({1})'.format("Copy-On-Write" if self.cow else 'File', 'Memory' if self.in_mem else 'Disk'))
 
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)

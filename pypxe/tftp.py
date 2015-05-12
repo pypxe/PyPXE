@@ -238,9 +238,9 @@ class TFTPD:
             self.logger.setLevel(logging.DEBUG)
 
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
-        self.logger.debug('TFTP Server IP: {0}'.format(self.ip))
-        self.logger.debug('TFTP Server Port: {0}'.format(self.port))
-        self.logger.debug('TFTP Network Boot Directory: {0}'.format(self.netbook_directory))
+        self.logger.debug('Server IP: {0}'.format(self.ip))
+        self.logger.debug('Server Port: {0}'.format(self.port))
+        self.logger.debug('Network Boot Directory: {0}'.format(self.netbook_directory))
 
         self.ongoing = []
 

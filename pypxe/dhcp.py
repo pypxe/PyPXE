@@ -71,18 +71,18 @@ class DHCPD:
 
         # debug info for ProxyDHCP mode
         if not self.mode_proxy:
-            self.logger.debug('DHCP Lease Range: {0} - {1}'.format(self.offer_from, self.offer_to))
-            self.logger.debug('DHCP Subnet Mask: {0}'.format(self.subnet_mask))
-            self.logger.debug('DHCP Router: {0}'.format(self.router))
-            self.logger.debug('DHCP DNS Server: {0}'.format(self.dns_server))
-            self.logger.debug('DHCP Broadcast Address: {0}'.format(self.broadcast))
+            self.logger.debug('Lease Range: {0} - {1}'.format(self.offer_from, self.offer_to))
+            self.logger.debug('Subnet Mask: {0}'.format(self.subnet_mask))
+            self.logger.debug('Router: {0}'.format(self.router))
+            self.logger.debug('DNS Server: {0}'.format(self.dns_server))
+            self.logger.debug('Broadcast Address: {0}'.format(self.broadcast))
 
         if self.static_config:
-            self.logger.debug('DHCP Using Static Leasing')
-            self.logger.debug('DHCP Using Static Leasing Whitelist: {0}'.format(self.whitelist))
+            self.logger.debug('Using Static Leasing')
+            self.logger.debug('Using Static Leasing Whitelist: {0}'.format(self.whitelist))
 
-        self.logger.debug('DHCP File Server IP: {0}'.format(self.file_server))
-        self.logger.debug('DHCP File Name: {0}'.format(self.file_name))
+        self.logger.debug('File Server IP: {0}'.format(self.file_server))
+        self.logger.debug('File Name: {0}'.format(self.file_name))
         self.logger.debug('ProxyDHCP Mode: {0}'.format(self.mode_proxy))
         self.logger.debug('Using iPXE: {0}'.format(self.ipxe))
         self.logger.debug('Using HTTP Server: {0}'.format(self.http))

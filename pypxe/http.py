@@ -45,9 +45,9 @@ class HTTPD:
         os.chroot ('.')
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
-        self.logger.debug('HTTP Server IP: {0}'.format(self.ip))
-        self.logger.debug('HTTP Server Port: {0}'.format(self.port))
-        self.logger.debug('HTTP Network Boot Directory: {0}'.format(self.netboot_directory))
+        self.logger.debug('Server IP: {0}'.format(self.ip))
+        self.logger.debug('Server Port: {0}'.format(self.port))
+        self.logger.debug('Network Boot Directory: {0}'.format(self.netboot_directory))
 
     def handle_request(self, connection, addr):
         '''This method handles HTTP request.'''
