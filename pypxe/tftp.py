@@ -34,6 +34,8 @@ class Client:
         self.dead = False
         self.fh = None
         self.filename = ''
+        self.wrap = 0
+        self.arm_wrap = False
 
         # message from the main socket
         self.handle()
@@ -196,11 +198,19 @@ class Client:
             self.newRequest()
         elif opcode == 4:
             [block] = struct.unpack('!H', self.message[2:4])
-            if block < self.block:
+            if block == 0 and self.arm_wrap:
+                self.wrap += 1
+                self.arm_wrap = False
+            if block == 32768:
+                self.arm_wrap = True
+            if block < self.block % 65536:
                 self.logger.warning('Ignoring duplicated ACK received for block {0}'.format(self.block))
-            elif block > self.block:
+            elif block > self.block % 65536:
                 self.logger.warning('Ignoring out of sequence ACK received for block {0}'.format(self.block))
-            elif block == self.lastblock:
+            elif block + self.wrap * 65536 == self.lastblock:
+                if self.filesize % self.blksize == 0:
+                    self.block = block + 1
+                    self.send_block()
                 self.logger.debug('Completed sending {0}'.format(self.filename))
                 self.complete()
             else:
