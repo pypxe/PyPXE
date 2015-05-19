@@ -17,6 +17,7 @@ class NBD:
         self.ip = server_settings.get('ip', '0.0.0.0')
         self.port = server_settings.get('port', 10809)
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
+        self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.logger =  server_settings.get('logger', None)
 
         # setup logger
@@ -29,16 +30,17 @@ class NBD:
 
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
+        elif self.mode_verbose:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
 
         self.logger.debug('NOTICE: NBD server started in debug mode. NBD server is using the following:')
-        self.logger.debug('Server IP: {0}'.format(self.ip))
-        self.logger.debug('Server Port: {0}'.format(self.port))
-        self.logger.debug('Block Device: {0}'.format(self.bd))
-        self.logger.debug('Block Device Writes: {0}'.format(self.write))
-        self.logger.debug('Block Write Method: {0} ({1})'.format("Copy-On-Write" if self.cow else 'File', 'Memory' if self.in_mem else 'Disk'))
-
-        if self.mode_debug:
-            self.logger.setLevel(logging.DEBUG)
+        self.logger.info('Server IP: {0}'.format(self.ip))
+        self.logger.info('Server Port: {0}'.format(self.port))
+        self.logger.info('Block Device: {0}'.format(self.bd))
+        self.logger.info('Block Device Writes: {0}'.format(self.write))
+        self.logger.info('Block Write Method: {0} ({1})'.format("Copy-On-Write" if self.cow else 'File', 'Memory' if self.in_mem else 'Disk'))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -91,7 +93,7 @@ class NBD:
             conn.close()
             return 1
 
-        self.logger.debug('Received request for {0} from {1}'.format(name, addr))
+        self.logger.info('Received request for {0} from {1}'.format(name, addr))
 
         # size of export
         exportinfo = struct.pack('!Q', self.bdsize)
@@ -142,7 +144,7 @@ class NBD:
             elif opcode == 2: # DISCONNECT
                 # delete COW diff
                 conn.close()
-                self.logger.debug('{0} disconnected'.format(addr))
+                self.logger.info('{0} disconnected'.format(addr))
                 return
 
     def listen(self):

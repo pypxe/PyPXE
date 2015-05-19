@@ -44,6 +44,7 @@ class DHCPD:
         self.mode_proxy = server_settings.get('mode_proxy', False) # ProxyDHCP mode
         self.static_config = server_settings.get('static_config', dict())
         self.whitelist = server_settings.get('whitelist', False)
+        self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
@@ -57,6 +58,10 @@ class DHCPD:
             self.logger.addHandler(handler)
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
+        elif self.mode_verbose:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
 
         if self.http and not self.ipxe:
             self.logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
@@ -66,26 +71,26 @@ class DHCPD:
             self.file_name = 'tftp://{0}/{1}'.format(self.file_server, self.file_name)
 
         self.logger.debug('NOTICE: DHCP server started in debug mode. DHCP server is using the following:')
-        self.logger.debug('DHCP Server IP: {0}'.format(self.ip))
-        self.logger.debug('DHCP Server Port: {0}'.format(self.port))
+        self.logger.info('DHCP Server IP: {0}'.format(self.ip))
+        self.logger.info('DHCP Server Port: {0}'.format(self.port))
 
         # debug info for ProxyDHCP mode
         if not self.mode_proxy:
-            self.logger.debug('Lease Range: {0} - {1}'.format(self.offer_from, self.offer_to))
-            self.logger.debug('Subnet Mask: {0}'.format(self.subnet_mask))
-            self.logger.debug('Router: {0}'.format(self.router))
-            self.logger.debug('DNS Server: {0}'.format(self.dns_server))
-            self.logger.debug('Broadcast Address: {0}'.format(self.broadcast))
+            self.logger.info('Lease Range: {0} - {1}'.format(self.offer_from, self.offer_to))
+            self.logger.info('Subnet Mask: {0}'.format(self.subnet_mask))
+            self.logger.info('Router: {0}'.format(self.router))
+            self.logger.info('DNS Server: {0}'.format(self.dns_server))
+            self.logger.info('Broadcast Address: {0}'.format(self.broadcast))
 
         if self.static_config:
-            self.logger.debug('Using Static Leasing')
-            self.logger.debug('Using Static Leasing Whitelist: {0}'.format(self.whitelist))
+            self.logger.info('Using Static Leasing')
+            self.logger.info('Using Static Leasing Whitelist: {0}'.format(self.whitelist))
 
-        self.logger.debug('File Server IP: {0}'.format(self.file_server))
-        self.logger.debug('File Name: {0}'.format(self.file_name))
-        self.logger.debug('ProxyDHCP Mode: {0}'.format(self.mode_proxy))
-        self.logger.debug('Using iPXE: {0}'.format(self.ipxe))
-        self.logger.debug('Using HTTP Server: {0}'.format(self.http))
+        self.logger.info('File Server IP: {0}'.format(self.file_server))
+        self.logger.info('File Name: {0}'.format(self.file_name))
+        self.logger.info('ProxyDHCP Mode: {0}'.format(self.mode_proxy))
+        self.logger.info('Using iPXE: {0}'.format(self.ipxe))
+        self.logger.info('Using HTTP Server: {0}'.format(self.http))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -181,7 +186,7 @@ class DHCPD:
                 offer = offer if offer else self.next_ip()
                 self.leases[client_mac]['ip'] = offer
                 self.leases[client_mac]['expire'] = time() + 86400
-                self.logger.debug('New Assignment - MAC: {0} -> IP: {1}'.format(self.get_mac(client_mac), self.leases[client_mac]['ip']))
+                self.logger.info('New Assignment - MAC: {0} -> IP: {1}'.format(self.get_mac(client_mac), self.leases[client_mac]['ip']))
             response += socket.inet_aton(offer) # yiaddr
         else:
             response += socket.inet_aton('0.0.0.0')
@@ -284,13 +289,12 @@ class DHCPD:
     def validate_req(self, client_mac):
         # client request is valid only if contains Vendor-Class = PXEClient
         if self.whitelist and self.get_mac(client_mac) not in self.get_namespaced_static('dhcp.binding'):
-            self.logger.debug('Non-whitelisted client request received')
+            self.logger.info('Non-whitelisted client request received from {0}'.format(self.get_mac(client_mac)))
             return False
         if 60 in self.leases[client_mac]['options'] and 'PXEClient' in self.leases[client_mac]['options'][60][0]:
-            self.logger.debug('PXE client request received')
+            self.logger.info('PXE client request received from {0}'.format(self.get_mac(client_mac)))
             return True
-        if self.mode_debug:
-            self.logger.debug('Non-PXE client request received')
+        self.logger.info('Non-PXE client request received from {0}'.format(self.get_mac(client_mac)))
         return False
 
     def listen(self):
@@ -311,14 +315,14 @@ class DHCPD:
                 continue
             type = ord(self.leases[client_mac]['options'][53][0]) # see RFC2131, page 10
             if type == 1:
-                self.logger.debug('Received DHCPOFFER')
+                self.logger.debug('Received DHCPOFFER from {0}'.format(self.get_mac(client_mac)))
                 try:
                     self.dhcp_offer(message)
                 except OutOfLeasesError:
                     self.logger.critical('Ran out of leases')
             elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
-                self.logger.debug('Received DHCPACK')
+                self.logger.debug('Received DHCPACK from {0}'.format(self.get_mac(client_mac)))
                 self.dhcp_ack(message)
             elif type == 3 and address[0] != '0.0.0.0' and self.mode_proxy:
-                self.logger.debug('Received DHCPACK')
+                self.logger.debug('Received DHCPACK from {0}'.format(self.get_mac(client_mac)))
                 self.dhcp_ack(message)
