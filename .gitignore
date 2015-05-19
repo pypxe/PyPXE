@@ -1,1 +1,15 @@
 *.pyc
+*.egg-info
+*.egg
+*.EGG
+*.EGG-INFO
+build
+build-win32
+develop-eggs
+eggs
+fake-eggs
+parts
+dist
+*.pyo
+*.tmp*
+*.swp

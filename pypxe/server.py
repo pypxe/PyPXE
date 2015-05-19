@@ -17,6 +17,7 @@ from pypxe import dhcp # PyPXE DHCP service
 from pypxe import http # PyPXE HTTP service
 from pypxe import nbd  # PyPXE NBD service
 
+args = None
 # default settings
 SETTINGS = {'NETBOOT_DIR':'netboot',
             'NETBOOT_FILE':'',
@@ -114,7 +115,8 @@ def do_verbose(service):
             or 'all' in args.MODE_VERBOSE.lower())
             and '-{0}'.format(service) not in args.MODE_VERBOSE.lower())
 
-if __name__ == '__main__':
+def main():
+    global SETTINGS, args
     try:
         # warn the user that they are starting PyPXE as non-root user
         if os.getuid() != 0:
@@ -285,3 +287,6 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         sys.exit('\nShutting down PyPXE...\n')
+
+if __name__ == '__main__':
+    main()
