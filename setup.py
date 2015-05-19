@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-from sys import version_info
+from sys import version_info, exit
 
 deps = []
 
-# require argparse on Python <2.7 and <3.2
-if (version_info[0] == 2 and version_info[1] < 7) or \
-   (version_info[0] == 3 and version_info[1] < 2):
+# Python 3 unsupported
+if version_info >= (3,):
+    print "Sorry, PyPXE doesn't support Python 3."
+    exit(1)
+
+# require argparse on Python <2.7
+if version_info[0] == 2 and version_info[1] < 7:
     deps.append("argparse")
 
 setup(name='PyPXE',
