@@ -174,7 +174,7 @@ class Client:
         response += message
         response += chr(0)
         self.sock.sendto(response, self.address)
-        self.logger.debug('Sending {0}: {1} {2}'.format(code, message, filename))
+        self.logger.info('Sending {0}: {1} {2}'.format(code, message, filename))
 
     def complete(self):
         '''
@@ -211,7 +211,7 @@ class Client:
                 if self.filesize % self.blksize == 0:
                     self.block = block + 1
                     self.send_block()
-                self.logger.debug('Completed sending {0}'.format(self.filename))
+                self.logger.info('Completed sending {0}'.format(self.filename))
                 self.complete()
             else:
                 self.block = block + 1
@@ -228,6 +228,7 @@ class TFTPD:
         self.ip = server_settings.get('ip', '0.0.0.0')
         self.port = server_settings.get('port', 69)
         self.netbook_directory = server_settings.get('netbook_directory', '.')
+        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
         self.default_retries = server_settings.get('default_retries', 3)
@@ -246,6 +247,10 @@ class TFTPD:
 
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
+        elif self.mode_verbose:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
 
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('Server IP: {0}'.format(self.ip))

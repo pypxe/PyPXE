@@ -20,6 +20,7 @@ class HTTPD:
         self.ip = server_settings.get('ip', '0.0.0.0')
         self.port = server_settings.get('port', 80)
         self.netboot_directory = server_settings.get('netboot_directory', '.')
+        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger =  server_settings.get('logger', None)
 
@@ -33,6 +34,10 @@ class HTTPD:
 
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
+        elif self.mode_verbose:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -45,9 +50,9 @@ class HTTPD:
         os.chroot ('.')
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
-        self.logger.debug('Server IP: {0}'.format(self.ip))
-        self.logger.debug('Server Port: {0}'.format(self.port))
-        self.logger.debug('Network Boot Directory: {0}'.format(self.netboot_directory))
+        self.logger.info('Server IP: {0}'.format(self.ip))
+        self.logger.info('Server Port: {0}'.format(self.port))
+        self.logger.info('Network Boot Directory: {0}'.format(self.netboot_directory))
 
     def handle_request(self, connection, addr):
         '''This method handles HTTP request.'''
@@ -67,6 +72,7 @@ class HTTPD:
         if status[:3] in ('404', '501'): # fail out
             connection.send(response)
             connection.close()
+            self.logger.warn('Sending {status} to {addr[0]}:{addr[1]} for {target}'.format(status = status, target = target, addr = addr))
             self.logger.debug('Sending message to {0}'.format(repr(addr)))
             self.logger.debug('<--BEING MESSAGE-->')
             self.logger.debug('{0}'.format(repr(response)))
@@ -87,7 +93,7 @@ class HTTPD:
         handle.close()
         connection.send(response)
         connection.close()
-        self.logger.debug('File Sent - http://{target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
+        self.logger.info('File Sent - {target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
 
     def listen(self):
         '''This method is the main loop that listens for requests.'''
