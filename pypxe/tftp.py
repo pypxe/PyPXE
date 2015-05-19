@@ -50,6 +50,7 @@ class Client:
             Sends the next block of data, setting the timeout and retry
             variables accordingly.
         '''
+        self.fh.seek(self.blksize * (self.block - 1))
         data = self.fh.read(self.blksize)
         # opcode 3 == DATA, wraparound block number
         response = struct.pack('!HH', 3, self.block % 65536)
