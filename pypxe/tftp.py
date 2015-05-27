@@ -228,7 +228,7 @@ class TFTPD:
     def __init__(self, **server_settings):
         self.ip = server_settings.get('ip', '0.0.0.0')
         self.port = server_settings.get('port', 69)
-        self.netbook_directory = server_settings.get('netbook_directory', '.')
+        self.netboot_directory = server_settings.get('netboot_directory', '.')
         self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
@@ -256,13 +256,13 @@ class TFTPD:
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('Server IP: {0}'.format(self.ip))
         self.logger.debug('Server Port: {0}'.format(self.port))
-        self.logger.debug('Network Boot Directory: {0}'.format(self.netbook_directory))
+        self.logger.debug('Network Boot Directory: {0}'.format(self.netboot_directory))
 
         self.ongoing = []
 
         # start in network boot file directory and then chroot,
         # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netbook_directory)
+        os.chdir (self.netboot_directory)
         os.chroot ('.')
 
 
