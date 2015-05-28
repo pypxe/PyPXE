@@ -11,6 +11,7 @@ import select
 import time
 import logging
 import math
+from pypxe import helpers
 
 class ParentSocket(socket.socket):
     '''Subclassed socket.socket to enable a link-back to the client object.'''
@@ -26,6 +27,7 @@ class Client:
         self.ip = parent.ip
         self.message, self.address = mainsock.recvfrom(1024)
         self.logger = parent.logger.getChild('Client.{0}'.format(self.address))
+        self.netboot_directory = parent.netboot_directory
         self.logger.debug('Recieving request...')
         self.retries = self.default_retries
         self.block = 1
@@ -81,10 +83,15 @@ class Client:
 
     def check_file(self):
         '''
-            Determines if the file exist and if it is a file; if not,
-            send an error.
+            Determines if the file exists under the netboot_directory,
+            and if it is a file; if not, send an error.
         '''
-        filename = self.message.split(chr(0))[0]
+        filename = self.message.split(chr(0))[0].lstrip('/')
+        try:
+            filename = helpers.normalize_path(self.netboot_directory, filename)
+        except helpers.PathTraversalException:
+            self.sendError(2, 'Path traversal error', filename = filename)
+            return False
         if os.path.lexists(filename) and os.path.isfile(filename):
             self.filename = filename
             return True
@@ -259,12 +266,6 @@ class TFTPD:
         self.logger.debug('Network Boot Directory: {0}'.format(self.netboot_directory))
 
         self.ongoing = []
-
-        # start in network boot file directory and then chroot,
-        # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netboot_directory)
-        os.chroot ('.')
-
 
     def listen(self):
         '''This method listens for incoming requests.'''

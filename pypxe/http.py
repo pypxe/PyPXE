@@ -9,6 +9,7 @@ import struct
 import os
 import threading
 import logging
+from pypxe import helpers
 
 class HTTPD:
     '''
@@ -44,11 +45,6 @@ class HTTPD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        # start in network boot file directory and then chroot,
-        # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netboot_directory)
-        os.chroot ('.')
-
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
         self.logger.info('Server IP: {0}'.format(self.ip))
         self.logger.info('Server Port: {0}'.format(self.port))
@@ -62,14 +58,20 @@ class HTTPD:
         self.logger.debug('{0}'.format(repr(request)))
         self.logger.debug('<--END MESSAGE-->')
         method, target, version = request.split('\r\n')[0].split(' ')
-        if not os.path.lexists(target) or not os.path.isfile(target):
-            status = '404 Not Found'
-        elif method not in ('GET', 'HEAD'):
-            status = '501 Not Implemented'
-        else:
-            status = '200 OK'
+        target = target.lstrip('/')
+        try:
+            self.logger.debug("Netboot: {0}, Target: {1}".format(self.netboot_directory, target))
+            target = helpers.normalize_path(self.netboot_directory, target)
+            if not os.path.lexists(target) or not os.path.isfile(target):
+                status = '404 Not Found'
+            elif method not in ('GET', 'HEAD'):
+                status = '501 Not Implemented'
+            else:
+                status = '200 OK'
+        except helpers.PathTraversalException:
+            status = '403 Forbidden'
         response = 'HTTP/1.1 {0}\r\n'.format(status)
-        if status[:3] in ('404', '501'): # fail out
+        if status[:3] != '200': # fail out
             connection.send(response)
             connection.close()
             self.logger.warn('Sending {status} to {addr[0]}:{addr[1]} for {target}'.format(status = status, target = target, addr = addr))
