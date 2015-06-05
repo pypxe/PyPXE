@@ -204,15 +204,15 @@ def main():
         if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
 
-        if args.DROP_USR and not args.DROP_UID:
+        if args.DROP_USR != 'root' and not args.DROP_UID:
             args.DROP_UID = pwd.getpwnam(args.DROP_USR).pw_uid
         else:
             args.DROP_UID = int(args.DROP_UID)
 
-        if args.DROP_GRP and not args.DROP_GID:
+        if args.DROP_GRP != 'root' and not args.DROP_GID:
             args.DROP_GID = grp.getgrnam(args.DROP_GRP).gr_gid
         else:
-            args.DROP_GID = int(args.DROP_GRP)
+            args.DROP_GID = int(args.DROP_GID)
 
         # make a list of running threads for each service
         running_services = []
