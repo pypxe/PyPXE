@@ -45,7 +45,9 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'NBD_SERVER_IP':'0.0.0.0',
             'NBD_PORT':10809,
             'MODE_DEBUG':'',
-            'MODE_VERBOSE':''}
+            'MODE_VERBOSE':'',
+            'DROP_UID':0,
+            'DROP_GID':0}
 
 def parse_cli_arguments():
     # main service arguments
@@ -69,6 +71,8 @@ def parse_cli_arguments():
     parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
+    parser.add_argument('--uid', action = 'store', dest = 'DROP_UID', help = 'UID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_UID'])
+    parser.add_argument('--gid', action = 'store', dest = 'DROP_GID', help = 'GID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_GID'])
 
 
     # DHCP server arguments
@@ -201,7 +205,12 @@ def main():
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), mode_verbose = do_verbose('tftp'), logger = tftp_logger, netboot_directory = args.NETBOOT_DIR)
+            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'),
+                mode_verbose = do_verbose('tftp'),
+                logger = tftp_logger,
+                netboot_directory = args.NETBOOT_DIR,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
             tftpd = multiprocessing.Process(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -236,7 +245,9 @@ def main():
                 mode_verbose = do_verbose('dhcp'),
                 whitelist = args.DHCP_WHITELIST,
                 static_config = loaded_statics,
-                logger = dhcp_logger)
+                logger = dhcp_logger,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
             dhcpd = multiprocessing.Process(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -250,7 +261,12 @@ def main():
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
+            http_server = http.HTTPD(mode_debug = do_debug('http'),
+                mode_verbose = do_debug('http'),
+                logger = http_logger,
+                netboot_directory = args.NETBOOT_DIR,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
             httpd = multiprocessing.Process(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
@@ -271,7 +287,9 @@ def main():
                 port = args.NBD_PORT,
                 mode_debug = do_debug('nbd'),
                 mode_verbose = do_verbose('nbd'),
-                logger = nbd_logger)
+                logger = nbd_logger,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
             nbd = multiprocessing.Process(target = nbd_server.listen)
             nbd.daemon = True
             nbd.start()

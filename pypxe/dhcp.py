@@ -47,6 +47,8 @@ class DHCPD:
         self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
+        self.uid = server_settings.get('uid', 0)
+        self.gid = server_settings.get('gid', 0)
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
 
         # setup logger
@@ -96,6 +98,9 @@ class DHCPD:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.bind(('', self.port ))
+
+        os.setgid(int(self.gid))
+        os.setuid(int(self.uid))
 
         # key is MAC
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})
