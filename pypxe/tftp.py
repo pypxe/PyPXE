@@ -225,6 +225,16 @@ class Client:
                 self.block = block + 1
                 self.retries = self.default_retries
                 self.send_block()
+        elif opcode == 2:
+            # write request
+            self.sock = ParentSocket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock.bind((self.ip, 0))
+            # used by select() to find ready clients
+            self.sock.parent = self
+            # send error
+            self.sendError(4, 'Write support not implemented')
+            self.dead = True
 
 
 class TFTPD:
