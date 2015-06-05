@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import threading
+import multiprocessing
 import os
 import sys
 import json
@@ -202,7 +202,7 @@ def main():
 
             # setup the thread
             tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), mode_verbose = do_verbose('tftp'), logger = tftp_logger, netboot_directory = args.NETBOOT_DIR)
-            tftpd = threading.Thread(target = tftp_server.listen)
+            tftpd = multiprocessing.Process(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
             running_services.append(tftpd)
@@ -237,7 +237,7 @@ def main():
                 whitelist = args.DHCP_WHITELIST,
                 static_config = loaded_statics,
                 logger = dhcp_logger)
-            dhcpd = threading.Thread(target = dhcp_server.listen)
+            dhcpd = multiprocessing.Process(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
             running_services.append(dhcpd)
@@ -251,7 +251,7 @@ def main():
 
             # setup the thread
             http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
-            httpd = threading.Thread(target = http_server.listen)
+            httpd = multiprocessing.Process(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
             running_services.append(httpd)
@@ -272,14 +272,14 @@ def main():
                 mode_debug = do_debug('nbd'),
                 mode_verbose = do_verbose('nbd'),
                 logger = nbd_logger)
-            nbd = threading.Thread(target = nbd_server.listen)
+            nbd = multiprocessing.Process(target = nbd_server.listen)
             nbd.daemon = True
             nbd.start()
             running_services.append(nbd)
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
-        while map(lambda x: x.isAlive(), running_services):
+        while map(lambda x: x.is_alive(), running_services):
             sleep(1)
 
     except KeyboardInterrupt:
