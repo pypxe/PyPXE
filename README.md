@@ -57,6 +57,10 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--static-config`__|Load DHCP lease configuration from JSON file. (see [`example-leases.json`](example-leases.json))|`None`|
 |__`--syslog`__|Specify a syslog server|`None`|
 |__`--syslog-port`__|Specify a syslog server port|`514`|
+|__`--uid`|Specify a user ID to drop privileges to|`0`|
+|__`--user`|Specify a username to drop privileges to|`root`|
+|__`--gid`|Specify a group ID to drop privileges to|`0`|
+|__`--group`|Specify a group name to drop privileges to|`root`|
 
 
 ##### DHCP Service Arguments

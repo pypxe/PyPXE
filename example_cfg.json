@@ -26,4 +26,6 @@
     "MODE_DEBUG" : "",
     "MODE_VERBOSE" : "",
     "DROP_UID": 0,
-    "DROP_GID": 0    }
+    "DROP_USR": "root",
+    "DROP_GID": 0,
+    "DROP_GRP": "root"  }
