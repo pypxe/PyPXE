@@ -47,8 +47,8 @@ class HTTPD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        os.setgid(int(self.gid))
-        os.setuid(int(self.uid))
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
         self.logger.info('Server IP: {0}'.format(self.ip))

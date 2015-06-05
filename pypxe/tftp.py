@@ -247,8 +247,8 @@ class TFTPD:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
 
-        os.setgid(int(self.gid))
-        os.setuid(int(self.uid))
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         # setup logger
         if self.logger == None:

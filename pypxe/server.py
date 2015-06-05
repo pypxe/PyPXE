@@ -5,6 +5,8 @@ import sys
 import json
 import logging
 import logging.handlers
+import pwd
+import grp
 
 try:
     import argparse
@@ -47,7 +49,9 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'MODE_DEBUG':'',
             'MODE_VERBOSE':'',
             'DROP_UID':0,
-            'DROP_GID':0}
+            'DROP_USR':'root',
+            'DROP_GID':0,
+            'DROP_GRP':'root'}
 
 def parse_cli_arguments():
     # main service arguments
@@ -71,8 +75,14 @@ def parse_cli_arguments():
     parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
-    parser.add_argument('--uid', action = 'store', dest = 'DROP_UID', help = 'UID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_UID'])
-    parser.add_argument('--gid', action = 'store', dest = 'DROP_GID', help = 'GID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_GID'])
+
+    dropuidexclusive = parser.add_mutually_exclusive_group(required = False)
+    dropuidexclusive.add_argument('--uid', action = 'store', dest = 'DROP_UID', help = 'UID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_UID'])
+    dropuidexclusive.add_argument('--user', action = 'store', dest = 'DROP_USR', help = 'Username to drop privileges to (\'root\' = Don\'t drop)', default = SETTINGS['DROP_USR'])
+
+    dropgidexclusive = parser.add_mutually_exclusive_group(required = False)
+    dropgidexclusive.add_argument('--gid', action = 'store', dest = 'DROP_GID', help = 'GID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_GID'])
+    dropgidexclusive.add_argument('--group', action = 'store', dest = 'DROP_GRP', help = 'Group name to drop privileges to (\'root\' = Don\'t drop)', default = SETTINGS['DROP_GRP'])
 
 
     # DHCP server arguments
@@ -193,6 +203,16 @@ def main():
 
         if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
+
+        if args.DROP_USR and not args.DROP_UID:
+            args.DROP_UID = pwd.getpwnam(args.DROP_USR).pw_uid
+        else:
+            args.DROP_UID = int(args.DROP_UID)
+
+        if args.DROP_GRP and not args.DROP_GID:
+            args.DROP_GID = grp.getgrnam(args.DROP_GRP).gr_gid
+        else:
+            args.DROP_GID = int(args.DROP_GRP)
 
         # make a list of running threads for each service
         running_services = []

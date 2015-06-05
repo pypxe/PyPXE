@@ -99,8 +99,8 @@ class DHCPD:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.bind(('', self.port ))
 
-        os.setgid(int(self.gid))
-        os.setuid(int(self.uid))
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         # key is MAC
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})

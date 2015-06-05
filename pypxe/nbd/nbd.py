@@ -49,8 +49,8 @@ class NBD:
         self.sock.bind((self.ip, self.port))
         self.sock.listen(4)
 
-        os.setgid(int(self.gid))
-        os.setuid(int(self.uid))
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         # if we have COW on, we write elsewhere so we don't need write ability
         self.openbd = open(self.bd, 'r+b' if self.write and not self.cow else 'rb')
