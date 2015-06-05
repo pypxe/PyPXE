@@ -24,4 +24,8 @@
     "NBD_SERVER_IP" : "0.0.0.0",
     "NBD_SERVER_PORT" : 10809,
     "MODE_DEBUG" : "",
-    "MODE_VERBOSE" : ""   }
+    "MODE_VERBOSE" : "",
+    "DROP_UID": 0,
+    "DROP_USR": "root",
+    "DROP_GID": 0,
+    "DROP_GRP": "root"  }

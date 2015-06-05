@@ -19,6 +19,8 @@ class NBD:
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.logger =  server_settings.get('logger', None)
+        self.uid = server_settings.get('uid', 0)
+        self.gid = server_settings.get('gid', 0)
 
         # setup logger
         if self.logger == None:
@@ -46,6 +48,9 @@ class NBD:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(4)
+
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         # if we have COW on, we write elsewhere so we don't need write ability
         self.openbd = open(self.bd, 'r+b' if self.write and not self.cow else 'rb')

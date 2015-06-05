@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-import threading
+import multiprocessing
 import os
 import sys
 import json
 import logging
 import logging.handlers
+import pwd
+import grp
 
 try:
     import argparse
@@ -45,7 +47,11 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'NBD_SERVER_IP':'0.0.0.0',
             'NBD_PORT':10809,
             'MODE_DEBUG':'',
-            'MODE_VERBOSE':''}
+            'MODE_VERBOSE':'',
+            'DROP_UID':0,
+            'DROP_USR':'root',
+            'DROP_GID':0,
+            'DROP_GRP':'root'}
 
 def parse_cli_arguments():
     # main service arguments
@@ -69,6 +75,14 @@ def parse_cli_arguments():
     parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
+
+    dropuidexclusive = parser.add_mutually_exclusive_group(required = False)
+    dropuidexclusive.add_argument('--uid', action = 'store', dest = 'DROP_UID', help = 'UID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_UID'])
+    dropuidexclusive.add_argument('--user', action = 'store', dest = 'DROP_USR', help = 'Username to drop privileges to (\'root\' = Don\'t drop)', default = SETTINGS['DROP_USR'])
+
+    dropgidexclusive = parser.add_mutually_exclusive_group(required = False)
+    dropgidexclusive.add_argument('--gid', action = 'store', dest = 'DROP_GID', help = 'GID to drop privileges to (0 = Don\'t drop)', default = SETTINGS['DROP_GID'])
+    dropgidexclusive.add_argument('--group', action = 'store', dest = 'DROP_GRP', help = 'Group name to drop privileges to (\'root\' = Don\'t drop)', default = SETTINGS['DROP_GRP'])
 
 
     # DHCP server arguments
@@ -190,6 +204,16 @@ def main():
         if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
 
+        if args.DROP_USR != 'root' and not args.DROP_UID:
+            args.DROP_UID = pwd.getpwnam(args.DROP_USR).pw_uid
+        else:
+            args.DROP_UID = int(args.DROP_UID)
+
+        if args.DROP_GRP != 'root' and not args.DROP_GID:
+            args.DROP_GID = grp.getgrnam(args.DROP_GRP).gr_gid
+        else:
+            args.DROP_GID = int(args.DROP_GID)
+
         # make a list of running threads for each service
         running_services = []
 
@@ -201,8 +225,13 @@ def main():
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), mode_verbose = do_verbose('tftp'), logger = tftp_logger, netboot_directory = args.NETBOOT_DIR)
-            tftpd = threading.Thread(target = tftp_server.listen)
+            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'),
+                mode_verbose = do_verbose('tftp'),
+                logger = tftp_logger,
+                netboot_directory = args.NETBOOT_DIR,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
+            tftpd = multiprocessing.Process(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
             running_services.append(tftpd)
@@ -236,8 +265,10 @@ def main():
                 mode_verbose = do_verbose('dhcp'),
                 whitelist = args.DHCP_WHITELIST,
                 static_config = loaded_statics,
-                logger = dhcp_logger)
-            dhcpd = threading.Thread(target = dhcp_server.listen)
+                logger = dhcp_logger,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
+            dhcpd = multiprocessing.Process(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
             running_services.append(dhcpd)
@@ -250,8 +281,13 @@ def main():
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
-            httpd = threading.Thread(target = http_server.listen)
+            http_server = http.HTTPD(mode_debug = do_debug('http'),
+                mode_verbose = do_debug('http'),
+                logger = http_logger,
+                netboot_directory = args.NETBOOT_DIR,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
+            httpd = multiprocessing.Process(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
             running_services.append(httpd)
@@ -271,15 +307,17 @@ def main():
                 port = args.NBD_PORT,
                 mode_debug = do_debug('nbd'),
                 mode_verbose = do_verbose('nbd'),
-                logger = nbd_logger)
-            nbd = threading.Thread(target = nbd_server.listen)
+                logger = nbd_logger,
+                uid = args.DROP_UID,
+                gid = args.DROP_GID)
+            nbd = multiprocessing.Process(target = nbd_server.listen)
             nbd.daemon = True
             nbd.start()
             running_services.append(nbd)
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
-        while map(lambda x: x.isAlive(), running_services):
+        while map(lambda x: x.is_alive(), running_services):
             sleep(1)
 
     except KeyboardInterrupt:

@@ -24,6 +24,8 @@ class HTTPD:
         self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger =  server_settings.get('logger', None)
+        self.uid = server_settings.get('uid', 0)
+        self.gid = server_settings.get('gid', 0)
 
         # setup logger
         if self.logger == None:
@@ -44,6 +46,9 @@ class HTTPD:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
+
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         self.logger.debug('NOTICE: HTTP server started in debug mode. HTTP server is using the following:')
         self.logger.info('Server IP: {0}'.format(self.ip))

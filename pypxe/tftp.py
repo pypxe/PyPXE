@@ -241,9 +241,14 @@ class TFTPD:
         self.logger = server_settings.get('logger', None)
         self.default_retries = server_settings.get('default_retries', 3)
         self.timeout = server_settings.get('timeout', 5)
+        self.uid = server_settings.get('uid', 0)
+        self.gid = server_settings.get('gid', 0)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
+
+        os.setgid(self.gid)
+        os.setuid(self.uid)
 
         # setup logger
         if self.logger == None:
