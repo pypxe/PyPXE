@@ -8,12 +8,13 @@ import socket
 import struct
 import os
 import logging
+import signal
+import json
 from collections import defaultdict
 from time import time
 
 class OutOfLeasesError(Exception):
     pass
-
 
 class DHCPD:
     '''
@@ -47,6 +48,7 @@ class DHCPD:
         self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
+        self.saveleasesfile = server_settings.get('saveleases', '')
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
 
         # setup logger
@@ -98,7 +100,39 @@ class DHCPD:
         self.sock.bind(('', self.port ))
 
         # key is MAC
+        # separate options dict so we don't have to clean up on export
+        self.options = dict()
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})
+        if self.saveleasesfile:
+            try:
+                leasesfile = open(self.saveleasesfile, 'rb')
+                imported = json.load(leasesfile)
+                importsafe = dict()
+                for lease in imported:
+                    packedmac = struct.pack('BBBBBB', *map(lambda x:int(x, 16), lease.split(':')))
+                    importsafe[packedmac] = imported[lease]
+                self.leases.update(importsafe)
+                self.logger.info('Loaded leases from {0}'.format(self.saveleasesfile))
+            except IOError, ValueError:
+                pass
+
+        signal.signal(signal.SIGINT, self.exportleases)
+        signal.signal(signal.SIGTERM, self.exportleases)
+        signal.signal(signal.SIGALRM, self.exportleases)
+        signal.signal(signal.SIGHUP, self.exportleases)
+
+    def exportleases(self, signum, frame):
+        if self.saveleasesfile:
+            exportsafe = dict()
+            for lease in self.leases:
+                # translate the key to json safe (and human readable) mac
+                exportsafe[self.get_mac(lease)] = self.leases[lease]
+            leasesfile = open(self.saveleasesfile, 'wb')
+            json.dump(exportsafe, leasesfile)
+            self.logger.info('Exported leases to {0}'.format(self.saveleasesfile))
+        # if ^C, propagate upwards
+        if signum == signal.SIGINT:
+            raise KeyboardInterrupt
 
     def get_namespaced_static(self, path, fallback = {}):
         statics = self.static_config
@@ -230,8 +264,8 @@ class DHCPD:
         # file_name null terminated
         if not self.ipxe or not self.leases[client_mac]['ipxe']:
             # http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
-            if 93 in self.leases[client_mac]['options'] and not self.force_file_name:
-                [arch] = struct.unpack("!H", self.leases[client_mac]['options'][93][0])
+            if 93 in self.options[client_mac] and not self.force_file_name:
+                [arch] = struct.unpack("!H", self.options[client_mac][93][0])
                 if arch == 0: # BIOS/default
                     response += self.tlv_encode(67, 'pxelinux.0' + chr(0))
                 elif arch == 6: # EFI IA32
@@ -291,7 +325,7 @@ class DHCPD:
         if self.whitelist and self.get_mac(client_mac) not in self.get_namespaced_static('dhcp.binding'):
             self.logger.info('Non-whitelisted client request received from {0}'.format(self.get_mac(client_mac)))
             return False
-        if 60 in self.leases[client_mac]['options'] and 'PXEClient' in self.leases[client_mac]['options'][60][0]:
+        if 60 in self.options[client_mac] and 'PXEClient' in self.options[client_mac][60][0]:
             self.logger.info('PXE client request received from {0}'.format(self.get_mac(client_mac)))
             return True
         self.logger.info('Non-PXE client request received from {0}'.format(self.get_mac(client_mac)))
@@ -306,14 +340,14 @@ class DHCPD:
             self.logger.debug('<--BEGIN MESSAGE-->')
             self.logger.debug('{0}'.format(repr(message)))
             self.logger.debug('<--END MESSAGE-->')
-            self.leases[client_mac]['options'] = self.tlv_parse(message[240:])
+            self.options[client_mac] = self.tlv_parse(message[240:])
             self.logger.debug('Parsed received options')
             self.logger.debug('<--BEGIN OPTIONS-->')
-            self.logger.debug('{0}'.format(repr(self.leases[client_mac]['options'])))
+            self.logger.debug('{0}'.format(repr(self.options[client_mac])))
             self.logger.debug('<--END OPTIONS-->')
             if not self.validate_req(client_mac):
                 continue
-            type = ord(self.leases[client_mac]['options'][53][0]) # see RFC2131, page 10
+            type = ord(self.options[client_mac][53][0]) # see RFC2131, page 10
             if type == 1:
                 self.logger.debug('Received DHCPOFFER from {0}'.format(self.get_mac(client_mac)))
                 try:
