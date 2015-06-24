@@ -48,7 +48,7 @@ class DHCPD:
         self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
-        self.saveleasesfile = server_settings.get('saveleases', '')
+        self.save_leases_file = server_settings.get('saveleases', '')
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
 
         # setup logger
@@ -103,33 +103,33 @@ class DHCPD:
         # separate options dict so we don't have to clean up on export
         self.options = dict()
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})
-        if self.saveleasesfile:
+        if self.save_leases_file:
             try:
-                leasesfile = open(self.saveleasesfile, 'rb')
+                leasesfile = open(self.save_leases_file, 'rb')
                 imported = json.load(leasesfile)
                 importsafe = dict()
                 for lease in imported:
                     packedmac = struct.pack('BBBBBB', *map(lambda x:int(x, 16), lease.split(':')))
                     importsafe[packedmac] = imported[lease]
                 self.leases.update(importsafe)
-                self.logger.info('Loaded leases from {0}'.format(self.saveleasesfile))
+                self.logger.info('Loaded leases from {0}'.format(self.save_leases_file))
             except IOError, ValueError:
                 pass
 
-        signal.signal(signal.SIGINT, self.exportleases)
-        signal.signal(signal.SIGTERM, self.exportleases)
-        signal.signal(signal.SIGALRM, self.exportleases)
-        signal.signal(signal.SIGHUP, self.exportleases)
+        signal.signal(signal.SIGINT, self.export_leases)
+        signal.signal(signal.SIGTERM, self.export_leases)
+        signal.signal(signal.SIGALRM, self.export_leases)
+        signal.signal(signal.SIGHUP, self.export_leases)
 
-    def exportleases(self, signum, frame):
-        if self.saveleasesfile:
+    def export_leases(self, signum, frame):
+        if self.save_leases_file:
             exportsafe = dict()
             for lease in self.leases:
                 # translate the key to json safe (and human readable) mac
                 exportsafe[self.get_mac(lease)] = self.leases[lease]
-            leasesfile = open(self.saveleasesfile, 'wb')
+            leasesfile = open(self.save_leases_file, 'wb')
             json.dump(exportsafe, leasesfile)
-            self.logger.info('Exported leases to {0}'.format(self.saveleasesfile))
+            self.logger.info('Exported leases to {0}'.format(self.save_leases_file))
         # if ^C, propagate upwards
         if signum == signal.SIGINT:
             raise KeyboardInterrupt
