@@ -213,7 +213,7 @@ class DHCPD:
         else:
             response += struct.pack('!HHI', 0, 0x8000, 0)
         if not self.mode_proxy:
-            if self.leases[client_mac]['ip']: # OFFER
+            if self.leases[client_mac]['ip'] and self.leases[client_mac]['expire'] > time(): # OFFER
                 offer = self.leases[client_mac]['ip']
             else: # ACK
                 offer = self.get_namespaced_static('dhcp.binding.{0}.ipaddr'.format(self.get_mac(client_mac)))
