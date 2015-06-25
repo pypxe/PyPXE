@@ -228,24 +228,25 @@ class DHCPD:
         response += self.tlv_encode(66, self.file_server)
 
         # file_name null terminated
-        if not self.ipxe or not self.leases[client_mac]['ipxe']:
-            # http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
-            if 93 in self.leases[client_mac]['options'] and not self.force_file_name:
-                [arch] = struct.unpack("!H", self.leases[client_mac]['options'][93][0])
-                if arch == 0: # BIOS/default
-                    response += self.tlv_encode(67, 'pxelinux.0' + chr(0))
-                elif arch == 6: # EFI IA32
-                    response += self.tlv_encode(67, 'syslinux.efi32' + chr(0))
-                elif arch == 7: # EFI BC, x86-64 (according to the above link)
-                    response += self.tlv_encode(67, 'syslinux.efi64' + chr(0))
-                elif arch == 9: # EFI x86-64
-                    response += self.tlv_encode(67, 'syslinux.efi64' + chr(0))
+        filename = self.get_namespaced_static('dhcp.binding.{0}.rom'.format(self.get_mac(client_mac)))
+        if not filename:
+            if not self.ipxe or not self.leases[client_mac]['ipxe']:
+                # http://www.syslinux.org/wiki/index.php/PXELINUX#UEFI
+                if 93 in self.leases[client_mac]['options'] and not self.force_file_name:
+                    [arch] = struct.unpack("!H", self.leases[client_mac]['options'][93][0])
+                    filename = {0: 'pxelinux.0', # BIOS/default
+                                6: 'syslinux.efi32', # EFI IA32
+                                7: 'syslinux.efi64', # EFI BC, x86-64
+                                9: 'syslinux.efi64'  # EFI x86-64
+                                }[arch]
+                else:
+                    filename = self.file_name
             else:
-                response += self.tlv_encode(67, self.file_name + chr(0))
-        else:
-            response += self.tlv_encode(67, 'chainload.kpxe' + chr(0)) # chainload iPXE
-            if opt53 == 5: # ACK
-                self.leases[client_mac]['ipxe'] = False
+                filename = 'chainload.kpxe' # chainload iPXE
+                if opt53 == 5: # ACK
+                    self.leases[client_mac]['ipxe'] = False
+        response += self.tlv_encode(67, filename.encode('ascii') + chr(0))
+
         if self.mode_proxy:
             response += self.tlv_encode(60, 'PXEClient')
             response += struct.pack('!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, chr(0) + 'PXE', 0xff)
