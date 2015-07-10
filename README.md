@@ -1,6 +1,4 @@
 # About
-
-[![Join the chat at https://gitter.im/psychomario/PyPXE](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/psychomario/PyPXE?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 This repository contains code that provides a working PXE server (via HTTP, TFTP, DHCP, and/or iPXE) implemented purely in Python. Currently, only Python 2.6 and newer is supported. Please read [`DOCUMENTATION.md`](DOCUMENTATION.md) for further explanation of the PyPXE project as well as recommended use. See the [issues page](https://github.com/psychomario/PyPXE/issues) for open issues, bugs, and enhancements/improvements.
 
 **DISCLAIMER:** None of thes implemented services are fully compliant with any standards or specifications. However, the true specifications and standards were followed when building PyPXE and while they work for PXE any other uses are purely coincidental. Use at your own risk.
