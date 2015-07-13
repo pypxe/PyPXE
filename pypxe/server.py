@@ -272,10 +272,10 @@ def main():
                 mode_debug = do_debug('nbd'),
                 mode_verbose = do_verbose('nbd'),
                 logger = nbd_logger)
-            nbd = threading.Thread(target = nbd_server.listen)
-            nbd.daemon = True
-            nbd.start()
-            running_services.append(nbd)
+            nbdd = threading.Thread(target = nbd_server.listen)
+            nbdd.daemon = True
+            nbdd.start()
+            running_services.append(nbdd)
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
