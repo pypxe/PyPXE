@@ -271,7 +271,8 @@ def main():
                 port = args.NBD_PORT,
                 mode_debug = do_debug('nbd'),
                 mode_verbose = do_verbose('nbd'),
-                logger = nbd_logger)
+                logger = nbd_logger,
+                netboot_directory = args.NETBOOT_DIR)
             nbdd = threading.Thread(target = nbd_server.listen)
             nbdd.daemon = True
             nbdd.start()

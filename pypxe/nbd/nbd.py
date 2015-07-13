@@ -6,10 +6,12 @@ import sys
 import os
 import io
 import writes
+from pypxe import helpers
 
 class NBD:
     def __init__(self, **server_settings):
         self.bd = server_settings.get('block_device', '')
+        self.netboot_directory = server_settings.get('netboot_directory', '.')
         self.write = server_settings.get('write', False) # write?
         self.cow = server_settings.get('cow', True) # COW is the safe default
         self.in_mem = server_settings.get('in_mem', False)
@@ -48,7 +50,7 @@ class NBD:
         self.sock.listen(4)
 
         # if we have COW on, we write elsewhere so we don't need write ability
-        self.openbd = open(self.bd, 'r+b' if self.write and not self.cow else 'rb')
+        self.openbd = open(helpers.normalize_path(self.netboot_directory, self.bd), 'r+b' if self.write and not self.cow else 'rb')
         # go to EOF
         self.openbd.seek(0, 2)
         # we need this when clients mount us
@@ -90,6 +92,7 @@ class NBD:
         [namelen] = struct.unpack('!I', conn.recv(4))
         name = conn.recv(namelen)
         if name != self.bd:
+            self.logger.debug('Blockdevice names do not match {0} != {1}'.format(self.bd, name))
             conn.close()
             return 1
 
