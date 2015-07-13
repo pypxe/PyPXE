@@ -190,6 +190,10 @@ def main():
         if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
 
+        if args.NBD_COW and not args.NBD_WRITE:
+            # cow implies write
+            args.NBD_WRITE = True
+
         # make a list of running threads for each service
         running_services = []
 
