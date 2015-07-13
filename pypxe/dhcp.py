@@ -105,13 +105,13 @@ class DHCPD:
         self.leases = defaultdict(lambda: {'ip': '', 'expire': 0, 'ipxe': self.ipxe})
         if self.save_leases_file:
             try:
-                leasesfile = open(self.save_leases_file, 'rb')
-                imported = json.load(leasesfile)
-                importsafe = dict()
+                leases_file = open(self.save_leases_file, 'rb')
+                imported = json.load(leases_file)
+                import_safe = dict()
                 for lease in imported:
-                    packedmac = struct.pack('BBBBBB', *map(lambda x:int(x, 16), lease.split(':')))
-                    importsafe[packedmac] = imported[lease]
-                self.leases.update(importsafe)
+                    packed_mac = struct.pack('BBBBBB', *map(lambda x:int(x, 16), lease.split(':')))
+                    import_safe[packed_mac] = imported[lease]
+                self.leases.update(import_safe)
                 self.logger.info('Loaded leases from {0}'.format(self.save_leases_file))
             except IOError, ValueError:
                 pass
@@ -127,8 +127,8 @@ class DHCPD:
             for lease in self.leases:
                 # translate the key to json safe (and human readable) mac
                 exportsafe[self.get_mac(lease)] = self.leases[lease]
-            leasesfile = open(self.save_leases_file, 'wb')
-            json.dump(exportsafe, leasesfile)
+            leases_file = open(self.save_leases_file, 'wb')
+            json.dump(exportsafe, leases_file)
             self.logger.info('Exported leases to {0}'.format(self.save_leases_file))
         # if ^C, propagate upwards
         if signum == signal.SIGINT:
