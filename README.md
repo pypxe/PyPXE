@@ -55,6 +55,7 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--verbose`__|Enable selected services in verbose mode; services are selected by passing the name in a comma separated list. Follows the same syntax for selecting service as `--debug`._|`''`|
 |__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
 |__`--static-config`__|Load DHCP lease configuration from JSON file. (see [`example-leases.json`](example-leases.json))|`None`|
+|__`--save-leases`|Saves allocated leases on `HUP`, `INT`(`^C`), `ALRM` and `TERM`. Loads on start if the file exists already|`None`|
 |__`--syslog`__|Specify a syslog server|`None`|
 |__`--syslog-port`__|Specify a syslog server port|`514`|
 
