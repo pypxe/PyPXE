@@ -25,7 +25,7 @@ class DHCPD:
     def __init__(self, **server_settings):
 
         self.ip = server_settings.get('ip', '192.168.2.2')
-        self.port = server_settings.get('port', 67)
+        self.port = int(server_settings.get('port', 67))
         self.offer_from = server_settings.get('offer_from', '192.168.2.100')
         self.offer_to = server_settings.get('offer_to', '192.168.2.150')
         self.subnet_mask = server_settings.get('subnet_mask', '255.255.255.0')

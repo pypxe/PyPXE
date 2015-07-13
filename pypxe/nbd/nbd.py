@@ -15,7 +15,7 @@ class NBD:
         self.in_mem = server_settings.get('in_mem', False)
         self.copy_to_ram = server_settings.get('copy_to_ram', False)
         self.ip = server_settings.get('ip', '0.0.0.0')
-        self.port = server_settings.get('port', 10809)
+        self.port = int(server_settings.get('port', 10809))
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.mode_verbose = server_settings.get('mode_verbose', False) # debug mode
         self.logger =  server_settings.get('logger', None)
