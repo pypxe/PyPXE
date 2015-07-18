@@ -17,11 +17,9 @@ class ParentSocket(socket.socket):
     '''Subclassed socket.socket to enable a link-back to the client object.'''
     parent = None
 
-
 class Client:
     '''Client instance for TFTPD.'''
     def __init__(self, mainsock, parent):
-
         self.default_retries = parent.default_retries
         self.timeout = parent.timeout
         self.ip = parent.ip
@@ -38,9 +36,7 @@ class Client:
         self.filename = ''
         self.wrap = 0
         self.arm_wrap = False
-
-        # message from the main socket
-        self.handle()
+        self.handle() # message from the main socket
 
     def ready(self):
         '''Called when there is something to be read on our socket.'''
@@ -78,7 +74,7 @@ class Client:
         '''Determines if the file read mode octet; if not, send an error.'''
         mode = self.message.split(chr(0))[1]
         if mode == 'octet': return True
-        self.sendError(5, 'Mode {0} not supported'.format(mode))
+        self.send_error(5, 'Mode {0} not supported'.format(mode))
         return False
 
     def check_file(self):
@@ -90,12 +86,12 @@ class Client:
         try:
             filename = helpers.normalize_path(self.netboot_directory, filename)
         except helpers.PathTraversalException:
-            self.sendError(2, 'Path traversal error', filename = filename)
+            self.send_error(2, 'Path traversal error', filename = filename)
             return False
         if os.path.lexists(filename) and os.path.isfile(filename):
             self.filename = filename
             return True
-        self.sendError(1, 'File Not Found', filename = filename)
+        self.send_error(1, 'File Not Found', filename = filename)
         return False
 
     def parse_options(self):
@@ -111,7 +107,6 @@ class Client:
         if self.filesize > (2 ** 16) * self.blksize:
             self.logger.warning('Request too big, attempting transfer anyway.')
             self.logger.debug('Details: Filesize {0} is too big for blksize {1}.'.format(self.filesize, self.blksize))
-
         if len(options):
             # we need to know later if we actually had any options
             self.block = 0
@@ -123,15 +118,13 @@ class Client:
         '''Acknowledges any options received.'''
         # only called if options, so send them all
         response = struct.pack("!H", 6)
-
         response += 'blksize' + chr(0)
         response += str(self.blksize) + chr(0)
         response += 'tsize' + chr(0)
         response += str(self.filesize) + chr(0)
-
         self.sock.sendto(response, self.address)
 
-    def newRequest(self):
+    def new_request(self):
         '''
             When receiving a read request from the parent socket, open our
             own socket and check the read request; if we don't have any options,
@@ -142,26 +135,21 @@ class Client:
         self.sock.bind((self.ip, 0))
         # used by select() to find ready clients
         self.sock.parent = self
-
         if not self.valid_mode() or not self.check_file():
             # some clients just ACK the error (wrong code?)
             # so forcefully shutdown
             self.complete()
             return
-
         self.fh = open(self.filename, 'rb')
         self.filesize = os.path.getsize(self.filename)
-
         if not self.parse_options():
             # no options recieved so start transfer
             if self.block == 1:
                 self.send_block()
             return
+        self.reply_options() # we received some options so ACK those first
 
-        # we got some options so ACK those first
-        self.reply_options()
-
-    def sendError(self, code = 1, message = 'File Not Found', filename = ''):
+    def send_error(self, code = 1, message = 'File Not Found', filename = ''):
         '''
             Sends an error code and string to a client. See RFC1350, page 10 for
             details.
@@ -192,8 +180,7 @@ class Client:
         try:
             self.fh.close()
         except AttributeError:
-            # we have not opened yet or file-not-found
-            pass
+            pass # we have not opened yet or file-not-found
         self.sock.close()
         self.dead = True
 
@@ -203,7 +190,7 @@ class Client:
         [opcode] = struct.unpack('!H', self.message[:2])
         if opcode == 1:
             self.message = self.message[2:]
-            self.newRequest()
+            self.new_request()
         elif opcode == 4:
             [block] = struct.unpack('!H', self.message[2:4])
             if block == 0 and self.arm_wrap:
@@ -233,9 +220,8 @@ class Client:
             # used by select() to find ready clients
             self.sock.parent = self
             # send error
-            self.sendError(4, 'Write support not implemented')
+            self.send_error(4, 'Write support not implemented')
             self.dead = True
-
 
 class TFTPD:
     '''

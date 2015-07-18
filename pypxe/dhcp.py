@@ -123,14 +123,15 @@ class DHCPD:
 
     def export_leases(self, signum, frame):
         if self.save_leases_file:
-            exportsafe = dict()
+            export_safe = dict()
             for lease in self.leases:
                 # translate the key to json safe (and human readable) mac
-                exportsafe[self.get_mac(lease)] = self.leases[lease]
+                export_safe[self.get_mac(lease)] = self.leases[lease]
             leases_file = open(self.save_leases_file, 'wb')
-            json.dump(exportsafe, leases_file)
+            json.dump(export_safe, leases_file)
             self.logger.info('Exported leases to {0}'.format(self.save_leases_file))
-        # if ^C, propagate upwards
+
+        # if keyboard interrupt, propagate upwards
         if signum == signal.SIGINT:
             raise KeyboardInterrupt
 
@@ -154,7 +155,6 @@ class DHCPD:
 
         # e.g 3232235777 to '192.168.1.1'
         decode = lambda x: socket.inet_ntoa(struct.pack('!I', x))
-
         from_host = encode(self.offer_from)
         to_host = encode(self.offer_to)
 
