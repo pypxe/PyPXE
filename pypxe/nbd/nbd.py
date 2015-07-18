@@ -51,12 +51,16 @@ class NBD:
 
         # if we have COW on, we write elsewhere so we don't need write ability
         self.openbd = open(helpers.normalize_path(self.netboot_directory, self.bd), 'r+b' if self.write and not self.cow else 'rb')
+
         # go to EOF
         self.openbd.seek(0, 2)
+
         # we need this when clients mount us
         self.bdsize = self.openbd.tell()
+
         # go back to start
         self.openbd.seek(0)
+
         if self.copy_to_ram and self.cow:
             self.logger.info('Starting copying {0} to RAM'.format(self.bd))
             self.openbd = io.BytesIO(self.openbd.read())
@@ -74,32 +78,31 @@ class NBD:
         '''Initiate the connection, server sends first.'''
         # mostly taken from https://github.com/yoe/nbd/blob/master/nbd-server.c
         conn.send('NBDMAGIC')
+
         # 0x49484156454F5054
         conn.send('IHAVEOPT')
+
         # NBD_FLAG_FIXED_NEWSTYLE | NBD_FLAG_NO_ZEROES
         conn.send(struct.pack('!H', 3))
-
         [cflags] = struct.unpack('!I', conn.recv(4))
-
         op = 0
+
         while op != 1: # NBD_OPT_EXPORT_NAME
             [magic] = struct.unpack("!Q", conn.recv(8))
             [op] = struct.unpack("!I", conn.recv(4))
             if op != 1:
                 # NBD_REP_ERR_UNSUP
                 self.send_reply(conn, addr, 2 ** 31 + 1, '')
-
         [namelen] = struct.unpack('!I', conn.recv(4))
         name = conn.recv(namelen)
+
         if name != self.bd:
             self.logger.debug('Blockdevice names do not match {0} != {1}'.format(self.bd, name))
             conn.close()
             return 1
 
         self.logger.info('Received request for {0} from {1}'.format(name, addr))
-
-        # size of export
-        exportinfo = struct.pack('!Q', self.bdsize)
+        exportinfo = struct.pack('!Q', self.bdsize) # size of export
         flags = (0 if self.write else 2) # readonly?
         exportinfo += struct.pack('!H', flags)
         exportinfo += chr(0) * (0 if (cflags & 2) else 124)
@@ -109,7 +112,6 @@ class NBD:
         '''Handle all client actions, R/W/Disconnect'''
         ret = self.handshake(conn, addr)
         if ret: return # client did something wrong, so we closed them
-
         FS = writes.write(self.cow, self.in_mem)(addr, self.openbd, self.logger, seeklock)
 
         while True:
@@ -119,13 +121,14 @@ class NBD:
             except struct.error:
                 # client sent us something malformed, or gave up (module not loaded)
                 continue
+
             if opcode not in (0, 1, 2):
                 # NBD_REP_ERR_UNSUP
                 self.send_reply(conn, addr, 2 ** 31 + 1, '')
                 continue
+
             if opcode == 0: # READ
                 data = FS.read(offset, length)
-
                 response = struct.pack('!I', 0x67446698)
                 response += struct.pack('!I', 0) # error
                 response += struct.pack('!Q', handle)
@@ -138,15 +141,13 @@ class NBD:
                 # trying to parse the rest of the data
                 data = conn.recv(length, socket.MSG_WAITALL)
                 FS.write(offset, data)
-
                 response = struct.pack('!I', 0x67446698)
                 response += struct.pack('!I', 0) # error
                 response += struct.pack('!Q', handle)
                 conn.send(response)
 
             elif opcode == 2: # DISCONNECT
-                # delete COW diff
-                conn.close()
+                conn.close() # delete COW diff
                 self.logger.info('{0} disconnected'.format(addr))
                 return
 
@@ -154,15 +155,19 @@ class NBD:
         '''This method is the main loop that listens for requests.'''
         seeklock = threading.Lock()
         cowfiles = []
+
         while True:
             try:
                 conn, addr = self.sock.accept()
+
                 # split off on a thread, allows us to handle multiple clients
                 dispatch = threading.Thread(target = self.handle_client, args = (conn, addr, seeklock))
+
                 # clients don't necessarily close the TCP connection
                 # so we use this to kill the program on ctrl-c
                 dispatch.daemon = True
                 dispatch.start()
+
                 # this is for the cleanup at the end. Will need clarifying
                 # if MemCOW
                 if self.cow and not self.in_mem:

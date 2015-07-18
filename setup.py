@@ -12,7 +12,7 @@ if version_info >= (3,):
 
 # require argparse on Python <2.7
 if version_info[0] == 2 and version_info[1] < 7:
-    deps.append("argparse")
+    deps.append('argparse')
 
 setup(name='PyPXE',
       version='1.6',

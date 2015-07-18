@@ -63,14 +63,17 @@ class COW:
             else:
                 # we don't have this page, so copy it first. then add to the list
                 self.seek_lock.acquire()
+
                 # on the page boundary
                 self.imagefd.seek(major)
                 cpdata = self.imagefd.read(4096)
                 self.seek_lock.release()
+
                 # append to EOF
                 self.fh.seek(0, 2)
                 self.fh.write(cpdata)
                 self.pages.append(major)
+
                 # we've got a copy of the page now, we just need to write it
                 off = self.pages.index(major)
                 self.fh.seek(off * 4096 + minor)
@@ -88,6 +91,7 @@ class DiskCOW(COW):
 
         # never want readonly cow, also definately creating file
         self.fh = open('PyPXE_NBD_COW_{addr[0]}_{addr[1]}'.format(addr = addr), 'w+b')
+
         # pages is a list of the addresses for which we have different pages
         # should all be multiples of 4096
         self.pages = []
@@ -102,6 +106,7 @@ class MemCOW(COW):
 
         # BytesIO looks exactly the same as a file, perfect for in memory disk
         self.fh = io.BytesIO()
+
         # pages is a list of the addresses for which we have different pages
         # should all be multiples of 4096
         self.pages = []
@@ -116,8 +121,7 @@ class RW:
 
     def read(self, offset, length):
         self.logger.debug('{0} reading {1} bytes from [{2}]'.format(self.addr, length, hex(offset)))
-        # see COW.read() for lock reason
-        self.seek_lock.acquire()
+        self.seek_lock.acquire() # see COW.read() for lock reason
         self.imagefd.seek(offset)
         data = self.imagefd.read(length)
         self.seek_lock.release()
