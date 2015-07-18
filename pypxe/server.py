@@ -191,6 +191,10 @@ def main():
         if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
 
+        if args.NBD_COW and not args.NBD_WRITE:
+            # cow implies write
+            args.NBD_WRITE = True
+
         # make a list of running threads for each service
         running_services = []
 
@@ -273,11 +277,12 @@ def main():
                 port = args.NBD_PORT,
                 mode_debug = do_debug('nbd'),
                 mode_verbose = do_verbose('nbd'),
-                logger = nbd_logger)
-            nbd = threading.Thread(target = nbd_server.listen)
-            nbd.daemon = True
-            nbd.start()
-            running_services.append(nbd)
+                logger = nbd_logger,
+                netboot_directory = args.NETBOOT_DIR)
+            nbdd = threading.Thread(target = nbd_server.listen)
+            nbdd.daemon = True
+            nbdd.start()
+            running_services.append(nbdd)
 
         sys_logger.info('PyPXE successfully initialized and running!')
 

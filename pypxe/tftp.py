@@ -244,7 +244,7 @@ class TFTPD:
     '''
     def __init__(self, **server_settings):
         self.ip = server_settings.get('ip', '0.0.0.0')
-        self.port = server_settings.get('port', 69)
+        self.port = int(server_settings.get('port', 69))
         self.netboot_directory = server_settings.get('netboot_directory', '.')
         self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
