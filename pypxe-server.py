@@ -34,7 +34,7 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'USE_IPXE':False,
             'USE_HTTP':False,
             'USE_TFTP':True,
-            'USE_DHCP':True,
+            'USE_DHCP':False,
             'DHCP_MODE_PROXY':False,
             'NBD_BLOCK_DEVICE':'',
             'NBD_WRITE':False,
@@ -71,7 +71,6 @@ def parse_cli_arguments():
     # DHCP server arguments
     dhcp_group = parser.add_argument_group(title = 'DHCP', description = 'Arguments relevant to the DHCP server')
     exclusive = dhcp_group.add_mutually_exclusive_group(required = False)
-    exclusive.add_argument('--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Disable built-in DHCP server', default = not SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = SETTINGS['DHCP_MODE_PROXY'])
 
