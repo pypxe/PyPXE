@@ -22,7 +22,16 @@ class DHCPD:
         https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol,
         and http://www.pix.net/software/pxeboot/archive/pxespec.pdf.
     '''
-    def __init__(self, **server_settings):
+    def __init__(self, booted_callback=None, expected_hostname=None, **server_settings):
+        '''
+
+        :param booted_callback: This function is called when the
+        expected_hostname is recognised over DHCP, indicating your host is
+        booted
+        :param expected_hostname: Expected hostname.
+        :param server_settings: Server settings kwargs
+        :return:
+        '''
 
         self.ip = server_settings.get('ip', '192.168.2.2')
         self.port = server_settings.get('port', 67)
@@ -47,6 +56,8 @@ class DHCPD:
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
         self.magic = struct.pack('!I', 0x63825363) # magic cookie
+        self.expected_hostname = expected_hostname
+        self.booted_callback = booted_callback
 
         # setup logger
         if self.logger == None:
@@ -306,6 +317,14 @@ class DHCPD:
             self.logger.debug('Parsed received options')
             self.logger.debug('<--BEGIN OPTIONS-->')
             self.logger.debug('{0}'.format(repr(self.leases[client_mac]['options'])))
+
+            if self.leases[client_mac]['options'].get(12) is not None and \
+                    50 in self.leases[client_mac]['options']:
+                if self.leases[client_mac]['options'].get(12)[0] == \
+                        self.expected_hostname:
+                    byte_ip = self.leases[client_mac]['options'].get(50)[0]
+                    booted_ip = str(socket.inet_ntoa(byte_ip))
+                    self.booted_callback(booted_ip)
             self.logger.debug('<--END OPTIONS-->')
             if not self.validate_req(client_mac):
                 continue
