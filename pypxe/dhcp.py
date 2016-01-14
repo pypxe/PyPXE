@@ -350,14 +350,14 @@ class DHCPD:
                 continue
             type = ord(self.options[client_mac][53][0]) # see RFC2131, page 10
             if type == 1:
-                self.logger.debug('Received DHCPOFFER from {0}'.format(self.get_mac(client_mac)))
+                self.logger.debug('Sending DHCPOFFER to {0}'.format(self.get_mac(client_mac)))
                 try:
                     self.dhcp_offer(message)
                 except OutOfLeasesError:
                     self.logger.critical('Ran out of leases')
             elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
-                self.logger.debug('Received DHCPACK from {0}'.format(self.get_mac(client_mac)))
+                self.logger.debug('Sending DHCPACK to {0}'.format(self.get_mac(client_mac)))
                 self.dhcp_ack(message)
             elif type == 3 and address[0] != '0.0.0.0' and self.mode_proxy:
-                self.logger.debug('Received DHCPACK from {0}'.format(self.get_mac(client_mac)))
+                self.logger.debug('Sending DHCPACK to {0}'.format(self.get_mac(client_mac)))
                 self.dhcp_ack(message)
