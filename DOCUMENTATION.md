@@ -57,7 +57,7 @@ The PyPXE library provides the following services for the purpose of creating a 
 * `from pypxe import http` or `import pypxe.http` imports the HTTP service
 * `from pypxe import nbd` or `import pypxe.nbd` imports the NBD service
 
-**See [`pypxe-server.py`](pypxe-server.py) in the root of the repo for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
+**See [`pypxe/server.py`](pypxe.server) for example usage on how to call, define, and setup the services.** When running any Python script that uses these classes, it should be run as a user with root privileges as they bind to interfaces and without root privileges the services will most likely fail to bind properly.
 
 ## TFTP Server `pypxe.tftp`
 
@@ -79,6 +79,7 @@ The TFTP server class, __`TFTPD()`__, is constructed with the following __keywor
 |__`port`__|This it the port that the TFTP server will run on.|`69` (default port for TFTP)|_int_|
 |__`netboot_directory`__|This is the directory that the TFTP server will serve files from similarly to that of `tftpboot`.|`'.'` (current directory)|_string_|
 |__`mode_debug`__|This indicates whether or not the TFTP server should be started in debug mode or not.|`False`|_bool_|
+|__`mode_verbose`__|This indicates whether or not the TFTP server should be started in verbose mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 |__`default_retries`__|The number of data retransmissions before dropping a connection.|`3`|_int_|
 |__`timeout`__|The time in seconds before re-sending an un-acknowledged data block.|`5`|_int_|
@@ -115,6 +116,7 @@ The DHCP server class, __`DHCPD()`__, is constructed with the following __keywor
 |__`static_config`__|This specifies a static configuration dictionary so that it can give specific leases to specific MAC addresses.|`{}`|_dict_|
 |__`whitelist`__|This indicates whether or not the DHCP server should use the static configuration dictionary as a whitelist; effectively, the DHCP server will only give out leases to those specified in the `static_config` dictionary.|`False`|_bool_|
 |__`mode_debug`__|This indicates whether or not the DHCP server should be started in debug mode or not.|`False`|_bool_|
+|__`mode_verbose`__|This indicates whether or not the DHCP server should be started in verbose mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 ## HTTP Server `pypxe.http`
@@ -137,6 +139,7 @@ The HTTP server class, __`HTTPD()`__, is constructed with the following __keywor
 |__`port`__|This it the port that the HTTP server will run on.|`80` (default port for HTTP)|_int_|
 |__`netboot_directory`__|This is the directory that the HTTP server will serve files from similarly to that of `tftpboot`.|`'.'` (current directory)|_string_|
 |__`mode_debug`__|This indicates whether or not the HTTP server should be started in debug mode or not.|`False`|_bool_|
+|__`mode_verbose`__|This indicates whether or not the HTTP server should be started in verbose mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 ## NBD Server `pypxe.nbd`
@@ -163,10 +166,11 @@ The NBD server class, __`NBD()`__, is constructed with the following __keyword a
 |__`in_mem`__|Enable _in-memory_ copy-on-write support on the block device. `False` causes changes to be stored on disk.|`False`|_bool_|
 |__`copy_to_ram`__|Copy the disk image to RAM when the service starts.|`False`|_bool_|
 |__`mode_debug`__|This indicates whether or not the NBD server should be started in debug mode or not.|`False`|_bool_|
+|__`mode_verbose`__|This indicates whether or not the NBD server should be started in verbose mode or not.|`False`|_bool_|
 |__`logger`__|A [Logger](https://docs.python.org/2/library/logging.html#logger-objects) object used for logging messages, if `None` a local [StreamHandler](https://docs.python.org/2/library/logging.handlers.html#streamhandler) instance will be created.|`None`|[_Logger_](https://docs.python.org/2/library/logging.html#logger-objects)|
 
 
 ## Additional Information
 * The function `chr(0)` is used in multiple places throughout the servers. This denotes a `NULL` byte, or `\x00`
-* Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `pypxe-server.py` will not run without it.
+* Python 2.6 does not include the `argparse` module, it is included in the standard library as of 2.7 and newer. The `argparse` module is required to take in command line arguments and `pypxe.server` will not run without it.
 * The TFTP server currently does not support transfer of large files, this is a known issue (see #35). Instead of using TFTP to transfer large files (roughly 33MB or greater) it is recommended that you use the HTTP server to do so. iPXE supports direct boot from HTTP and certain kernels (once you've booted into `pxelinux.0` via TFTP) support fetching files via HTTP as well.

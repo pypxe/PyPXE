@@ -17,6 +17,7 @@ from pypxe import dhcp # PyPXE DHCP service
 from pypxe import http # PyPXE HTTP service
 from pypxe import nbd  # PyPXE NBD service
 
+args = None
 # default settings
 SETTINGS = {'NETBOOT_DIR':'netboot',
             'NETBOOT_FILE':'',
@@ -43,7 +44,8 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'NBD_COPY_TO_RAM':False,
             'NBD_SERVER_IP':'0.0.0.0',
             'NBD_PORT':10809,
-            'MODE_DEBUG':''}
+            'MODE_DEBUG':'',
+            'MODE_VERBOSE':''}
 
 def parse_cli_arguments():
     # main service arguments
@@ -62,8 +64,10 @@ def parse_cli_arguments():
     tftpexclusive.add_argument('--no-tftp', action = 'store_false', dest = 'USE_TFTP', help = 'Disable built-in TFTP server, by default it is enabled', default = not SETTINGS['USE_TFTP'])
 
     parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services. Precede an option with \'-\' to disable debugging for that service; as an example, one can pass in the following to enable debugging for all services except the DHCP service: \'--debug all,-dhcp\'', default = SETTINGS['MODE_DEBUG'])
+    parser.add_argument('--verbose', action = 'store', dest = 'MODE_VERBOSE', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Less verbose than \'debug\'. Use \'all\' for enabling verbosity on all services. Precede an option with \'-\' to disable debugging for that service; as an example, one can pass in the following to enable debugging for all services except the DHCP service: \'--debug all,-dhcp\'', default = SETTINGS['MODE_VERBOSE'])
     parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = '')
     parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
+    parser.add_argument('--save-leases', action = 'store', dest = 'LEASES_FILE', help = 'Save all DHCP leases on exit or SIGHUP. Will load from this file on start', default = '')
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
 
@@ -107,7 +111,13 @@ def do_debug(service):
             or 'all' in args.MODE_DEBUG.lower())
             and '-{0}'.format(service) not in args.MODE_DEBUG.lower())
 
-if __name__ == '__main__':
+def do_verbose(service):
+    return ((service in args.MODE_VERBOSE.lower()
+            or 'all' in args.MODE_VERBOSE.lower())
+            and '-{0}'.format(service) not in args.MODE_VERBOSE.lower())
+
+def main():
+    global SETTINGS, args
     try:
         # warn the user that they are starting PyPXE as non-root user
         if os.getuid() != 0:
@@ -181,8 +191,9 @@ if __name__ == '__main__':
         if args.NBD_COW_IN_MEM or args.NBD_COPY_TO_RAM:
             sys_logger.warning('NBD cowinmem and copytoram can cause high RAM usage')
 
-        #serve all files from one directory
-        os.chdir (args.NETBOOT_DIR)
+        if args.NBD_COW and not args.NBD_WRITE:
+            # cow implies write
+            args.NBD_WRITE = True
 
         # make a list of running threads for each service
         running_services = []
@@ -195,7 +206,7 @@ if __name__ == '__main__':
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), logger = tftp_logger)
+            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), mode_verbose = do_verbose('tftp'), logger = tftp_logger, netboot_directory = args.NETBOOT_DIR)
             tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -227,9 +238,11 @@ if __name__ == '__main__':
                 use_http = args.USE_HTTP,
                 mode_proxy = args.DHCP_MODE_PROXY,
                 mode_debug = do_debug('dhcp'),
+                mode_verbose = do_verbose('dhcp'),
                 whitelist = args.DHCP_WHITELIST,
                 static_config = loaded_statics,
-                logger = dhcp_logger)
+                logger = dhcp_logger,
+                saveleases = args.LEASES_FILE)
             dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()
@@ -243,7 +256,7 @@ if __name__ == '__main__':
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = do_debug('http'), logger = http_logger)
+            http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
@@ -262,12 +275,14 @@ if __name__ == '__main__':
                 copy_to_ram = args.NBD_COPY_TO_RAM,
                 ip = args.NBD_SERVER_IP,
                 port = args.NBD_PORT,
-                mode_debug = ('nbd' in args.MODE_DEBUG.lower() or 'all' in args.MODE_DEBUG.lower()),
-                logger = nbd_logger)
-            nbd = threading.Thread(target = nbd_server.listen)
-            nbd.daemon = True
-            nbd.start()
-            running_services.append(nbd)
+                mode_debug = do_debug('nbd'),
+                mode_verbose = do_verbose('nbd'),
+                logger = nbd_logger,
+                netboot_directory = args.NETBOOT_DIR)
+            nbdd = threading.Thread(target = nbd_server.listen)
+            nbdd.daemon = True
+            nbdd.start()
+            running_services.append(nbdd)
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
@@ -276,3 +291,6 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         sys.exit('\nShutting down PyPXE...\n')
+
+if __name__ == '__main__':
+    main()

@@ -11,21 +11,21 @@ import select
 import time
 import logging
 import math
+from pypxe import helpers
 
 class ParentSocket(socket.socket):
     '''Subclassed socket.socket to enable a link-back to the client object.'''
     parent = None
 
-
 class Client:
     '''Client instance for TFTPD.'''
     def __init__(self, mainsock, parent):
-
         self.default_retries = parent.default_retries
         self.timeout = parent.timeout
         self.ip = parent.ip
         self.message, self.address = mainsock.recvfrom(1024)
         self.logger = parent.logger.getChild('Client.{0}'.format(self.address))
+        self.netboot_directory = parent.netboot_directory
         self.logger.debug('Recieving request...')
         self.retries = self.default_retries
         self.block = 1
@@ -34,10 +34,9 @@ class Client:
         self.dead = False
         self.fh = None
         self.filename = ''
-        self.wrap = -1
-
-        # message from the main socket
-        self.handle()
+        self.wrap = 0
+        self.arm_wrap = False
+        self.handle() # message from the main socket
 
     def ready(self):
         '''Called when there is something to be read on our socket.'''
@@ -49,6 +48,7 @@ class Client:
             Sends the next block of data, setting the timeout and retry
             variables accordingly.
         '''
+        self.fh.seek(self.blksize * (self.block - 1))
         data = self.fh.read(self.blksize)
         # opcode 3 == DATA, wraparound block number
         response = struct.pack('!HH', 3, self.block % 65536)
@@ -74,19 +74,24 @@ class Client:
         '''Determines if the file read mode octet; if not, send an error.'''
         mode = self.message.split(chr(0))[1]
         if mode == 'octet': return True
-        self.sendError(5, 'Mode {0} not supported'.format(mode))
+        self.send_error(5, 'Mode {0} not supported'.format(mode))
         return False
 
     def check_file(self):
         '''
-            Determines if the file exist and if it is a file; if not,
-            send an error.
+            Determines if the file exists under the netboot_directory,
+            and if it is a file; if not, send an error.
         '''
-        filename = self.message.split(chr(0))[0]
+        filename = self.message.split(chr(0))[0].lstrip('/')
+        try:
+            filename = helpers.normalize_path(self.netboot_directory, filename)
+        except helpers.PathTraversalException:
+            self.send_error(2, 'Path traversal error', filename = filename)
+            return False
         if os.path.lexists(filename) and os.path.isfile(filename):
             self.filename = filename
             return True
-        self.sendError(1, 'File Not Found', filename = filename)
+        self.send_error(1, 'File Not Found', filename = filename)
         return False
 
     def parse_options(self):
@@ -102,7 +107,6 @@ class Client:
         if self.filesize > (2 ** 16) * self.blksize:
             self.logger.warning('Request too big, attempting transfer anyway.')
             self.logger.debug('Details: Filesize {0} is too big for blksize {1}.'.format(self.filesize, self.blksize))
-
         if len(options):
             # we need to know later if we actually had any options
             self.block = 0
@@ -114,15 +118,13 @@ class Client:
         '''Acknowledges any options received.'''
         # only called if options, so send them all
         response = struct.pack("!H", 6)
-
         response += 'blksize' + chr(0)
         response += str(self.blksize) + chr(0)
         response += 'tsize' + chr(0)
         response += str(self.filesize) + chr(0)
-
         self.sock.sendto(response, self.address)
 
-    def newRequest(self):
+    def new_request(self):
         '''
             When receiving a read request from the parent socket, open our
             own socket and check the read request; if we don't have any options,
@@ -133,26 +135,21 @@ class Client:
         self.sock.bind((self.ip, 0))
         # used by select() to find ready clients
         self.sock.parent = self
-
         if not self.valid_mode() or not self.check_file():
             # some clients just ACK the error (wrong code?)
             # so forcefully shutdown
             self.complete()
             return
-
         self.fh = open(self.filename, 'rb')
         self.filesize = os.path.getsize(self.filename)
-
         if not self.parse_options():
             # no options recieved so start transfer
             if self.block == 1:
                 self.send_block()
             return
+        self.reply_options() # we received some options so ACK those first
 
-        # we got some options so ACK those first
-        self.reply_options()
-
-    def sendError(self, code = 1, message = 'File Not Found', filename = ''):
+    def send_error(self, code = 1, message = 'File Not Found', filename = ''):
         '''
             Sends an error code and string to a client. See RFC1350, page 10 for
             details.
@@ -173,7 +170,7 @@ class Client:
         response += message
         response += chr(0)
         self.sock.sendto(response, self.address)
-        self.logger.debug('Sending {0}: {1} {2}'.format(code, message, filename))
+        self.logger.info('Sending {0}: {1} {2}'.format(code, message, filename))
 
     def complete(self):
         '''
@@ -183,8 +180,7 @@ class Client:
         try:
             self.fh.close()
         except AttributeError:
-            # we have not opened yet or file-not-found
-            pass
+            pass # we have not opened yet or file-not-found
         self.sock.close()
         self.dead = True
 
@@ -194,11 +190,14 @@ class Client:
         [opcode] = struct.unpack('!H', self.message[:2])
         if opcode == 1:
             self.message = self.message[2:]
-            self.newRequest()
+            self.new_request()
         elif opcode == 4:
             [block] = struct.unpack('!H', self.message[2:4])
-            if block == 0:
+            if block == 0 and self.arm_wrap:
                 self.wrap += 1
+                self.arm_wrap = False
+            if block == 32768:
+                self.arm_wrap = True
             if block < self.block % 65536:
                 self.logger.warning('Ignoring duplicated ACK received for block {0}'.format(self.block))
             elif block > self.block % 65536:
@@ -207,13 +206,22 @@ class Client:
                 if self.filesize % self.blksize == 0:
                     self.block = block + 1
                     self.send_block()
-                self.logger.debug('Completed sending {0}'.format(self.filename))
+                self.logger.info('Completed sending {0}'.format(self.filename))
                 self.complete()
             else:
                 self.block = block + 1
                 self.retries = self.default_retries
                 self.send_block()
-
+        elif opcode == 2:
+            # write request
+            self.sock = ParentSocket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock.bind((self.ip, 0))
+            # used by select() to find ready clients
+            self.sock.parent = self
+            # send error
+            self.send_error(4, 'Write support not implemented')
+            self.dead = True
 
 class TFTPD:
     '''
@@ -222,8 +230,9 @@ class TFTPD:
     '''
     def __init__(self, **server_settings):
         self.ip = server_settings.get('ip', '0.0.0.0')
-        self.port = server_settings.get('port', 69)
-        self.netbook_directory = server_settings.get('netbook_directory', '.')
+        self.port = int(server_settings.get('port', 69))
+        self.netboot_directory = server_settings.get('netboot_directory', '.')
+        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
         self.mode_debug = server_settings.get('mode_debug', False) # debug mode
         self.logger = server_settings.get('logger', None)
         self.default_retries = server_settings.get('default_retries', 3)
@@ -242,19 +251,17 @@ class TFTPD:
 
         if self.mode_debug:
             self.logger.setLevel(logging.DEBUG)
+        elif self.mode_verbose:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
 
         self.logger.debug('NOTICE: TFTP server started in debug mode. TFTP server is using the following:')
         self.logger.debug('Server IP: {0}'.format(self.ip))
         self.logger.debug('Server Port: {0}'.format(self.port))
-        self.logger.debug('Network Boot Directory: {0}'.format(self.netbook_directory))
+        self.logger.debug('Network Boot Directory: {0}'.format(self.netboot_directory))
 
         self.ongoing = []
-
-        # start in network boot file directory and then chroot,
-        # this simplifies target later as well as offers a slight security increase
-        os.chdir (self.netbook_directory)
-        os.chroot ('.')
-
 
     def listen(self):
         '''This method listens for incoming requests.'''
