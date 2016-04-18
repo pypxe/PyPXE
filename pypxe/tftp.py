@@ -268,7 +268,7 @@ class TFTPD:
         while True:
             # remove complete clients to select doesn't fail
             map(self.ongoing.remove, [client for client in self.ongoing if client.dead])
-            rlist, _, _ = select.select([self.sock] + [client.sock for client in self.ongoing if not client.dead], [], [], 0)
+            rlist, _, _ = select.select([self.sock] + [client.sock for client in self.ongoing if not client.dead], [], [], None)
             for sock in rlist:
                 if sock == self.sock:
                     # main socket, so new client
