@@ -120,8 +120,9 @@ class Client:
         response = struct.pack("!H", 6)
         response += 'blksize' + chr(0)
         response += str(self.blksize) + chr(0)
-        response += 'tsize' + chr(0)
-        response += str(self.filesize) + chr(0)
+        if self.tsize:
+            response += 'tsize' + chr(0)
+            response += str(self.filesize) + chr(0)
         self.sock.sendto(response, self.address)
 
     def new_request(self):
