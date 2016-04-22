@@ -120,8 +120,9 @@ class Client:
         response = struct.pack("!H", 6)
         response += 'blksize' + chr(0)
         response += str(self.blksize) + chr(0)
-        response += 'tsize' + chr(0)
-        response += str(self.filesize) + chr(0)
+        if self.tsize:
+            response += 'tsize' + chr(0)
+            response += str(self.filesize) + chr(0)
         self.sock.sendto(response, self.address)
 
     def new_request(self):
@@ -268,7 +269,7 @@ class TFTPD:
         while True:
             # remove complete clients to select doesn't fail
             map(self.ongoing.remove, [client for client in self.ongoing if client.dead])
-            rlist, _, _ = select.select([self.sock] + [client.sock for client in self.ongoing if not client.dead], [], [], 0)
+            rlist, _, _ = select.select([self.sock] + [client.sock for client in self.ongoing if not client.dead], [], [], 1)
             for sock in rlist:
                 if sock == self.sock:
                     # main socket, so new client
