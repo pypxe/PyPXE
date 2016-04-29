@@ -32,7 +32,7 @@ class DHCPD:
         self.subnet_mask = server_settings.get('subnet_mask', '255.255.255.0')
         self.router = server_settings.get('router', '192.168.2.1')
         self.dns_server = server_settings.get('dns_server', '8.8.8.8')
-        self.broadcast = server_settings.get('broadcast', '<broadcast>')
+        self.broadcast = server_settings.get('broadcast', '192.168.2.255')
         self.file_server = server_settings.get('file_server', '192.168.2.2')
         self.file_name = server_settings.get('file_name', '')
         if not self.file_name:
