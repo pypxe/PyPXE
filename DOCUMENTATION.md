@@ -107,7 +107,7 @@ The DHCP server class, __`DHCPD()`__, is constructed with the following __keywor
 |__`subnet_mask`__|This specifies the subnet mask that the DHCP server will specify to clients.|`'255.255.255.0'`|_string_|
 |__`router`__|This specifies the IP address of the router that the DHCP server will specify to clients.|`'192.168.2.1'`|_string_|
 |__`dns_server`__|This specifies the DNS server that the DHCP server will specify to clients. Only one DNS server can be passed.|`'8.8.8.8'` ([Google Public DNS](https://developers.google.com/speed/public-dns/))|_string_|
-|__`broadcast`__|This specifies the broadcast address the DHCP will broadcast packets to.|`'192.168.2.255'`|_string_|
+|__`broadcast`__|This specifies the broadcast address the DHCP will broadcast packets to. It is derived from __`ip`__ and __`subnet_mask`__, unless set explicitly in CLI or in JSON config file. This is necessary in selecting the right NIC for broadcast when you have multiple.|`(not set)`|_string_|
 |__`file_server`__|This is the IP address of the file server containing network boot files that the DHCP server will specify to clients.|`'192.168.2.2'`|_string_|
 |__`file_name`__|This specifies the file name that the client should look for on the remote server.|`'pxelinux.0'`|_string_|
 |__`use_ipxe`__|This indicates whether or not iPXE is being used and adjusts itself accordingly.|`False`|_bool_|
