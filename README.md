@@ -71,7 +71,7 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
 | __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
 |__`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
-|__`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`'<broadcast>'`|
+|__`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`''`|
 |__`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
 |__`--dhcp-whitelist`__|Only serve clients specified in the static lease file (`--static-config`)|`False`|
 
