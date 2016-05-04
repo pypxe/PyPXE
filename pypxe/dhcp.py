@@ -32,7 +32,16 @@ class DHCPD:
         self.subnet_mask = server_settings.get('subnet_mask', '255.255.255.0')
         self.router = server_settings.get('router', '192.168.2.1')
         self.dns_server = server_settings.get('dns_server', '8.8.8.8')
-        self.broadcast = server_settings.get('broadcast', '<broadcast>')
+
+        self.broadcast = server_settings.get('broadcast', '')
+        if not self.broadcast:
+            # calculate the broadcast address from ip and subnet_mask
+            nip = struct.unpack('!I', socket.inet_aton(self.ip))[0]
+            nmask = struct.unpack('!I', socket.inet_aton(self.subnet_mask))[0]
+            nbroadcast = (nip & nmask) | ((~ nmask) & 0xffffffff)
+            derived_broadcast = socket.inet_ntoa(struct.pack('!I', nbroadcast))
+            self.broadcast = derived_broadcast
+
         self.file_server = server_settings.get('file_server', '192.168.2.2')
         self.file_name = server_settings.get('file_name', '')
         if not self.file_name:
