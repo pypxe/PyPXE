@@ -16,7 +16,7 @@ from pypxe import tftp # PyPXE TFTP service
 from pypxe import dhcp # PyPXE DHCP service
 from pypxe import http # PyPXE HTTP service
 from pypxe import nbd  # PyPXE NBD service
-
+from pypxe import helpers
 args = None
 # default settings
 SETTINGS = {'NETBOOT_DIR':'netboot',
@@ -202,7 +202,7 @@ def main():
         if args.USE_TFTP:
 
             # setup TFTP logger
-            tftp_logger = sys_logger.getChild('TFTP')
+            tftp_logger = helpers.get_child_logger(sys_logger, 'TFTP')
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
@@ -216,7 +216,7 @@ def main():
         if args.USE_DHCP:
 
             # setup DHCP logger
-            dhcp_logger = sys_logger.getChild('DHCP')
+            dhcp_logger = helpers.get_child_logger(sys_logger, 'DHCP')
             if args.DHCP_MODE_PROXY:
                 sys_logger.info('Starting DHCP server in ProxyDHCP mode...')
             else:
@@ -252,7 +252,7 @@ def main():
         if args.USE_HTTP:
 
             # setup HTTP logger
-            http_logger = sys_logger.getChild('HTTP')
+            http_logger = helpers.get_child_logger(sys_logger, 'HTTP')
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
@@ -265,7 +265,7 @@ def main():
         # configure/start NBD server
         if args.NBD_BLOCK_DEVICE:
             # setup NBD logger
-            nbd_logger = sys_logger.getChild('NBD')
+            nbd_logger = helpers.get_child_logger(sys_logger, 'NBD')
             sys_logger.info('Starting NBD server...')
             nbd_server = nbd.NBD(
                 block_device = args.NBD_BLOCK_DEVICE,
