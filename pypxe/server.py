@@ -126,13 +126,17 @@ def main():
     try:
         # configure
         args = parse_cli_arguments()
-        if args.DUMP_CONFIG:
+
+        if args.DUMP_CONFIG or args.DUMP_CONFIG_MERGED:
+            if args.DUMP_CONFIG:
+                settings = SETTINGS
+            else:
+                # some arguments don't make sense to print
+                settings = args.__dict__
+                del settings['DUMP_CONFIG']
+                del settings['DUMP_CONFIG_MERGED']
             print json.dumps(SETTINGS, sort_keys=True, indent=4)
             sys.exit()
-
-        # warn the user that they are starting PyPXE as non-root user
-        if os.getuid() != 0:
-            print '\nWARNING: Not root. Servers will probably fail to bind.\n'
 
         if args.JSON_CONFIG: # load from configuration file if specified
             try:
@@ -149,6 +153,11 @@ def main():
                     loaded_config[setting] = loaded_config[setting].encode('ascii')
             SETTINGS.update(loaded_config) # update settings with JSON config
             args = parse_cli_arguments() # re-parse, CLI options take precedence
+
+        # warn the user that they are starting PyPXE as non-root user
+        if os.getuid() != 0:
+            print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
+
 
         # ideally this would be in dhcp itself, but the chroot below *probably*
         # breaks the ability to open the config file.
