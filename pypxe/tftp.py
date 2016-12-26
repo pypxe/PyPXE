@@ -24,7 +24,7 @@ class Client:
         self.timeout = parent.timeout
         self.ip = parent.ip
         self.message, self.address = mainsock.recvfrom(1024)
-        self.logger = parent.logger.getChild('Client.{0}'.format(self.address))
+        self.logger = helpers.get_child_logger(parent.logger, 'Client.{0}'.format(self.address))
         self.netboot_directory = parent.netboot_directory
         self.logger.debug('Recieving request...')
         self.retries = self.default_retries
