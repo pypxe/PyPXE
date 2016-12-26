@@ -134,7 +134,8 @@ def main():
                 settings = args.__dict__
                 del settings['DUMP_CONFIG']
                 del settings['DUMP_CONFIG_MERGED']
-            print json.dumps(SETTINGS, sort_keys=True, indent=4)
+                del settings['JSON_CONFIG']
+            print json.dumps(settings, sort_keys=True, indent=4)
             sys.exit()
 
         if args.JSON_CONFIG: # load from configuration file if specified
