@@ -30,12 +30,15 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'DHCP_ROUTER':'192.168.2.1',
             'DHCP_BROADCAST':'',
             'DHCP_FILESERVER':'192.168.2.2',
+            'DHCP_WHITELIST':False,
+            'LEASES_FILE':'',
+            'STATIC_CONFIG':'',
             'SYSLOG_SERVER':None,
             'SYSLOG_PORT':514,
             'USE_IPXE':False,
             'USE_HTTP':False,
             'USE_TFTP':True,
-            'USE_DHCP':True,
+            'USE_DHCP':False,
             'DHCP_MODE_PROXY':False,
             'NBD_BLOCK_DEVICE':'',
             'NBD_WRITE':False,
@@ -66,8 +69,10 @@ def parse_cli_arguments():
     parser.add_argument('--debug', action = 'store', dest = 'MODE_DEBUG', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Use \'all\' for enabling debug on all services. Precede an option with \'-\' to disable debugging for that service; as an example, one can pass in the following to enable debugging for all services except the DHCP service: \'--debug all,-dhcp\'', default = SETTINGS['MODE_DEBUG'])
     parser.add_argument('--verbose', action = 'store', dest = 'MODE_VERBOSE', help = 'Comma Seperated (http,tftp,dhcp). Adds verbosity to the selected services while they run. Less verbose than \'debug\'. Use \'all\' for enabling verbosity on all services. Precede an option with \'-\' to disable debugging for that service; as an example, one can pass in the following to enable debugging for all services except the DHCP service: \'--debug all,-dhcp\'', default = SETTINGS['MODE_VERBOSE'])
     parser.add_argument('--config', action = 'store', dest = 'JSON_CONFIG', help = 'Configure from a JSON file rather than the command line', default = '')
-    parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = '')
-    parser.add_argument('--save-leases', action = 'store', dest = 'LEASES_FILE', help = 'Save all DHCP leases on exit or SIGHUP. Will load from this file on start', default = '')
+    parser.add_argument('--dump-config', action = 'store_true', dest = 'DUMP_CONFIG', help = 'Dump the default configuration as a valid input file')
+    parser.add_argument('--dump-config-merged', action = 'store_true', dest = 'DUMP_CONFIG_MERGED', help = 'Like --dump-config, but also merge in CLI options')
+    parser.add_argument('--static-config', action = 'store', dest = 'STATIC_CONFIG', help = 'Configure leases from a json file rather than the command line', default = SETTINGS['STATIC_CONFIG'])
+    parser.add_argument('--save-leases', action = 'store', dest = 'LEASES_FILE', help = 'Save all DHCP leases on exit or SIGHUP. Will load from this file on start', default = SETTINGS['LEASES_FILE'])
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
 
@@ -75,7 +80,6 @@ def parse_cli_arguments():
     # DHCP server arguments
     dhcp_group = parser.add_argument_group(title = 'DHCP', description = 'Arguments relevant to the DHCP server')
     exclusive = dhcp_group.add_mutually_exclusive_group(required = False)
-    exclusive.add_argument('--no-dhcp', action = 'store_false', dest = 'USE_DHCP', help = 'Disable built-in DHCP server', default = not SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp', action = 'store_true', dest = 'USE_DHCP', help = 'Enable built-in DHCP server', default = SETTINGS['USE_DHCP'])
     exclusive.add_argument('--dhcp-proxy', action = 'store_true', dest = 'DHCP_MODE_PROXY', help = 'Enable built-in DHCP server in proxy mode (implies --dhcp)', default = SETTINGS['DHCP_MODE_PROXY'])
 
@@ -88,7 +92,7 @@ def parse_cli_arguments():
     dhcp_group.add_argument('--dhcp-dns', action = 'store', dest = 'DHCP_DNS', help = 'DHCP lease DNS server', default = SETTINGS['DHCP_DNS'])
     dhcp_group.add_argument('--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
     dhcp_group.add_argument('--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
-    dhcp_group.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = False)
+    dhcp_group.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = SETTINGS['DHCP_WHITELIST'])
 
     # network boot directory and file name arguments
     parser.add_argument('--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
@@ -119,12 +123,20 @@ def do_verbose(service):
 def main():
     global SETTINGS, args
     try:
-        # warn the user that they are starting PyPXE as non-root user
-        if os.getuid() != 0:
-            print '\nWARNING: Not root. Servers will probably fail to bind.\n'
-
         # configure
         args = parse_cli_arguments()
+
+        if args.DUMP_CONFIG or args.DUMP_CONFIG_MERGED:
+            if args.DUMP_CONFIG:
+                settings = SETTINGS
+            else:
+                # some arguments don't make sense to print
+                settings = args.__dict__
+                del settings['DUMP_CONFIG']
+                del settings['DUMP_CONFIG_MERGED']
+            print json.dumps(SETTINGS, sort_keys=True, indent=4)
+            sys.exit()
+
         if args.JSON_CONFIG: # load from configuration file if specified
             try:
                 config_file = open(args.JSON_CONFIG, 'rb')
@@ -140,6 +152,11 @@ def main():
                     loaded_config[setting] = loaded_config[setting].encode('ascii')
             SETTINGS.update(loaded_config) # update settings with JSON config
             args = parse_cli_arguments() # re-parse, CLI options take precedence
+
+        # warn the user that they are starting PyPXE as non-root user
+        if os.getuid() != 0:
+            print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
+
 
         # ideally this would be in dhcp itself, but the chroot below *probably*
         # breaks the ability to open the config file.
@@ -286,7 +303,7 @@ def main():
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
-        while map(lambda x: x.isAlive(), running_services):
+        while all(map(lambda x: x.isAlive(), running_services)):
             sleep(1)
 
     except KeyboardInterrupt:
