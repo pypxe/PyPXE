@@ -15,7 +15,7 @@ if version_info[0] == 2 and version_info[1] < 7:
     deps.append('argparse')
 
 setup(name='PyPXE',
-      version='1.6',
+      version='1.7',
       description='Pure Python2 PXE (DHCP-(Proxy)/TFTP/HTTP/NBD) Server',
       url='https://github.com/psychomario/PyPXE',
       license='MIT',
