@@ -7,6 +7,7 @@ import RPCExceptions
 import threading
 import select
 import socket
+import random
 
 class RPCBase:
     """For Constants from RFC1057"""
@@ -43,6 +44,12 @@ class RPCBase:
         AUTH_BADVERF      = 3  # bad verifier (seal broken)
         AUTH_REJECTEDVERF = 4  # verifier expired or replayed
         AUTH_TOOWEAK      = 5  # rejected for security reasons
+
+    class PORTMAPPER:
+        VERSION = 2
+        PROGRAM = 100000
+        SET     = 1
+        UNSET   = 2
 
 class RPCBIND:
     def listen(self):
@@ -109,7 +116,10 @@ class RPCBIND:
                 data = ""
                 while len(data) != 4:
                     [conn], _, _ = select.select([conn], [], [])
-                    data += conn.recv(4, socket.MSG_WAITALL)
+                    thisdata = conn.recv(4)
+                    if not thisdata:
+                        raise RPCExceptions.CLIENT_GAVE_UP
+                    data += thisdata
                 [fragheader] = struct.unpack("!I", data)
             else:
                 conn.settimeout(3)
@@ -137,7 +147,7 @@ class RPCBIND:
 
         [xid] = struct.unpack("!I", req.read(4))
         [msg_type] = struct.unpack("!I", req.read(4))
-        if msg_type != RPCBase.msg_type.CALL: raise RPCException.INCORRECT_MSG_TYPE
+        if msg_type != RPCBase.msg_type.CALL: raise RPCExceptions.INCORRECT_MSG_TYPE
 
         [
             rpcvers,
@@ -146,7 +156,7 @@ class RPCBIND:
             proc
         ] = struct.unpack("!IIII", req.read(4*4))
         if rpcvers != RPCBase.VERSION2: raise RPCExceptions.RPC_MISMATCH, xid
-        if prog not in self.programs: raise RPCExceptions.RPC_PROG_UNAVAIL, xid
+        if prog not in self.programs or not self.programs[prog]["port"]: raise RPCExceptions.RPC_PROG_UNAVAIL, xid
         if vers not in self.programs[prog]["version"]: raise RPCExceptions.PROG_MISMATCH, (xid, prog)
         if proc not in self.programs[prog]["procedures"]: raise RPCExceptions.RPC_PROC_UNAVAIL, xid
 
@@ -157,13 +167,27 @@ class RPCBIND:
 
         if auth_type not in (RPCBase.auth_flavor.AUTH_NULL, RPCBase.auth_flavor.AUTH_UNIX): raise RPCExceptions.AUTH_ERROR, (xid, RPCBase.auth_stat.AUTH_REJECTEDCRED)
 
-        auth_body = req.read(authlength)
+        if auth_type == RPCBase.auth_flavor.AUTH_UNIX:
+            [stamp,
+                machinenamelen
+                ] = struct.unpack("!II", req.read(4*2))
+            machinename = req.read(machinenamelen)
+            req.read((4 - (machinenamelen % 4))&~4)
+            [uid,
+                gid,
+                groupcount
+                ] = struct.unpack("!III", req.read(4*3))
+            groups = struct.unpack("!{0}I".format(groupcount), req.read(4*groupcount))
+
+            creds = {"uid": uid, "gid": gid, "groups": groups}
+        else:
+            auth_body = req.read(authlength)
+            creds = {"auth_body": auth_body}
 
         [
             verf_type,
             verflength
         ] = struct.unpack("!II", req.read(2*4))
-
         verf_body = req.read(verflength)
 
         self.process(
@@ -173,12 +197,12 @@ class RPCBIND:
             vers = vers,
             proc = proc,
             auth_type = auth_type,
-            auth_body = auth_body,
             verf_type = verf_type,
             verf_body = verf_body,
             sock = conn,
             body = req,
-            addr = self.addr
+            addr = self.addr,
+            **creds
         )
 
     def makeRPCHeader(self, data, reply_stat, state, **extra):
@@ -213,9 +237,36 @@ class RPCBIND:
 
         resp += data
         sock = extra["sock"]
-        if self.PROTO == "TCP":
+        if self.PROTO == "TCP" or extra.get("register", False):
             # fragment header goes at the start
             resp = struct.pack("!I", len(resp)|(1<<31)) + resp
             sock.send(resp)
         else:
             sock.sendto(resp, self.addr)
+
+    def portmapper(self, rpcnumber, version, protocol, port, register = True):
+        portmapper = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        portmapper.connect(("127.0.0.1", 111))
+        # prog, vers, proto, port
+        req  = struct.pack("!I", random.getrandbits(4))
+        req += struct.pack("!I", RPCBase.msg_type.CALL)
+        # RPC version
+        req += struct.pack("!I", 2)
+        # target program and version
+        req += struct.pack("!II", RPCBase.PORTMAPPER.PROGRAM, RPCBase.PORTMAPPER.VERSION)
+        # procedure
+        req += struct.pack("!I", RPCBase.PORTMAPPER.SET if register else RPCBase.PORTMAPPER.UNSET)
+        # auth
+        req += struct.pack("!II", RPCBase.auth_flavor.AUTH_NULL, 0)
+        # verf
+        req += struct.pack("!II", RPCBase.auth_flavor.AUTH_NULL, 0)
+        req += struct.pack("!IIII", rpcnumber, version, protocol, port)
+        req = struct.pack("!I", len(req)|(1<<31)) + req
+        portmapper.send(req)
+
+    def registerPort(self, rpcnumber, version, protocol, port):
+        self.portmapper(rpcnumber, version, protocol, port, True)
+
+    def deregisterPort(self, rpcnumber, version, protocol, port):
+        self.portmapper(rpcnumber, version, protocol, port, False)
+

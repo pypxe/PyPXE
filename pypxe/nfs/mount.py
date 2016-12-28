@@ -6,15 +6,11 @@ import threading
 import time
 import struct
 import hashlib
+import programs
+import StringIO
 
 class RPC(rpcbind.RPCBase):
-    class MOUNT_PROC:
-        NULL    = 0
-        MNT     = 1
-        DUMP    = 2
-        UMNT    = 3
-        UMNTALL = 4
-        EXPORT  = 5
+    MOUNT_PROC = programs.RPC.MOUNT_PROC
 
     class mountstat3:
         MNT3_OK = 0                 # no error
@@ -27,6 +23,10 @@ class RPC(rpcbind.RPCBase):
         MNT3ERR_NAMETOOLONG = 63    # Filename too long
         MNT3ERR_NOTSUPP = 10004     # Operation not supported
         MNT3ERR_SERVERFAULT = 10006 # A failure on the server
+
+    class IPPROTO:
+        IPPROTO_TCP4 = 6
+        IPPROTO_UDP4 = 17
 
 class MOUNT(rpcbind.RPCBIND):
     def __init__(self, **server_settings):
@@ -50,6 +50,15 @@ class MOUNT(rpcbind.RPCBIND):
         else:
             self.logger.setLevel(logging.WARN)
 
+        self.rpcnumber = 100005
+        # we only need to keep track of our own program
+        self.programs = {self.rpcnumber: programs.programs[self.rpcnumber]}
+
+        self.nfsroots = server_settings.get('nfsroots', [])
+        self.filehandles = {}
+        for root in self.nfsroots:
+            self.filehandles[root] = hashlib.sha256(root).hexdigest()
+
         self.logger.info("Started")
 
     def process(self, **arguments):
@@ -66,27 +75,41 @@ class MOUNT(rpcbind.RPCBIND):
     def NULL(self, **arguments):
         self.makeRPCHeader("", RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
 
-    def MNT(self, **arguments):
-        body = arguments["body"]
+    def MNT(self, body = None, **arguments):
+        if arguments["auth_type"] != RPC.auth_flavor.AUTH_UNIX:
+            self.makeRPCHeader(struct.pack("!I", int(True)), RPC.reply_stat.MSG_DENIED, RPC.reject_stat.AUTH_ERROR, **arguments)
+
         [length] = struct.unpack("!I", body.read(4))
         path = body.read(length)
-        padding  = 4 - (length % 4)
-        if padding != 4:
-            body.read(padding)
-        self.logger.debug("Received MNT for {0} from {1}".format(path, arguments["addr"]))
+        body.read((4 - (length % 4))&~4)
+
+        if path not in self.filehandles:
+            if len(self.filehandles) == 1 and path == "/":
+                self.filehandles["/"] = self.filehandles[self.filehandles.keys()[0]]
+            else:
+                resp = struct.pack("!I", RPC.mountstat3.MNT3ERR_NOENT)
+                return self.makeRPCHeader(resp, RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
+
+        self.logger.debug("Received MNT for {0} from {1} by uid:{2}".format(path, arguments["addr"], arguments["uid"]))
         # IP WHITELISTING GOES HERE PROBABLY
         # use sha256 because it's 64 bytes, no collisions etc
         resp = struct.pack("!I", RPC.mountstat3.MNT3_OK)
         resp += struct.pack("!I", 64)
-        resp += hashlib.sha256(path).hexdigest()
+        resp += self.filehandles[path]
         resp += struct.pack("!I", 1)
         resp += struct.pack("!I", RPC.auth_flavor.AUTH_UNIX)
         self.makeRPCHeader(resp, RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
 
     def DUMP(self, **arguments):
         pass
-    def UMNT(self, **arguments):
-        pass
+
+    def UMNT(self, body = None, **arguments):
+        [length] = struct.unpack("!I", body.read(4))
+        path = body.read(length)
+        body.read((4 - (length % 4))&~4)
+        self.logger.debug("Received UMNT for {0} from {1} by uid:{2}".format(path, arguments["addr"], arguments["uid"]))
+        self.makeRPCHeader("", RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
+
     def UMNTALL(self, **arguments):
         pass
     def EXPORT(self, **arguments):
@@ -97,34 +120,30 @@ class MOUNTDTCP(MOUNT):
         MOUNT.__init__(self, **server_settings)
         self.PROTO = "TCP"
         # find out what port it should be listening on
-        rpcnumber = 100005
-        server_settings["pipelock"].acquire()
-        server_settings["pipe"].send(rpcnumber)
-        self.programs = {rpcnumber: server_settings["pipe"].recv()}
-        server_settings["pipelock"].release()
-
-        self.logger.debug("Received program settings from PORTMAPPER")
+        port = server_settings.get("port", 635)
+        # address can be passed to here from cli, and also to portmapper for bind addr
+        addr = ""
+        # prog, vers, proto, port
+        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_TCP4, port)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.programs[rpcnumber]["address"], self.programs[rpcnumber]["port"]))
+        self.sock.bind((addr, port))
         self.sock.listen(4)
 
 class MOUNTDUDP(MOUNT):
     def __init__(self, **server_settings):
         MOUNT.__init__(self, **server_settings)
         self.PROTO = "UDP"
-        rpcnumber = 100005
-        server_settings["pipelock"].acquire()
-        server_settings["pipe"].send(rpcnumber)
-        self.programs = {rpcnumber: server_settings["pipe"].recv()}
-        server_settings["pipelock"].release()
-
-        self.logger.debug("Received program settings from PORTMAPPER")
+        port = server_settings.get("port", 635)
+        # address can be passed to here from cli, and also to portmapper for bind addr
+        addr = ""
+        # prog, vers, proto, port
+        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_UDP4, port)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.programs[rpcnumber]["address"], self.programs[rpcnumber]["port"]))
+        self.sock.bind((addr, port))
 
 class MOUNTD:
     def __init__(self, **server_settings):
