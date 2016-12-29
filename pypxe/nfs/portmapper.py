@@ -1,12 +1,12 @@
 import logging
 import socket
 import rpcbind
-import RPCExceptions
 import struct
 import threading
 import time
 import programs
 from pypxe import helpers
+import SocketServer
 
 def padtomultiple(string, boundary):
     while len(string) % boundary:
@@ -17,31 +17,7 @@ class RPC(rpcbind.RPCBase, programs.RPC):
     pass
 
 class PORTMAPPER(rpcbind.RPCBIND):
-    def __init__(self, **server_settings):
-        # should be swappable for real rpcbind
-        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
-        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
-        self.logger = server_settings.get('logger', None)
-
-        # setup logger
-        if self.logger == None:
-            self.logger = logging.getLogger('PORTMAPPER.{0}'.format(self.PROTO))
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-
-        if self.mode_debug:
-            self.logger.setLevel(logging.DEBUG)
-        elif self.mode_verbose:
-            self.logger.setLevel(logging.INFO)
-        else:
-            self.logger.setLevel(logging.WARN)
-
-        self.logger.info("Started")
-
-        self.programs = server_settings["programs"]
-
+    autoregister = False
     def process(self, **arguments):
         PORTMAPPERPROCS = {
             RPC.PMAPPROC.NULL : self.NULL,
@@ -194,7 +170,7 @@ class PORTMAPPER(rpcbind.RPCBIND):
                     RPC.accept_stat.SUCCESS,
                     **arguments)
         else:
-            raise RPCExceptions.RPC_PROG_UNAVAIL, arguments["xid"]
+            self.makeRPCHeader("", RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.PROG_UNAVAIL, **arguments)
 
 
     def DUMP(self, **arguments):
@@ -235,70 +211,24 @@ class PORTMAPPER(rpcbind.RPCBIND):
         resp += struct.pack("!I", 0)
         self.makeRPCHeader(resp, RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
 
-class PORTMAPPERTCP4(PORTMAPPER):
-    def __init__(self, **server_settings):
-        PORTMAPPER.__init__(self, **server_settings)
-        self.PROTO = "TCP"
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.programs[100000]["address"][RPC.IPPROTO.IPPROTO_TCP4], self.programs[100000]["port"][RPC.IPPROTO.IPPROTO_TCP4]))
-        self.sock.listen(4)
-
-class PORTMAPPERUDP4(PORTMAPPER):
-    def __init__(self, **server_settings):
-        PORTMAPPER.__init__(self, **server_settings)
-        self.PROTO = "UDP"
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.programs[100000]["address"][RPC.IPPROTO.IPPROTO_UDP4], self.programs[100000]["port"][RPC.IPPROTO.IPPROTO_UDP4]))
-
-class PORTMAPPERTCP6(PORTMAPPER):
-    def __init__(self, **server_settings):
-        PORTMAPPER.__init__(self, **server_settings)
-        self.PROTO = "TCP"
-        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.programs[100000]["address"][RPC.IPPROTO.IPPROTO_TCP6], self.programs[100000]["port"][RPC.IPPROTO.IPPROTO_TCP6]))
-        self.sock.listen(4)
-
-class PORTMAPPERUDP6(PORTMAPPER):
-    def __init__(self, **server_settings):
-        PORTMAPPER.__init__(self, **server_settings)
-        self.PROTO = "UDP"
-        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.programs[100000]["address"][RPC.IPPROTO.IPPROTO_UDP6], self.programs[100000]["port"][RPC.IPPROTO.IPPROTO_UDP6]))
-
-class PORTMAPPERD:
+class PORTMAPPERD(rpcbind.DAEMON):
     def __init__(self, **server_settings):
         self.logger = server_settings.get('logger', None)
 
-        self.programs = programs.programs
-        server_settings["programs"] = self.programs
+        server_settings["programs"] = programs.programs
 
-        tcp_settings = server_settings.copy()
-        del tcp_settings["logger"]
-        TCP4 = PORTMAPPERTCP4(logger = helpers.get_child_logger(self.logger, "TCP4"), **tcp_settings)
-        TCP6 = PORTMAPPERTCP6(logger = helpers.get_child_logger(self.logger, "TCP6"), **tcp_settings)
-
+        del server_settings["logger"]
         udp_settings = server_settings.copy()
-        del udp_settings["logger"]
-        UDP4 = PORTMAPPERUDP4(logger = helpers.get_child_logger(self.logger, "UDP4"), **udp_settings)
-        UDP6 = PORTMAPPERUDP6(logger = helpers.get_child_logger(self.logger, "UDP6"), **udp_settings)
 
-        self.TCP4 = threading.Thread(target = TCP4.listen)
-        self.TCP4.daemon = True
-        self.TCP6 = threading.Thread(target = TCP6.listen)
-        self.TCP6.daemon = True
-        self.UDP4 = threading.Thread(target = UDP4.listen)
-        self.UDP4.daemon = True
-        self.UDP6 = threading.Thread(target = UDP6.listen)
-        self.UDP6.daemon = True
+        self.programs = server_settings["programs"]
+        self.addr = self.programs[100000]["address"]["TCP4"]
+        self.port = self.programs[100000]["port"]["TCP4"]
+
+        self.createTCP4Thread(PORTMAPPER, server_settings)
+        self.createUDP4Thread(PORTMAPPER, server_settings)
 
     def listen(self):
         self.TCP4.start()
         self.UDP4.start()
-        self.TCP6.start()
-        self.UDP6.start()
-        while all(map(lambda x: x.isAlive(), [self.TCP4, self.UDP4, self.TCP6, self.UDP6])):
+        while all(map(lambda x: x.isAlive(), [self.TCP4, self.UDP4])):
             time.sleep(1)

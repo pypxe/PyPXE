@@ -34,14 +34,6 @@ try:
         mountdthread.start()
         threads.append(mountdthread)
 
-        import nfs
-        nfs_logger = helpers.get_child_logger(sys_logger, 'NFS.NFS')
-        nfsd = nfs.NFSD(logger = nfs_logger, mode_debug = True, nfsroot = nfsroot, readcachesize = "256MiB")
-        nfsdthread = run(target = nfsd.listen)
-        nfsdthread.daemon = True
-        nfsdthread.start()
-        threads.append(nfsdthread)
-
         import lock
         lock_logger = helpers.get_child_logger(sys_logger, 'NFS.LOCK')
         lockd = lock.LOCKD(logger = lock_logger, mode_debug = True)
@@ -49,6 +41,14 @@ try:
         lockdthread.daemon = True
         lockdthread.start()
         threads.append(lockdthread)
+
+        import nfs
+        nfs_logger = helpers.get_child_logger(sys_logger, 'NFS.NFS')
+        nfsd = nfs.NFSD(logger = nfs_logger, mode_debug = True, nfsroot = nfsroot, readcachesize = "256MiB")
+        nfsdthread = run(target = nfsd.listen)
+        nfsdthread.daemon = True
+        nfsdthread.start()
+        threads.append(nfsdthread)
 
         while all(map(lambda x:[lambda:x.is_alive, lambda:x.isAlive][run == threading.Thread]()(), threads)):
             time.sleep(1)

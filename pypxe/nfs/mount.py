@@ -30,37 +30,6 @@ class RPC(rpcbind.RPCBase):
         IPPROTO_UDP4 = 17
 
 class MOUNT(rpcbind.RPCBIND):
-    def __init__(self, **server_settings):
-        # should be swappable for real rpcbind
-        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
-        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
-        self.logger = server_settings.get('logger', None)
-
-        # setup logger
-        if self.logger == None:
-            self.logger = logging.getLogger('MOUNT.{0}'.format(self.PROTO))
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-
-        if self.mode_debug:
-            self.logger.setLevel(logging.DEBUG)
-        elif self.mode_verbose:
-            self.logger.setLevel(logging.INFO)
-        else:
-            self.logger.setLevel(logging.WARN)
-
-        self.rpcnumber = 100005
-        # we only need to keep track of our own program
-        self.programs = {self.rpcnumber: programs.programs[self.rpcnumber]}
-
-        self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
-        self.filehandles = {}
-        self.filehandles[self.nfsroot] = hashlib.sha256(self.nfsroot).hexdigest()
-
-        self.logger.info("Started")
-
     def process(self, **arguments):
         MOUNT_PROCS = {
             RPC.MOUNT_PROC.NULL: self.NULL,
@@ -83,9 +52,10 @@ class MOUNT(rpcbind.RPCBIND):
         path = body.read(length)
         body.read((4 - (length % 4))&~4)
 
-        if path not in self.filehandles:
-            if len(self.filehandles) == 1 and path == "/":
-                self.filehandles["/"] = self.filehandles[self.filehandles.keys()[0]]
+        filehandles = self.server_settings["filehandles"]
+        if path not in filehandles:
+            if len(filehandles) == 1 and path == "/":
+                filehandles["/"] = filehandles[filehandles.keys()[0]]
             else:
                 resp = struct.pack("!I", RPC.mountstat3.MNT3ERR_NOENT)
                 return self.makeRPCHeader(resp, RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
@@ -95,7 +65,7 @@ class MOUNT(rpcbind.RPCBIND):
         # use sha256 because it's 64 bytes, no collisions etc
         resp = struct.pack("!I", RPC.mountstat3.MNT3_OK)
         resp += struct.pack("!I", 64)
-        resp += self.filehandles[path]
+        resp += filehandles[path]
         resp += struct.pack("!I", 1)
         resp += struct.pack("!I", RPC.auth_flavor.AUTH_UNIX)
         self.makeRPCHeader(resp, RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
@@ -115,54 +85,28 @@ class MOUNT(rpcbind.RPCBIND):
     def EXPORT(self, **arguments):
         pass
 
-class MOUNTDTCP(MOUNT):
-    def __init__(self, **server_settings):
-        MOUNT.__init__(self, **server_settings)
-        self.PROTO = "TCP"
-        # find out what port it should be listening on
-        port = server_settings.get("port", 635)
-        # address can be passed to here from cli, and also to portmapper for bind addr
-        addr = ""
-        # prog, vers, proto, port
-        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_TCP4, port)
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((addr, port))
-        self.sock.listen(4)
-
-class MOUNTDUDP(MOUNT):
-    def __init__(self, **server_settings):
-        MOUNT.__init__(self, **server_settings)
-        self.PROTO = "UDP"
-        port = server_settings.get("port", 635)
-        # address can be passed to here from cli, and also to portmapper for bind addr
-        addr = ""
-        # prog, vers, proto, port
-        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_UDP4, port)
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((addr, port))
-
-class MOUNTD:
+class MOUNTD(rpcbind.DAEMON):
     def __init__(self, **server_settings):
         self.logger = server_settings.get('logger', None)
-        tcp_settings = server_settings.copy()
-        tcp_settings["logger"] = helpers.get_child_logger(self.logger, "TCP")
-        TCP = MOUNTDTCP(**tcp_settings)
 
-        udp_settings = server_settings.copy()
-        udp_settings["logger"] = helpers.get_child_logger(self.logger, "UDP")
-        UDP = MOUNTDUDP(**udp_settings)
+        # caches
+        self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
+        self.filehandles = {self.nfsroot: hashlib.sha256(self.nfsroot).hexdigest()}
 
-        self.TCP = threading.Thread(target = TCP.listen)
-        self.TCP.daemon = True
-        self.UDP = threading.Thread(target = UDP.listen)
-        self.UDP.daemon = True
+        server_settings["rpcnumber"] = 100005
+        server_settings["programs"] = {server_settings["rpcnumber"]: programs.programs[server_settings["rpcnumber"]]}
+        server_settings["filehandles"] = self.filehandles
+
+        self.port = server_settings.get("port", 635)
+        # address can be passed to here from cli, and also to portmapper for bind addr
+        self.addr = ""
+        # prog, vers, proto, port
+
+        self.createTCP4Thread(MOUNT, server_settings)
+        self.createUDP4Thread(MOUNT, server_settings)
 
     def listen(self):
-        self.TCP.start()
-        self.UDP.start()
-        while all(map(lambda x: x.isAlive(), [self.TCP, self.UDP])):
+        self.TCP4.start()
+        self.UDP4.start()
+        while all(map(lambda x: x.isAlive(), [self.TCP4, self.UDP4])):
             time.sleep(1)

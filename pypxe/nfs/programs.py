@@ -61,10 +61,10 @@ class RPC:
         NLMPROC4_FREE_ALL    = 19
 
     class IPPROTO:
-        IPPROTO_TCP4 = "tcp"
-        IPPROTO_UDP4 = "udp"
-        IPPROTO_TCP6 = "tcp6"
-        IPPROTO_UDP6 = "udp6"
+        IPPROTO_TCP4 = "TCP4"
+        IPPROTO_UDP4 = "UDP4"
+        IPPROTO_TCP6 = "TCP6"
+        IPPROTO_UDP6 = "UDP6"
 
 owner = "PyPXE"
 programs = {

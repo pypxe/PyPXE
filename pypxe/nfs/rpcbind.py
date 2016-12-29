@@ -9,6 +9,22 @@ import select
 import socket
 import random
 import os
+import SocketServer
+import logging
+import time
+
+import cProfile
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.dump_stats(str(time.time()))
+    return profiled_func
 
 class RPCBase:
     """For Constants from RFC1057"""
@@ -52,170 +68,129 @@ class RPCBase:
         SET     = 1
         UNSET   = 2
 
-class RPCBIND:
-    forking = False
-    def listen(self):
-        if self.PROTO == "TCP":
-            while True:
-                conn, addr = self.sock.accept()
-                if self.forking:
-                    if not os.fork():
-                        self.handle(conn, addr)
-                else:
-                    client = threading.Thread(target = self.handle, args=(conn, addr))
-                    client.daemon = True
-                    client.start()
-        else:
-            while True:
-                # don't need to thread UDP because only one socket.
-                rlist, _, _ = select.select([self.sock], [], [], 1)
-                if not rlist: continue
-                if self.forking:
-                    if not os.fork():
-                        self.handle(self.sock)
-                else:
-                    self.handle(self.sock)
+class RPCBIND(SocketServer.BaseRequestHandler):
+    def __init__(self, *args, **kwargs):
+        [_, self.client_address, _] = args
+        SocketServer.BaseRequestHandler.__init__(self, *args, **kwargs)
 
-    # overwritten by NFS to keep connections alive
-    keepalive = False
-    def handle(self, conn, addr = None):
-        # will become not null later if this is a UDP connection
-        self.addr = addr
-        while True:
-            # overwritten if we have an error, otherwise stays False
-            retried = False
-            try:
-                self.parse(conn)
-            except RPCExceptions.RPC_MISMATCH as e:
-                self.makeRPCHeader("", RPCBase.reply_stat.MSG_DENIED, RPCBase.reject_stat.RPC_MISMATCH, xid = e.args[0], sock = conn)
-            except (RPCExceptions.RPC_PROG_UNAVAIL, RPCExceptions.RPC_PROC_UNAVAIL) as e:
-                exceptionmap = {
-                        RPCExceptions.RPC_PROG_UNAVAIL: RPCBase.accept_stat.PROG_UNAVAIL,
-                        RPCExceptions.RPC_PROC_UNAVAIL: RPCBase.accept_stat.PROC_UNAVAIL
-                        }
-                self.makeRPCHeader("", RPCBase.reply_stat.MSG_ACCEPTED, exceptionmap[e.__class__], xid = e.args[0], sock = conn)
-            except RPCExceptions.AUTH_ERROR as e:
-                self.makeRPCHeader("", RPCBase.reply_stat.MSG_DENIED, RPCBase.reject_stat.AUTH_ERROR, xid = e.args[0], auth_stat = e.args[1], sock = conn)
-            except RPCExceptions.PROG_MISMATCH as e:
-                self.makeRPCHeader("", RPCBase.reply_stat.MSG_ACCEPTED, RPCBase.accept_stat.PROG_MISMATCH, xid = e.args[0], prog = e.args[1], sock = conn)
-                # recurse just incase the client reuses the socket to bump version
-                # makes the log in the wrong order
-                self.logger.debug("Bumping client version due to PROG_MISMATCH")
-                self.keepalive = True
-            except RPCExceptions.CLIENT_GAVE_UP:
-                    self.logger.debug("Client disappeared on retry")
-                    conn.close()
-                    return
-            # except Exception as e:
-                # all other errors are just logged
-                # when this class is subclassed, the parent class MUST handle their
-                # own errors. i.e send a response but NOT close the socket.
-                # pass
-            if self.keepalive:
-                # loop forever if keepalive
-                # used for NFS
-                continue
-            else:
-                break
-            if self.PROTO == "UDP": break
-
-    def parse(self, conn):
+    # skip registration. Used for portmapper itself
+    autoregister = True
+    # @do_cprofile
+    def handle(self):
+        self.server_settings = self.server.server_settings
+        self.PROTO = self.server_settings["PROTO"]
+        self.programs = self.server_settings["programs"]
+        self.logger = self.server_settings["logger"]
         """
         RFC1057 compliant RPC
         """
-        if self.PROTO == "TCP":
-            if self.keepalive:
+        if isinstance(self.request, socket.socket):
+            # tcp
+            conn = self.request
+            addr = self.client_address
+        else:
+            addr = self.client_address
+            data, conn = self.request
+
+        while True:
+            if self.PROTO == "TCP":
                 data = ""
                 while len(data) != 4:
                     [conn], _, _ = select.select([conn], [], [])
                     thisdata = conn.recv(4)
                     if not thisdata:
-                        raise RPCExceptions.CLIENT_GAVE_UP
+                        self.logger.debug("Client disconnected")
+                        return
                     data += thisdata
                 [fragheader] = struct.unpack("!I", data)
+
+                # fragheader TCP only
+                lastfragment = bool(fragheader & (1 << 31))
+                length = fragheader & ~(1 << 31)
+
+                # use StringIO so the string acts like a file, we can .read()
+                # it and we don't have to do any horrible x = x[n:]
+                req = StringIO.StringIO(conn.recv(length))
             else:
-                conn.settimeout(3)
-                try:
-                    data = conn.recv(4, socket.MSG_WAITALL)
-                    if not data:
-                        # client closed on us
-                        raise RPCExceptions.CLIENT_GAVE_UP
-                    [fragheader] = struct.unpack("!I", data)
-                except socket.timeout:
-                    # probably second run, client didn't want to try again on the same socket
-                    raise RPCExceptions.CLIENT_GAVE_UP
+                req = StringIO.StringIO(data)
 
-            # no fragheader in UDP
-            lastfragment = bool(fragheader & (1 << 31))
-            length = fragheader & ~(1 << 31)
+            [xid] = struct.unpack("!I", req.read(4))
+            [msg_type] = struct.unpack("!I", req.read(4))
+            if msg_type != RPCBase.msg_type.CALL: return
 
-            # use StringIO so the string acts like a file, we can .read()
-            # it and we don't have to do any horrible x = x[n:]
-            req = StringIO.StringIO(conn.recv(length))
-        else:
-            data, addr = conn.recvfrom(256)
-            self.addr = addr
-            req = StringIO.StringIO(data)
+            [
+                rpcvers,
+                prog,
+                vers,
+                proc
+            ] = struct.unpack("!IIII", req.read(4*4))
 
-        [xid] = struct.unpack("!I", req.read(4))
-        [msg_type] = struct.unpack("!I", req.read(4))
-        if msg_type != RPCBase.msg_type.CALL: raise RPCExceptions.INCORRECT_MSG_TYPE
+            if rpcvers != RPCBase.VERSION2:
+                self.makeRPCHeader("", RPCBase.reply_stat.MSG_DENIED, RPCBase.reject_stat.RPC_MISMATCH, xid = xid, sock = conn, addr = addr)
+                if self.PROTO == "UDP": break
+                else: continue
+            if prog not in self.programs or not self.programs[prog]["port"]:
+                self.makeRPCHeader("", RPCBase.reply_stat.MSG_ACCEPTED, RPCBase.accept_stat.PROG_UNAVAIL, xid = xid, sock = conn, addr = addr)
+                if self.PROTO == "UDP": break
+                else: continue
+            if vers not in self.programs[prog]["version"]:
+                self.logger.debug("Bumping client version due to PROG_MISMATCH")
+                self.makeRPCHeader("", RPCBase.reply_stat.MSG_ACCEPTED, RPCBase.accept_stat.PROG_MISMATCH, xid = xid, prog = prog, sock = conn, addr = addr)
+                if self.PROTO == "UDP": break
+                else: continue
+            if proc not in self.programs[prog]["procedures"]:
+                self.makeRPCHeader("", RPCBase.reply_stat.MSG_ACCEPTED, RPCBase.accept_stat.PROC_UNAVAIL, xid = xid, sock = conn, addr = addr)
+                if self.PROTO == "UDP": break
+                else: continue
 
-        [
-            rpcvers,
-            prog,
-            vers,
-            proc
-        ] = struct.unpack("!IIII", req.read(4*4))
-        if rpcvers != RPCBase.VERSION2: raise RPCExceptions.RPC_MISMATCH, xid
-        if prog not in self.programs or not self.programs[prog]["port"]: raise RPCExceptions.RPC_PROG_UNAVAIL, xid
-        if vers not in self.programs[prog]["version"]: raise RPCExceptions.PROG_MISMATCH, (xid, prog)
-        if proc not in self.programs[prog]["procedures"]: raise RPCExceptions.RPC_PROC_UNAVAIL, xid
+            [
+                auth_type,
+                authlength
+            ] = struct.unpack("!II", req.read(2*4))
 
-        [
-            auth_type,
-            authlength
-        ] = struct.unpack("!II", req.read(2*4))
+            if auth_type not in (RPCBase.auth_flavor.AUTH_NULL, RPCBase.auth_flavor.AUTH_UNIX):
+                self.makeRPCHeader("", RPCBase.reply_stat.MSG_DENIED, RPCBase.reject_stat.AUTH_ERROR, xid = xid, sock = conn, addr = addr)
+                if self.PROTO == "UDP": break
+                else: continue
 
-        if auth_type not in (RPCBase.auth_flavor.AUTH_NULL, RPCBase.auth_flavor.AUTH_UNIX): raise RPCExceptions.AUTH_ERROR, (xid, RPCBase.auth_stat.AUTH_REJECTEDCRED)
+            if auth_type == RPCBase.auth_flavor.AUTH_UNIX:
+                [stamp,
+                    machinenamelen
+                    ] = struct.unpack("!II", req.read(4*2))
+                machinename = req.read(machinenamelen)
+                req.read((4 - (machinenamelen % 4))&~4)
+                [uid,
+                    gid,
+                    groupcount
+                    ] = struct.unpack("!III", req.read(4*3))
+                groups = struct.unpack("!{0}I".format(groupcount), req.read(4*groupcount))
 
-        if auth_type == RPCBase.auth_flavor.AUTH_UNIX:
-            [stamp,
-                machinenamelen
-                ] = struct.unpack("!II", req.read(4*2))
-            machinename = req.read(machinenamelen)
-            req.read((4 - (machinenamelen % 4))&~4)
-            [uid,
-                gid,
-                groupcount
-                ] = struct.unpack("!III", req.read(4*3))
-            groups = struct.unpack("!{0}I".format(groupcount), req.read(4*groupcount))
+                creds = {"uid": uid, "gid": gid, "groups": groups}
+            else:
+                auth_body = req.read(authlength)
+                creds = {"auth_body": auth_body}
 
-            creds = {"uid": uid, "gid": gid, "groups": groups}
-        else:
-            auth_body = req.read(authlength)
-            creds = {"auth_body": auth_body}
+            [
+                verf_type,
+                verflength
+            ] = struct.unpack("!II", req.read(2*4))
+            verf_body = req.read(verflength)
 
-        [
-            verf_type,
-            verflength
-        ] = struct.unpack("!II", req.read(2*4))
-        verf_body = req.read(verflength)
-
-        self.process(
-            xid = xid,
-            rpcvers = rpcvers,
-            prog = prog,
-            vers = vers,
-            proc = proc,
-            auth_type = auth_type,
-            verf_type = verf_type,
-            verf_body = verf_body,
-            sock = conn,
-            body = req,
-            addr = self.addr,
-            **creds
-        )
+            self.process(
+                xid = xid,
+                rpcvers = rpcvers,
+                prog = prog,
+                vers = vers,
+                proc = proc,
+                auth_type = auth_type,
+                verf_type = verf_type,
+                verf_body = verf_body,
+                sock = conn,
+                body = req,
+                addr = addr,
+                **creds
+            )
+            if self.PROTO == "UDP": break
 
     def makeRPCHeader(self, data, reply_stat, state, **extra):
         resp  = struct.pack("!I", extra["xid"])
@@ -254,9 +229,11 @@ class RPCBIND:
             resp = struct.pack("!I", len(resp)|(1<<31)) + resp
             sock.send(resp)
         else:
-            sock.sendto(resp, self.addr)
+            sock.sendto(resp, extra["addr"])
 
-    def portmapper(self, rpcnumber, version, protocol, port, register = True):
+    # used externally
+    @staticmethod
+    def portmapper(rpcnumber, version, protocol, port, register = True):
         portmapper = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         portmapper.connect(("127.0.0.1", 111))
         # prog, vers, proto, port
@@ -282,3 +259,59 @@ class RPCBIND:
     def deregisterPort(self, rpcnumber, version, protocol, port):
         self.portmapper(rpcnumber, version, protocol, port, False)
 
+class serverTCP(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    allow_reuse_address = True
+    def __init__(self, server_address, RequestHandlerClass, logger):
+        SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
+        self.RequestHandlerClass = RequestHandlerClass
+        self.logger = logger
+
+    def serve_forever(self):
+        if self.RequestHandlerClass.autoregister:
+            for version in self.server_settings["programs"][self.server_settings["rpcnumber"]]["version"]:
+                self.RequestHandlerClass.portmapper(self.server_settings["rpcnumber"],
+                        version,
+                        6, # TCP
+                        self.server_address[1])
+        self.logger.info("Started")
+        SocketServer.TCPServer.serve_forever(self)
+
+class serverUDP(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
+    allow_reuse_address = True
+    def __init__(self, server_address, RequestHandlerClass, logger):
+        SocketServer.UDPServer.__init__(self, server_address, RequestHandlerClass)
+        self.logger = logger
+
+    def serve_forever(self):
+        if self.RequestHandlerClass.autoregister:
+            for version in self.server_settings["programs"][self.server_settings["rpcnumber"]]["version"]:
+                self.RequestHandlerClass.portmapper(self.server_settings["rpcnumber"],
+                        version,
+                        17, # UDP
+                        self.server_address[1])
+        self.logger.info("Started")
+        SocketServer.UDPServer.serve_forever(self)
+
+class DAEMON:
+    def createTCP4Thread(self, target, server_settings):
+        if server_settings["mode_debug"]:
+            self.logger.setLevel(logging.DEBUG)
+        elif server_settings["mode_verbose"]:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
+
+        tcp_settings = server_settings.copy()
+        tcp_settings.update({"PROTO": "TCP", "logger": helpers.get_child_logger(self.logger, "TCP")})
+        TCP4 = serverTCP((self.addr, self.port), target, tcp_settings["logger"])
+        TCP4.server_settings = tcp_settings
+        self.TCP4 = threading.Thread(target = TCP4.serve_forever)
+        self.TCP4.daemon = True
+
+    def createUDP4Thread(self, target, server_settings):
+        udp_settings = server_settings.copy()
+        udp_settings.update({"PROTO": "UDP", "logger": helpers.get_child_logger(self.logger, "UDP")})
+        UDP4 = serverUDP((self.addr, self.port), target, udp_settings["logger"])
+        UDP4.server_settings = udp_settings
+        self.UDP4 = threading.Thread(target = UDP4.serve_forever)
+        self.UDP4.daemon = True

@@ -14,33 +14,6 @@ class RPC(rpcbind.RPCBase):
         IPPROTO_UDP4 = 17
 
 class LOCK(rpcbind.RPCBIND):
-    def __init__(self, **server_settings):
-        # should be swappable for real rpcbind
-        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
-        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
-        self.logger = server_settings.get('logger', None)
-
-        # setup logger
-        if self.logger == None:
-            self.logger = logging.getLogger('LOCK.{0}'.format(self.PROTO))
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-
-        if self.mode_debug:
-            self.logger.setLevel(logging.DEBUG)
-        elif self.mode_verbose:
-            self.logger.setLevel(logging.INFO)
-        else:
-            self.logger.setLevel(logging.WARN)
-
-        self.rpcnumber = 100021
-        # we only need to keep track of our own program
-        self.programs = {self.rpcnumber: programs.programs[self.rpcnumber]}
-
-        self.logger.info("Started")
-
     def process(self, **arguments):
         LOCK_PROCS = {
             RPC.LOCK_PROC.NLMPROC4_NULL: self.NULL,
@@ -127,54 +100,25 @@ class LOCK(rpcbind.RPCBIND):
         self.logger.info("FREE_ALL")
         pass
 
-class LOCKDTCP(LOCK):
-    def __init__(self, **server_settings):
-        LOCK.__init__(self, **server_settings)
-        self.PROTO = "TCP"
-        # find out what port it should be listening on
-        port = server_settings.get("port", 4045)
-        # address can be passed to here from cli, and also to portmapper for bind addr
-        addr = ""
-        # prog, vers, proto, port
-        self.registerPort(self.rpcnumber, 4, RPC.IPPROTO.IPPROTO_TCP4, port)
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((addr, port))
-        self.sock.listen(4)
-
-class LOCKDUDP(LOCK):
-    def __init__(self, **server_settings):
-        LOCK.__init__(self, **server_settings)
-        self.PROTO = "UDP"
-        port = server_settings.get("port", 4045)
-        # address can be passed to here from cli, and also to portmapper for bind addr
-        addr = ""
-        # prog, vers, proto, port
-        self.registerPort(self.rpcnumber, 4, RPC.IPPROTO.IPPROTO_UDP4, port)
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((addr, port))
-
-class LOCKD:
+class LOCKD(rpcbind.DAEMON):
     def __init__(self, **server_settings):
         self.logger = server_settings.get('logger', None)
+
+        server_settings["rpcnumber"] = 100021
+        server_settings["programs"] = {server_settings["rpcnumber"]: programs.programs[server_settings["rpcnumber"]]}
+
         tcp_settings = server_settings.copy()
-        tcp_settings["logger"] = helpers.get_child_logger(self.logger, "TCP")
-        TCP = LOCKDTCP(**tcp_settings)
-
         udp_settings = server_settings.copy()
-        udp_settings["logger"] = helpers.get_child_logger(self.logger, "UDP")
-        UDP = LOCKDUDP(**udp_settings)
 
-        self.TCP = threading.Thread(target = TCP.listen)
-        self.TCP.daemon = True
-        self.UDP = threading.Thread(target = UDP.listen)
-        self.UDP.daemon = True
+        self.port = server_settings.get("port", 4045)
+        # address can be passed to here from cli, and also to portmapper for bind addr
+        self.addr = ""
+
+        self.createTCP4Thread(LOCK, server_settings)
+        self.createUDP4Thread(LOCK, server_settings)
 
     def listen(self):
-        self.TCP.start()
-        self.UDP.start()
-        while all(map(lambda x: x.isAlive(), [self.TCP, self.UDP])):
+        self.TCP4.start()
+        self.UDP4.start()
+        while all(map(lambda x: x.isAlive(), [self.TCP4, self.UDP4])):
             time.sleep(1)

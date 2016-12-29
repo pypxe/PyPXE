@@ -92,6 +92,7 @@ class dropprivs:
         self.oldgroups = os.getgroups()
 
     def __enter__(self):
+        if not os.fork(): return
         os.setgroups(self.groups)
         os.setegid(self.gid)
         os.seteuid(self.uid)
@@ -107,6 +108,8 @@ class dropprivs:
 # def func(foo):
 #   print "I am user 1000 in group 100"
 #   return dostuff(foo)
+# this is super slow and therefore not good.
+# can't use Pool because g and h are closures
 def runas(uid, gid, groups):
     def decorator(f):
         def g(*args, **kwargs):
@@ -127,42 +130,10 @@ def runas(uid, gid, groups):
     return decorator
 
 class NFS(rpcbind.RPCBIND):
-    def __init__(self, **server_settings):
-
-        # should be swappable for real rpcbind
-        self.mode_verbose = server_settings.get('mode_verbose', False) # verbose mode
-        self.mode_debug = server_settings.get('mode_debug', False) # debug mode
-        self.logger = server_settings.get('logger', None)
-
-        # setup logger
-        if self.logger == None:
-            self.logger = logging.getLogger('NFS.{0}'.format(self.PROTO))
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-
-        if self.mode_debug:
-            self.logger.setLevel(logging.DEBUG)
-        elif self.mode_verbose:
-            self.logger.setLevel(logging.INFO)
-        else:
-            self.logger.setLevel(logging.WARN)
-
-        self.rpcnumber = 100003
-        self.programs = {self.rpcnumber: programs.programs[self.rpcnumber]}
-
-        self.keepalive = True
-        self.forking = True
+    def setup(self):
+        self.server_settings = self.server.server_settings
+        self.nfsroot = os.path.abspath(self.server_settings["nfsroot"])
         self.lastfile = False
-
-        self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
-        self.filehandles = server_settings["filehandles"]
-
-        self.readcache = server_settings["readcache"]
-        self.readcachelock = server_settings["readcachelock"]
-
-        self.logger.info("Started")
 
     def process(self, **arguments):
         # new thread starts here
@@ -192,7 +163,12 @@ class NFS(rpcbind.RPCBIND):
             RPC.NFS_PROC.NFSPROC3_PATHCONF: self.PATHCONF,
             RPC.NFS_PROC.NFSPROC3_COMMIT: self.COMMIT,
         }
-        retval = NFSPROCS[arguments["proc"]](**arguments)
+        try:
+            retval = NFSPROCS[arguments["proc"]](**arguments)
+        except helpers.PathTraversalException:
+            self.logger.debug("PathTraversalException")
+            self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_EXIST, struct.pack("!I", 1) + self.getattr(self.nfsroot), **arguments)
+            return
         if retval:
             [errno, args] = retval
             if errno == 0:
@@ -226,15 +202,16 @@ class NFS(rpcbind.RPCBIND):
     def SETATTR(self, body = None, **arguments):
         path = self.extractpath(body)
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
 
+        fullfile = helpers.normalize_path(self.nfsroot, path)
         if not os.path.exists(fullfile):
             return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
 
-        if not self.canread(path, **arguments):
+        if not self.canread(fullfile, **arguments):
             return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
 
         self.logger.debug("SETATTR({0}) from {1}".format(path, arguments["addr"]))
-        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
 
     def LOOKUP(self, body = None, **arguments):
         path = self.extractpath(body)
@@ -361,10 +338,13 @@ class NFS(rpcbind.RPCBIND):
         self.sendnfsresponseOK(resp, **arguments)
         return
 
+        readcache = selfserver_settings["readcache"]
+        readcachelock = selfserver_settings["readcachelock"]
+
         addtocache = False
-        if (path, offset, count) in self.readcache:
+        if (path, offset, count) in readcache:
             self.logger.debug("READ cache hit")
-            resp = self.readcache[(path, offset, count)]
+            resp = readcache[(path, offset, count)]
         else:
             self.logger.debug("READ cache miss")
             addtocache = True
@@ -372,15 +352,15 @@ class NFS(rpcbind.RPCBIND):
 
         self.sendnfsresponseOK(resp, **arguments)
         if addtocache:
-            self.readcachelock.acquire()
+            readcachelock.acquire()
             # if we've hit the cache limit, evict something first
-            if len(self.readcache["metadata"]) > self.readcache["maxcacheelems"]:
-                idx = self.readcache["metadata"].pop(0)
-                del self.readcache[idx]
+            if len(readcache["metadata"]) > readcache["maxcacheelems"]:
+                idx = readcache["metadata"].pop(0)
+                del readcache[idx]
             # order is important
-            self.readcache["metadata"].append((path, offset, count))
-            self.readcache[(path, offset, count)] = resp
-            self.readcachelock.release()
+            readcache["metadata"].append((path, offset, count))
+            readcache[(path, offset, count)] = resp
+            readcachelock.release()
 
 
     def WRITE(self, **arguments):
@@ -578,40 +558,38 @@ class NFS(rpcbind.RPCBIND):
 
         return ret
 
-
     def extractpath(self, body):
         fh = self.extractstring(body)
         path = self.getpath(fh)
 
-        # not 100% sure this is right, but otherwise we get path traversal errors
-        if not path:
-            return ""
-        elif path == self.nfsroot:
+        if path == self.nfsroot:
             return self.nfsroot
         else:
             return helpers.normalize_path(self.nfsroot, path)
 
     def getfh(self, fh):
-        if fh not in self.filehandles: return {}
-        if fh in self.filehandles and self.filehandles[fh].get("expires", 0) < time.time():
-            del self.filehandles[fh]
+        filehandles = self.server_settings["filehandles"]
+        if fh not in filehandles: return {}
+        if fh in filehandles and filehandles[fh].get("expires", 0) < time.time():
+            del filehandles[fh]
             return {}
-        return self.filehandles[fh]
+        return filehandles[fh]
 
     def addfh(self, path):
+        filehandles = self.server_settings["filehandles"]
         matchingfh = []
-        for handle in self.filehandles.keys():
-            if self.filehandles[handle].get("path") == path:
+        for handle in filehandles.keys():
+            if filehandles[handle].get("path") == path:
                 matchingfh.append(handle)
         if matchingfh:
             [matchingfh] = matchingfh
-            if self.filehandles[matchingfh]["expires"] > time.time():
+            if filehandles[matchingfh]["expires"] > time.time():
                 return matchingfh
             else:
-                del self.filehandles[matchinfh]
+                del filehandles[matchinfh]
         else:
             fh = hashlib.sha256(path).hexdigest()
-            self.filehandles[fh] = {"path": path, "expires": time.time()+600}
+            filehandles[fh] = {"path": path, "expires": time.time()+600}
             return fh
 
     def getpath(self, fh):
@@ -681,43 +659,16 @@ class NFS(rpcbind.RPCBIND):
         fattr3 += struct.pack("!II", *self.packtime(pathstat.st_ctime))
         return fattr3
 
-
-class NFSDTCP(NFS):
-    def __init__(self, **server_settings):
-        NFS.__init__(self, **server_settings)
-        self.PROTO = "TCP"
-
-        # find out what port it should be listening on
-        port = server_settings.get("port", 2049)
-        # address can be passed to here from cli, and also to portmapper for bind addr
-        addr = ""
-
-        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_TCP4, port)
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((addr, port))
-        self.sock.listen(4)
-
-class NFSDUDP(NFS):
-    def __init__(self, **server_settings):
-        NFS.__init__(self, **server_settings)
-        self.PROTO = "UDP"
-
-        # find out what port it should be listening on
-        port = server_settings.get("port", 2049)
-        # address can be passed to here from cli, and also to portmapper for bind addr
-        addr = ""
-
-        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_UDP4, port)
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((addr, port))
-
-class NFSD:
+class NFSD(rpcbind.DAEMON):
     def __init__(self, **server_settings):
         self.logger = server_settings.get('logger', None)
+
+        self.port = server_settings.get("port", 2049)
+        # address can be passed to here from cli, and also to portmapper for bind addr
+        self.addr = ""
+
+        server_settings["rpcnumber"] = 100003
+        server_settings["programs"] = {server_settings["rpcnumber"]: programs.programs[server_settings["rpcnumber"]]}
 
         # a normal multiprocessing.Manager listens on a unix socket
         # this is useless if we want to use from arbitrary users
@@ -727,15 +678,15 @@ class NFSD:
         # the data is authenticated using a random key, so we should be safe from attackers
         # see multiprocessing/managers.py +1088 ish for the rough source of this
         # unfortunately it causes slow shutdown on ^C
-        self.manager = multiprocessing.managers.BaseManager(('127.0.0.1', 0))
-        self.manager.register("dict", dict, multiprocessing.managers.DictProxy)
-        self.manager.register("list", list, multiprocessing.managers.ListProxy)
-        self.manager.register("Lock", threading.Lock, multiprocessing.managers.AcquirerProxy)
-        self.manager.start()
-        filehandles = self.manager.dict()
-        readcache = self.manager.dict()
+        manager = multiprocessing.managers.BaseManager(('127.0.0.1', 0))
+        manager.register("dict", dict, multiprocessing.managers.DictProxy)
+        manager.register("list", list, multiprocessing.managers.ListProxy)
+        manager.register("Lock", threading.Lock, multiprocessing.managers.AcquirerProxy)
+        manager.start()
+        filehandles = manager.dict()
+        readcache = manager.dict()
         readcache["metadata"] = []
-        readcachelock = self.manager.Lock()
+        readcachelock = manager.Lock()
 
         # 4096 average read
         cachesize = int(filter(lambda x:x.isdigit(), server_settings["readcachesize"]))
@@ -754,28 +705,15 @@ class NFSD:
         self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
         filehandles[hashlib.sha256(self.nfsroot).hexdigest()] = {"path": self.nfsroot, "expires": float("inf")}
 
-        tcp_settings = server_settings.copy()
-        tcp_settings["logger"] = helpers.get_child_logger(self.logger, "TCP")
-        tcp_settings["filehandles"] = filehandles
-        tcp_settings["readcache"] = readcache
-        tcp_settings["readcachelock"] = readcachelock
-        TCP = NFSDTCP(**tcp_settings)
+        server_settings["filehandles"] = filehandles
+        server_settings["readcache"] = readcache
+        server_settings["readcachelock"] = readcachelock
 
-        udp_settings = server_settings.copy()
-        udp_settings["logger"] = helpers.get_child_logger(self.logger, "UDP")
-        udp_settings["filehandles"] = filehandles
-        udp_settings["readcache"] = readcache
-        udp_settings["readcachelock"] = readcachelock
-        UDP = NFSDUDP(**udp_settings)
-
-        self.TCP = threading.Thread(target = TCP.listen)
-        self.TCP.daemon = True
-        self.UDP = threading.Thread(target = UDP.listen)
-        self.UDP.daemon = True
+        self.createTCP4Thread(NFS, server_settings)
+        self.createUDP4Thread(NFS, server_settings)
 
     def listen(self):
-        self.TCP.start()
-        self.UDP.start()
-        while all(map(lambda x: x.isAlive(), [self.TCP, self.UDP])):
+        self.TCP4.start()
+        self.UDP4.start()
+        while all(map(lambda x: x.isAlive(), [self.TCP4, self.UDP4])):
             time.sleep(1)
-
