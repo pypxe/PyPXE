@@ -7,11 +7,18 @@ import time
 import struct
 import hashlib
 import programs
-import os
 import stat
 import math
-import ctypes
 import multiprocessing
+import multiprocessing.managers
+
+import ctypes
+import os
+libc = ctypes.CDLL("libc.so.6")
+# On success (all requested permissions granted), zero is returned.
+# normal os.access does not take into account euid
+os.euidaccess = lambda *args: not bool(libc.euidaccess(*args))
+os.euidaccess.__doc__ = "int euidaccess(const char *pathname, int mode);"
 
 class RPC(rpcbind.RPCBase):
     NFS_PROC = programs.RPC.NFS_PROC
@@ -68,6 +75,12 @@ class RPC(rpcbind.RPCBase):
         ACCESS3_DELETE  = 0x0010
         ACCESS3_EXECUTE = 0x0020
 
+    class access:
+        F_OK = 0
+        R_OK = 4
+        W_OK = 2
+        X_OK = 1
+
 class dropprivs:
     def __init__(self, uid, gid, groups):
         self.uid = uid
@@ -94,23 +107,17 @@ class dropprivs:
 # def func(foo):
 #   print "I am user 1000 in group 100"
 #   return dostuff(foo)
-def runas(uid, gid, groups, chroot = ""):
+def runas(uid, gid, groups):
     def decorator(f):
         def g(*args, **kwargs):
             gpipe = kwargs["gpipe"]
             del kwargs["gpipe"]
-            chroot = kwargs.get("chroot", "")
-            del kwargs["chroot"]
-            if chroot:
-                os.chdir(chroot)
-                os.chroot(".")
             with dropprivs(uid, gid, groups):
                 gpipe.send(f(*args, **kwargs))
             gpipe.close()
         def h(*args, **kwargs):
             [gpipea, gpipeb] = multiprocessing.Pipe()
             kwargs["gpipe"] = gpipeb
-            kwargs["chroot"] = chroot
             gthread = multiprocessing.Process(target = g, args = args, kwargs = kwargs)
             gthread.daemon = True
             gthread.start()
@@ -145,13 +152,23 @@ class NFS(rpcbind.RPCBIND):
         self.rpcnumber = 100003
         self.programs = {self.rpcnumber: programs.programs[self.rpcnumber]}
 
+        self.keepalive = True
+        self.forking = True
+        self.lastfile = False
+
+        self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
+        self.filehandles = server_settings["filehandles"]
+
+        self.readcache = server_settings["readcache"]
+        self.readcachelock = server_settings["readcachelock"]
+
         self.logger.info("Started")
 
     def process(self, **arguments):
         # new thread starts here
         # use client sock, not main sock
         self.clientsock = arguments["sock"]
-        PORTMAPPERPROCS = {
+        NFSPROCS = {
             RPC.NFS_PROC.NFSPROC3_NULL: self.NULL,
             RPC.NFS_PROC.NFSPROC3_GETATTR: self.GETATTR,
             RPC.NFS_PROC.NFSPROC3_SETATTR: self.SETATTR,
@@ -175,7 +192,7 @@ class NFS(rpcbind.RPCBIND):
             RPC.NFS_PROC.NFSPROC3_PATHCONF: self.PATHCONF,
             RPC.NFS_PROC.NFSPROC3_COMMIT: self.COMMIT,
         }
-        retval = PORTMAPPERPROCS[arguments["proc"]](**arguments)
+        retval = NFSPROCS[arguments["proc"]](**arguments)
         if retval:
             [errno, args] = retval
             if errno == 0:
@@ -184,8 +201,13 @@ class NFS(rpcbind.RPCBIND):
                 # send 1 obj_attributes
                 self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_ACCES, struct.pack("!I", 1) + self.getattr(args["path"]), **arguments)
             elif errno == RPC.nfsstat3.NFS3ERR_BADHANDLE:
-                # send 1 obj_attributes
-                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_BADHANDLE, struct.pack("!I", 1) + self.getattr(args["path"]), **arguments)
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_BADHANDLE, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
+            elif errno == RPC.nfsstat3.NFS3ERR_EXIST:
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_EXIST, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
+            elif errno == RPC.nfsstat3.NFS3ERR_INVAL:
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_INVAL, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
+            elif errno == RPC.nfsstat3.NFS3ERR_ROFS:
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_ROFS, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
 
     def NULL(self, **arguments):
         self.makeRPCHeader("", RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
@@ -194,44 +216,81 @@ class NFS(rpcbind.RPCBIND):
         path = self.extractpath(body)
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
         self.logger.debug("GETATTR({0}) from {1}".format(path, arguments["addr"]))
-        self.sendnfsresponseOK(self.getattr(path), **arguments)
 
-    def SETATTR(self, **arguments):
-        self.logger.debug("SETATTR from {0}".format(arguments["addr"]))
-        pass
-    def LOOKUP(self, **arguments):
-        self.logger.debug("LOOKUP from {0}".format(arguments["addr"]))
-        pass
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
+        def f(path):
+            return self.getattr(path)
+
+        self.sendnfsresponseOK(f(path), **arguments)
+
+    def SETATTR(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+
+        if not os.path.exists(fullfile):
+            return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
+
+        if not self.canread(path, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
+
+        self.logger.debug("SETATTR({0}) from {1}".format(path, arguments["addr"]))
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
+
+    def LOOKUP(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        file = self.extractstring(body)
+        self.logger.debug("LOOKUP({0}, {1}) from {2}".format(path, file, arguments["addr"]))
+
+        try:
+            fullfile = helpers.normalize_path(path, file)
+        except PathTraversalException:
+            return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
+
+        if not os.path.exists(fullfile):
+            return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
+
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
+        def f(fullfile, path):
+            resp = struct.pack("!I", 64)
+            fh = self.getfh(fullfile)
+            if not fh:
+                fh = self.addfh(fullfile)
+            resp += fh
+            resp += struct.pack("!I", 1)
+            resp += self.getattr(fullfile)
+            resp += struct.pack("!I", 1)
+            resp += self.getattr(path)
+            return resp
+
+        resp = f(fullfile, path)
+
+        self.sendnfsresponseOK(resp, **arguments)
 
     def ACCESS(self, body = None, **arguments):
         path = self.extractpath(body)
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
         self.logger.debug("ACCESS({0}) from {1}".format(path, arguments["addr"]))
-        libc = ctypes.CDLL("libc.so.6")
-        # On success (all requested permissions granted), zero is returned.
-        # normal os.access does not take into account euid
-        os.euidaccess = lambda *args: not bool(libc.euidaccess(*args))
-        os.euidaccess.__doc__ = "int euidaccess(const char *pathname, int mode);"
 
         [nfsmode] = struct.unpack("!I", body.read(4))
         mode = 0
 
         mappings = {
                 # nfs in and out to access() in
-                RPC.ACCESS3.ACCESS3_READ:    0x4,
-                RPC.ACCESS3.ACCESS3_LOOKUP:  0x1,
-                RPC.ACCESS3.ACCESS3_MODIFY:  0x2,
-                RPC.ACCESS3.ACCESS3_EXTEND:  0x2,
-                RPC.ACCESS3.ACCESS3_DELETE:  0x2,
-                RPC.ACCESS3.ACCESS3_EXECUTE: 0x1
+                RPC.ACCESS3.ACCESS3_READ:    RPC.access.R_OK,
+                RPC.ACCESS3.ACCESS3_LOOKUP:  RPC.access.X_OK,
+                RPC.ACCESS3.ACCESS3_MODIFY:  RPC.access.W_OK,
+                RPC.ACCESS3.ACCESS3_EXTEND:  RPC.access.W_OK,
+                RPC.ACCESS3.ACCESS3_DELETE:  RPC.access.W_OK,
+                RPC.ACCESS3.ACCESS3_EXECUTE: RPC.access.X_OK
             }
 
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
+        def f(path, mode):
+            return os.euidaccess(path, mode)
         for mapping in mappings:
             # if the client requested it, and we've not already got a positive result
             if nfsmode & mapping and not mode & mapping:
-                @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-                def f(path, mode):
-                    return os.euidaccess(path, mode)
                 if f(path, mappings[mapping]):
                     mode |= mapping
 
@@ -245,11 +304,85 @@ class NFS(rpcbind.RPCBIND):
         path = self.extractpath(body)
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
         self.logger.debug("READLINK({0}) from {1}".format(path, arguments["addr"]))
-        print path
 
-    def READ(self, **arguments):
-        self.logger.debug("READ from {0}".format(arguments["addr"]))
-        pass
+        if self.gettype(path) != RPC.ftype3.NF3LNK:
+            return RPC.nfsstat3.NFS3ERR_INVAL, {"path": path}
+
+        if not self.canread(path, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
+
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
+        def f(path):
+            # 1 getattr
+            resp = struct.pack("!I", 1)
+            resp += self.getattr(path)
+            resp += self.packstring(os.readlink(path))
+            return resp
+
+        resp = f(path)
+
+        self.sendnfsresponseOK(resp, **arguments)
+
+    def READ(self, body = True, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        [offset, count] = struct.unpack("!QI", body.read(8+4))
+        self.logger.debug("READ({0}) {1} bytes at {2} from {3}".format(path, count, offset, arguments["addr"]))
+
+        if not self.canread(path, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
+
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
+        def f(file, offset, count, fh):
+            resp = struct.pack("!I", 1)
+            resp += self.getattr(path)
+            # optimize consecutive reads
+            if not fh or fh.name != file:
+                # no file or wrong file
+                if fh: fh.close()
+                fh = open(path)
+            elif fh and fh.name == file and fh.tell() != offset:
+                print "semihit"
+                # valid file, invalid offset
+                fh.seek(offset)
+            else:
+                print "hit"
+            fh.seek(offset)
+            data = fh.read(count)
+            resp += struct.pack("!I", len(data))
+            # we can't read any more if we're at eof
+            resp += struct.pack("!I", 0 if len(fh.read(1)) else 1)
+            resp += struct.pack("!I", len(data))
+            resp += data
+            return resp, fh
+
+        [resp, fh] = f(path, offset, count, self.lastfile)
+        self.lastfile = fh
+        self.sendnfsresponseOK(resp, **arguments)
+        return
+
+        addtocache = False
+        if (path, offset, count) in self.readcache:
+            self.logger.debug("READ cache hit")
+            resp = self.readcache[(path, offset, count)]
+        else:
+            self.logger.debug("READ cache miss")
+            addtocache = True
+            resp = f(path, offset, count)
+
+        self.sendnfsresponseOK(resp, **arguments)
+        if addtocache:
+            self.readcachelock.acquire()
+            # if we've hit the cache limit, evict something first
+            if len(self.readcache["metadata"]) > self.readcache["maxcacheelems"]:
+                idx = self.readcache["metadata"].pop(0)
+                del self.readcache[idx]
+            # order is important
+            self.readcache["metadata"].append((path, offset, count))
+            self.readcache[(path, offset, count)] = resp
+            self.readcachelock.release()
+
+
     def WRITE(self, **arguments):
         self.logger.debug("WRITE from {0}".format(arguments["addr"]))
         pass
@@ -292,7 +425,7 @@ class NFS(rpcbind.RPCBIND):
             maxcount
             ] = struct.unpack("!QQII", body.read(2*8+2*4))
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"], chroot = path)
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
         def f(cookie, dircount, **arguments):
             preresp = ""
             # 1 dir_attributes
@@ -312,9 +445,8 @@ class NFS(rpcbind.RPCBIND):
                 resp = ""
                 direntstat = os.lstat(dirent)
                 resp += struct.pack("!Q", direntstat.st_ino)
-                resp += struct.pack("!I", len(dirent))
-                resp += dirent
-                resp += "\x00" * ((4 - (len(dirent) % 4))&~4)
+
+                resp += self.packstring(dirent)
                 count += 1
                 # cookie, for advancing
                 resp += struct.pack("!Q", count)
@@ -425,11 +557,39 @@ class NFS(rpcbind.RPCBIND):
     # util functions from here #
     ############################
 
+    def canread(self, path, **arguments):
+        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
+        def f(path, mode):
+            return os.euidaccess(path, mode)
+        return f(path, RPC.access.R_OK)
+
+    def extractstring(self, body):
+        [strlen] = struct.unpack("!I", body.read(4))
+        str = body.read(strlen)
+        return str
+
+    def packstring(self, string):
+        # string length
+        ret = struct.pack("!I", len(string))
+        # string itself
+        ret += string
+        # padding
+        ret += "\x00" * ((4 - (len(string) % 4))&~4)
+
+        return ret
+
+
     def extractpath(self, body):
-        [fhlen] = struct.unpack("!I", body.read(4))
-        fh = body.read(fhlen)
+        fh = self.extractstring(body)
         path = self.getpath(fh)
-        return path
+
+        # not 100% sure this is right, but otherwise we get path traversal errors
+        if not path:
+            return ""
+        elif path == self.nfsroot:
+            return self.nfsroot
+        else:
+            return helpers.normalize_path(self.nfsroot, path)
 
     def getfh(self, fh):
         if fh not in self.filehandles: return {}
@@ -439,15 +599,20 @@ class NFS(rpcbind.RPCBIND):
         return self.filehandles[fh]
 
     def addfh(self, path):
-        matchingfh = filter(lambda x:self.filehandles[x]["path"] == path, self.filehandles)
+        matchingfh = []
+        for handle in self.filehandles.keys():
+            if self.filehandles[handle].get("path") == path:
+                matchingfh.append(handle)
         if matchingfh:
+            [matchingfh] = matchingfh
             if self.filehandles[matchingfh]["expires"] > time.time():
                 return matchingfh
             else:
                 del self.filehandles[matchinfh]
-        fh = hashlib.sha256(path).hexdigest()
-        self.filehandles[fh] = {"path": path, "expires": time.time()+600}
-        return fh
+        else:
+            fh = hashlib.sha256(path).hexdigest()
+            self.filehandles[fh] = {"path": path, "expires": time.time()+600}
+            return fh
 
     def getpath(self, fh):
         return self.getfh(fh).get("path", "")
@@ -521,37 +686,96 @@ class NFSDTCP(NFS):
     def __init__(self, **server_settings):
         NFS.__init__(self, **server_settings)
         self.PROTO = "TCP"
-        self.keepalive = True
-        self.filehandles = server_settings["filehandles"]
+
         # find out what port it should be listening on
         port = server_settings.get("port", 2049)
         # address can be passed to here from cli, and also to portmapper for bind addr
         addr = ""
-        # prog, vers, proto, port
+
         self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_TCP4, port)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(("", port))
+        self.sock.bind((addr, port))
         self.sock.listen(4)
+
+class NFSDUDP(NFS):
+    def __init__(self, **server_settings):
+        NFS.__init__(self, **server_settings)
+        self.PROTO = "UDP"
+
+        # find out what port it should be listening on
+        port = server_settings.get("port", 2049)
+        # address can be passed to here from cli, and also to portmapper for bind addr
+        addr = ""
+
+        self.registerPort(self.rpcnumber, self.programs[self.rpcnumber]["version"][0], RPC.IPPROTO.IPPROTO_UDP4, port)
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind((addr, port))
 
 class NFSD:
     def __init__(self, **server_settings):
         self.logger = server_settings.get('logger', None)
-        # support multiple roots
-        self.nfsroots = server_settings.get('nfsroots', [])
-        filehandles = {}
-        for root in self.nfsroots:
-            filehandles[hashlib.sha256(root).hexdigest()] = {"path": root, "expires": float("inf")}
-        tcp_settings = server_settings
+
+        # a normal multiprocessing.Manager listens on a unix socket
+        # this is useless if we want to use from arbitrary users
+        # So use the underlying multiprocessing.manager.BaseManager and
+        # .register() stuff
+        # we don't particularly care what it listens on, but ought to be localhost
+        # the data is authenticated using a random key, so we should be safe from attackers
+        # see multiprocessing/managers.py +1088 ish for the rough source of this
+        # unfortunately it causes slow shutdown on ^C
+        self.manager = multiprocessing.managers.BaseManager(('127.0.0.1', 0))
+        self.manager.register("dict", dict, multiprocessing.managers.DictProxy)
+        self.manager.register("list", list, multiprocessing.managers.ListProxy)
+        self.manager.register("Lock", threading.Lock, multiprocessing.managers.AcquirerProxy)
+        self.manager.start()
+        filehandles = self.manager.dict()
+        readcache = self.manager.dict()
+        readcache["metadata"] = []
+        readcachelock = self.manager.Lock()
+
+        # 4096 average read
+        cachesize = int(filter(lambda x:x.isdigit(), server_settings["readcachesize"]))
+        cacheunit = filter(lambda x:not x.isdigit(), server_settings["readcachesize"])
+        readcache["maxcacheelems"] = (cachesize * {
+            "": 1,
+            "b": 1,
+            "Kb":  1000**1,
+            "KiB": 1024**1,
+            "Mb" : 1000**2,
+            "MiB": 1024**2,
+            "Gb":  1000**3,
+            "GiB": 1024**3
+            }[cacheunit]) / 4096
+
+        self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
+        filehandles[hashlib.sha256(self.nfsroot).hexdigest()] = {"path": self.nfsroot, "expires": float("inf")}
+
+        tcp_settings = server_settings.copy()
         tcp_settings["logger"] = helpers.get_child_logger(self.logger, "TCP")
         tcp_settings["filehandles"] = filehandles
+        tcp_settings["readcache"] = readcache
+        tcp_settings["readcachelock"] = readcachelock
         TCP = NFSDTCP(**tcp_settings)
+
+        udp_settings = server_settings.copy()
+        udp_settings["logger"] = helpers.get_child_logger(self.logger, "UDP")
+        udp_settings["filehandles"] = filehandles
+        udp_settings["readcache"] = readcache
+        udp_settings["readcachelock"] = readcachelock
+        UDP = NFSDUDP(**udp_settings)
 
         self.TCP = threading.Thread(target = TCP.listen)
         self.TCP.daemon = True
+        self.UDP = threading.Thread(target = UDP.listen)
+        self.UDP.daemon = True
 
     def listen(self):
         self.TCP.start()
-        while all(map(lambda x: x.isAlive(), [self.TCP])):
+        self.UDP.start()
+        while all(map(lambda x: x.isAlive(), [self.TCP, self.UDP])):
             time.sleep(1)
+

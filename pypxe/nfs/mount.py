@@ -8,6 +8,7 @@ import struct
 import hashlib
 import programs
 import StringIO
+import os
 
 class RPC(rpcbind.RPCBase):
     MOUNT_PROC = programs.RPC.MOUNT_PROC
@@ -54,10 +55,9 @@ class MOUNT(rpcbind.RPCBIND):
         # we only need to keep track of our own program
         self.programs = {self.rpcnumber: programs.programs[self.rpcnumber]}
 
-        self.nfsroots = server_settings.get('nfsroots', [])
+        self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
         self.filehandles = {}
-        for root in self.nfsroots:
-            self.filehandles[root] = hashlib.sha256(root).hexdigest()
+        self.filehandles[self.nfsroot] = hashlib.sha256(self.nfsroot).hexdigest()
 
         self.logger.info("Started")
 
@@ -148,11 +148,11 @@ class MOUNTDUDP(MOUNT):
 class MOUNTD:
     def __init__(self, **server_settings):
         self.logger = server_settings.get('logger', None)
-        tcp_settings = server_settings
+        tcp_settings = server_settings.copy()
         tcp_settings["logger"] = helpers.get_child_logger(self.logger, "TCP")
         TCP = MOUNTDTCP(**tcp_settings)
 
-        udp_settings = server_settings
+        udp_settings = server_settings.copy()
         udp_settings["logger"] = helpers.get_child_logger(self.logger, "UDP")
         UDP = MOUNTDUDP(**udp_settings)
 

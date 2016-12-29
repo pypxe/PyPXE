@@ -8,6 +8,7 @@ import threading
 import select
 import socket
 import random
+import os
 
 class RPCBase:
     """For Constants from RFC1057"""
@@ -52,19 +53,28 @@ class RPCBase:
         UNSET   = 2
 
 class RPCBIND:
+    forking = False
     def listen(self):
         if self.PROTO == "TCP":
             while True:
                 conn, addr = self.sock.accept()
-                client = threading.Thread(target = self.handle, args=(conn, addr))
-                client.daemon = True
-                client.start()
+                if self.forking:
+                    if not os.fork():
+                        self.handle(conn, addr)
+                else:
+                    client = threading.Thread(target = self.handle, args=(conn, addr))
+                    client.daemon = True
+                    client.start()
         else:
             while True:
                 # don't need to thread UDP because only one socket.
                 rlist, _, _ = select.select([self.sock], [], [], 1)
                 if not rlist: continue
-                self.handle(self.sock)
+                if self.forking:
+                    if not os.fork():
+                        self.handle(self.sock)
+                else:
+                    self.handle(self.sock)
 
     # overwritten by NFS to keep connections alive
     keepalive = False
@@ -105,7 +115,9 @@ class RPCBIND:
                 # loop forever if keepalive
                 # used for NFS
                 continue
-            if not self.keepalive: break
+            else:
+                break
+            if self.PROTO == "UDP": break
 
     def parse(self, conn):
         """

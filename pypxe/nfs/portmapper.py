@@ -276,13 +276,13 @@ class PORTMAPPERD:
         self.programs = programs.programs
         server_settings["programs"] = self.programs
 
-        del server_settings["logger"]
-
-        tcp_settings = server_settings
+        tcp_settings = server_settings.copy()
+        del tcp_settings["logger"]
         TCP4 = PORTMAPPERTCP4(logger = helpers.get_child_logger(self.logger, "TCP4"), **tcp_settings)
         TCP6 = PORTMAPPERTCP6(logger = helpers.get_child_logger(self.logger, "TCP6"), **tcp_settings)
 
-        udp_settings = server_settings
+        udp_settings = server_settings.copy()
+        del udp_settings["logger"]
         UDP4 = PORTMAPPERUDP4(logger = helpers.get_child_logger(self.logger, "UDP4"), **udp_settings)
         UDP6 = PORTMAPPERUDP6(logger = helpers.get_child_logger(self.logger, "UDP6"), **udp_settings)
 
