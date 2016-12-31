@@ -126,7 +126,7 @@ class NFS(rpcbind.RPCBIND):
             retval = NFSPROCS[arguments["proc"]](**arguments)
         except helpers.PathTraversalException:
             self.logger.debug("PathTraversalException")
-            self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_EXIST, struct.pack("!I", 1) + self.getattr(self.nfsroot), **arguments)
+            self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_NOENT, struct.pack("!I", 1) + self.getattr(self.nfsroot), **arguments)
             return
         if retval:
             [errno, args] = retval
@@ -137,8 +137,8 @@ class NFS(rpcbind.RPCBIND):
                 self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_ACCES, struct.pack("!I", 1) + self.getattr(args["path"]), **arguments)
             elif errno == RPC.nfsstat3.NFS3ERR_BADHANDLE:
                 self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_BADHANDLE, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
-            elif errno == RPC.nfsstat3.NFS3ERR_EXIST:
-                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_EXIST, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
+            elif errno == RPC.nfsstat3.NFS3ERR_NOENT:
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_NOENT, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
             elif errno == RPC.nfsstat3.NFS3ERR_INVAL:
                 self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_INVAL, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
             elif errno == RPC.nfsstat3.NFS3ERR_ROFS:
@@ -164,7 +164,7 @@ class NFS(rpcbind.RPCBIND):
 
         fullfile = helpers.normalize_path(self.nfsroot, path)
         if not os.path.exists(fullfile):
-            return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
+            return RPC.nfsstat3.NFS3ERR_NOENT, {"path": path}
 
         if not self.canread(fullfile, **arguments):
             return RPC.nfsstat3.NFS3ERR_ACCES, {"path": fullfile}
@@ -180,10 +180,10 @@ class NFS(rpcbind.RPCBIND):
         try:
             fullfile = helpers.normalize_path(path, file)
         except PathTraversalException:
-            return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
+            return RPC.nfsstat3.NFS3ERR_NOENT, {"path": path}
 
         if not os.path.exists(fullfile):
-            return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
+            return RPC.nfsstat3.NFS3ERR_NOENT, {"path": path}
 
         if not self.canread(fullfile, **arguments):
             return RPC.nfsstat3.NFS3ERR_ACCES, {"path": fullpath}
@@ -268,45 +268,129 @@ class NFS(rpcbind.RPCBIND):
         with open(path) as fh:
             fh.seek(offset)
             data = fh.read(count)
-            resp += struct.pack("!I", len(data))
+            datalen = len(data)
+            resp += struct.pack("!I", datalen)
             # we can't read any more if we're at eof
             resp += struct.pack("!I", 0 if len(fh.read(1)) else 1)
-            resp += struct.pack("!I", len(data))
+            resp += struct.pack("!I", datalen)
             resp += data
+            resp += "\x00" * ((4 - (datalen % 4))&~4)
 
         self.sendnfsresponseOK(resp, **arguments)
         return
 
-    def WRITE(self, **arguments):
+    def WRITE(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("WRITE from {0}".format(arguments["addr"]))
-        pass
-    def CREATE(self, **arguments):
+
+    def CREATE(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("CREATE from {0}".format(arguments["addr"]))
-        pass
-    def MKDIR(self, **arguments):
+
+    def MKDIR(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("MKDIR from {0}".format(arguments["addr"]))
-        pass
-    def SYMLINK(self, **arguments):
+
+    def SYMLINK(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("SYMLINK from {0}".format(arguments["addr"]))
-        pass
-    def MKNOD(self, **arguments):
+
+    def MKNOD(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("MKNOD from {0}".format(arguments["addr"]))
-        pass
-    def REMOVE(self, **arguments):
+
+    def REMOVE(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("REMOVE from {0}".format(arguments["addr"]))
-        pass
-    def RMDIR(self, **arguments):
+
+    def RMDIR(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("RMDIR from {0}".format(arguments["addr"]))
-        pass
-    def RENAME(self, **arguments):
+
+    def RENAME(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("RENAME from {0}".format(arguments["addr"]))
-        pass
-    def LINK(self, **arguments):
+
+    def LINK(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("LINK from {0}".format(arguments["addr"]))
-        pass
-    def READDIR(self, **arguments):
-        self.logger.info("READDIR from {0}".format(arguments["addr"]))
-        pass
+
+    def READDIR(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        self.logger.info("READDIR({0}) from {1}".format(path, arguments["addr"]))
+        [cookie,
+            verifier,
+            maxcount,
+            ] = struct.unpack("!QQI", body.read(2*8+4))
+        if not self.canexecute(path, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
+
+        preresp = ""
+        # 1 dir_attributes
+        preresp += struct.pack("!I", 1)
+        preresp += self.getattr(".")
+        # verifier
+        preresp += struct.pack("!Q", 0)
+        fullresp = preresp
+        count = 0
+        broken = False
+
+        for dirent in os.listdir(path):
+            fn = dirent
+            try:
+                dirent = helpers.normalize_path(path, dirent)
+            except helpers.PathTraversalException:
+                continue
+            if count < cookie:
+                # skip up to cookie
+                count += 1
+                continue
+            resp = ""
+            direntstat = self.cachestat(dirent)
+            # fileid
+            resp += struct.pack("!Q", direntstat.st_ino)
+            # name
+            resp += self.packstring(fn)
+            count += 1
+            # cookie, for advancing
+            resp += struct.pack("!Q", count)
+
+            if len(fullresp)+len(resp) > maxcount and len(fullresp) == len(preresp):
+                print len(fullresp), len(resp)
+                return self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_TOOSMALL, "", **arguments)
+            elif len(fullresp)+len(resp)+4 > maxcount:
+                broken = True
+                break
+            else:
+                # value follows
+                fullresp += struct.pack("!I", 1)
+                fullresp += resp
+
+        # value follows no
+        fullresp += struct.pack("!I", 0)
+        # eof if we didn't break early
+        fullresp += struct.pack("!I", 0 if broken else 1)
+
+        self.sendnfsresponseOK(fullresp, **arguments)
 
     def READDIRPLUS(self, body = None, **arguments):
         path = self.extractpath(body)
@@ -325,14 +409,19 @@ class NFS(rpcbind.RPCBIND):
         preresp = ""
         # 1 dir_attributes
         preresp += struct.pack("!I", 1)
-        preresp += self.getattr(".")
+        preresp += self.getattr(path)
         # verifier
         preresp += struct.pack("!Q", 0)
         fullresp = preresp
         count = 0
         broken = False
 
-        for dirent in os.listdir("."):
+        for dirent in os.listdir(path):
+            fn = dirent
+            try:
+                dirent = helpers.normalize_path(path, dirent)
+            except helpers.PathTraversalException:
+                continue
             if count < cookie:
                 # skip up to cookie
                 count += 1
@@ -341,7 +430,7 @@ class NFS(rpcbind.RPCBIND):
             direntstat = self.cachestat(dirent)
             resp += struct.pack("!Q", direntstat.st_ino)
 
-            resp += self.packstring(dirent)
+            resp += self.packstring(fn)
             count += 1
             # cookie, for advancing
             resp += struct.pack("!Q", count)
@@ -370,9 +459,45 @@ class NFS(rpcbind.RPCBIND):
 
         self.sendnfsresponseOK(fullresp, **arguments)
 
-    def FSSTAT(self, **arguments):
-        self.logger.info("FSSTAT from {0}".format(arguments["addr"]))
-        pass
+    def FSSTAT(self, body = None, **arguments):
+        # this may not technically be right, as we're using the stats for
+        # the nfs directory, rather than the emulated fs
+        # therefore an empty nfsroot would have a nonempty f_files for example
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        self.logger.debug("FSSTAT from {0}".format(arguments["addr"]))
+
+        statvfs = os.statvfs(path)
+        blocksize = statvfs.f_bsize
+        fragsize = statvfs.f_frsize
+
+        resp = struct.pack("!I", 1)
+        resp += self.getattr(path)
+        # total size (bytes)
+        resp += struct.pack("!Q", statvfs.f_blocks * fragsize)
+        # free size (bytes)
+        resp += struct.pack("!Q", statvfs.f_bfree * blocksize)
+        if arguments.get("uid", 0) == 0:
+            # free size (bytes) (unreserved)
+            resp += struct.pack("!Q", statvfs.f_bfree * blocksize)
+        else:
+            # free size (bytes) (unreserved)
+            resp += struct.pack("!Q", statvfs.f_bavail * blocksize)
+        # total number of files
+        resp += struct.pack("!Q", statvfs.f_files)
+        # free files
+        resp += struct.pack("!Q", statvfs.f_ffree)
+        if arguments.get("uid", 0) == 0:
+            # free files (unreserved)
+            resp += struct.pack("!Q", statvfs.f_ffree)
+        else:
+            # free files (unreserved)
+            resp += struct.pack("!Q", statvfs.f_favail)
+        # volatility (sec)
+        resp += struct.pack("!Q", 0)
+
+        self.sendnfsresponseOK(resp, **arguments)
+
 
     def FSINFO(self, body = None, **arguments):
         path = self.extractpath(body)
@@ -441,9 +566,11 @@ class NFS(rpcbind.RPCBIND):
 
         self.sendnfsresponseOK(resp, **arguments)
 
-    def COMMIT(self, **arguments):
+    def COMMIT(self, body = None, **arguments):
+        path = self.extractpath(body)
+        if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
+        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
         self.logger.info("COMMIT from {0}".format(arguments["addr"]))
-        pass
 
     ############################
     # util functions from here #

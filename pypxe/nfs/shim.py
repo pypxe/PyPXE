@@ -17,7 +17,7 @@ run = threading.Thread
 try:
         threads = []
         nfsroot = "/home/rory/PyPXE/pypxe/nfs/nfsroot/"
-        debug = False
+        debug = True
         verbose = True
 
         import portmapper

@@ -253,6 +253,7 @@ class PooledThreadingMixIn:
     daemon_threads = False
 
     def __init__(self, threadcount = 8):
+        # threacount probably wants to be at least >= number of expected clients
         self.pool = ThreadPool(threadcount)
 
     def process_request_thread(self, request, client_address):
@@ -272,11 +273,14 @@ class PooledThreadingMixIn:
         """Start a new thread to process the request."""
         self.pool.apply_async(self.process_request_thread, (request, client_address))
 
-class serverTCP(PooledThreadingMixIn, SocketServer.TCPServer):
+# we don't use our own ThreadingMixIn because it will not serve more than threadcount TCP clients
+# so use the old one which starts a new Thread per client infinitely
+# Generally considered safe for UDP because udp threads live as long as a single RPC request
+class serverTCP(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
     def __init__(self, server_address, RequestHandlerClass, logger):
         SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
-        PooledThreadingMixIn.__init__(self, threadcount = 8)
+        # PooledThreadingMixIn.__init__(self, threadcount = 8)
         self.RequestHandlerClass = RequestHandlerClass
         self.logger = logger
 
@@ -292,6 +296,8 @@ class serverTCP(PooledThreadingMixIn, SocketServer.TCPServer):
 
 class serverUDP(PooledThreadingMixIn, SocketServer.UDPServer):
     allow_reuse_address = True
+    # number of RPC Calls to queue into the `threadcount` threads
+    request_queue_size = 64
     def __init__(self, server_address, RequestHandlerClass, logger):
         SocketServer.UDPServer.__init__(self, server_address, RequestHandlerClass)
         PooledThreadingMixIn.__init__(self, threadcount = 8)
