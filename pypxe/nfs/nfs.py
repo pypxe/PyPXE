@@ -85,6 +85,11 @@ class RPC(rpcbind.RPCBase):
         W_OK = 2
         X_OK = 1
 
+    class createmode3:
+        UNCHECKED = 0
+        GUARDED   = 1
+        EXCLUSIVE = 2
+
 class NFS(rpcbind.RPCBIND):
     def setup(self):
         self.server_settings = self.server.server_settings
@@ -142,7 +147,9 @@ class NFS(rpcbind.RPCBIND):
             elif errno == RPC.nfsstat3.NFS3ERR_INVAL:
                 self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_INVAL, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
             elif errno == RPC.nfsstat3.NFS3ERR_ROFS:
-                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_ROFS, struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot), **arguments)
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_ROFS, (struct.pack("!I", 1) + self.getattr(args["path"] or self.nfsroot))*2, **arguments)
+            elif errno == RPC.nfsstat3.NFS3ERR_EXIST:
+                self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_EXIST, self.getattr(args["path"] or self.nfsroot), **arguments)
 
     def NULL(self, **arguments):
         self.makeRPCHeader("", RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
@@ -160,16 +167,36 @@ class NFS(rpcbind.RPCBIND):
     def SETATTR(self, body = None, **arguments):
         path = self.extractpath(body)
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
-        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
+        self.logger.debug("SETATTR({0}) from {1}".format(path, arguments["addr"]))
 
-        fullfile = helpers.normalize_path(self.nfsroot, path)
-        if not os.path.exists(fullfile):
+        fullpath = helpers.normalize_path(self.nfsroot, path)
+        if not os.path.exists(fullpath):
             return RPC.nfsstat3.NFS3ERR_NOENT, {"path": path}
 
-        if not self.canread(fullfile, **arguments):
-            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": fullfile}
+        if not self.canread(fullpath, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": fullpath}
 
-        self.logger.debug("SETATTR({0}) from {1}".format(path, arguments["addr"]))
+        sattr3 = self.parsesattr3(body)
+
+        beforestat = self.cachestat(fullpath)
+        beforesattr  = struct.pack("!Q", beforestat.st_size)
+        beforesattr += struct.pack("!II", *self.packtime(beforestat.st_mtime))
+        beforesattr += struct.pack("!II", *self.packtime(beforestat.st_ctime))
+
+        errno = RPC.nfsstat3.NFS3_OK
+        try:
+            self.applyattr3(fullpath, sattr3, **arguments)
+        except IOError:
+            errno = RPC.nfsstat3.NFS3ERR_ACCES
+
+        resp  = struct.pack("!I", 1)
+        resp += beforesattr
+        resp += struct.pack("!I", 1)
+        # make sure we don't get the cached value
+        self.invalidatecache(self.server_settings["statcache"], self.server_settings["statcachelock"], fullpath)
+        resp += self.getattr(fullpath)
+
+        return self.sendnfsresponse(errno, resp, **arguments)
 
     def LOOKUP(self, body = None, **arguments):
         path = self.extractpath(body)
@@ -288,8 +315,60 @@ class NFS(rpcbind.RPCBIND):
     def CREATE(self, body = None, **arguments):
         path = self.extractpath(body)
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
-        return RPC.nfsstat3.NFS3ERR_ROFS, {"path": path}
-        self.logger.info("CREATE from {0}".format(arguments["addr"]))
+        if not self.canwrite(path, **arguments): return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
+
+        file = self.extractstring(body)
+        self.logger.debug("CREATE({0}, {1}) from {2}".format(path, file, arguments["addr"]))
+        [method] = struct.unpack("!I", body.read(4))
+
+        if method in (RPC.createmode3.UNCHECKED, RPC.createmode3.GUARDED):
+            fullpath = helpers.normalize_path(path, file)
+            sattr3 = self.parsesattr3(body)
+
+            if os.path.exists(fullpath):
+                beforestat = self.cachestat(fullpath)
+                beforesattr  = struct.pack("!Q", beforestat.st_size)
+                beforesattr += struct.pack("!II", *self.packtime(beforestat.st_mtime))
+                beforesattr += struct.pack("!II", *self.packtime(beforestat.st_ctime))
+            else:
+                # completely blank, no value set
+                beforesattr = False
+
+            if method == RPC.createmode3.GUARDED and os.path.exist(fullpath):
+                return RPC.nfsstat3.NFS3ERR_EXIST, {"path": fullpath}
+
+            errno = RPC.nfsstat3.NFS3_OK
+            try:
+                # create the file
+                open(fullpath, "w+").close()
+                self.applyattr3(fullpath, sattr3, **arguments)
+            except IOError:
+                # return NFS3ERR_ACCES with the correct sattr3
+                # because we can do partial attrib applications
+                errno = RPC.nfsstat3.NFS3ERR_ACCES
+
+            # we return the new filehandle, and a before/after sattr
+            resp = struct.pack("!II", 1, 64)
+            resp += self.addfh(fullpath)
+            resp += struct.pack("!I", 1)
+            resp += self.getattr(fullpath)
+            if not beforesattr:
+                # have we changed anything or created a new file?
+                resp += struct.pack("!I", 0)
+            else:
+                resp += struct.pack("!I", 1)
+                resp += beforesattr
+            resp += struct.pack("!I", 1)
+            # make sure we don't get the cached value
+            self.invalidatecache(self.server_settings["statcache"], self.server_settings["statcachelock"], fullpath)
+            resp += self.getattr(fullpath)
+
+            return self.sendnfsresponse(errno, resp, **arguments)
+
+        elif method == RPC.createmode3.EXCLUSIVE:
+            # NFS3ERR_NOSUPP
+            before = self.getattr(path)
+            return self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_NOTSUPP, (struct.pack("!I", 1) + beforeattr)*2, **arguments)
 
     def MKDIR(self, body = None, **arguments):
         path = self.extractpath(body)
@@ -576,6 +655,69 @@ class NFS(rpcbind.RPCBIND):
     # util functions from here #
     ############################
 
+    def applyattr3(self, fullpath, sattr3, **arguments):
+        # should already know we can write to this file
+        if sattr3.get("mode", False) != False and self.canwrite(fullpath, **arguments):
+            os.chmod(fullpath, sattr3["mode"])
+
+        if sattr3.get("uid", False) != False and (sattr3.get("uid") == arguments["uid"] or arguments["uid"] == 0):
+            # root can do whatever
+            os.lchown(fullpath, sattr3["uid"], -1)
+        else:
+            os.lchown(fullpath, arguments["uid"], -1)
+
+        if sattr3.get("gid", False) != False and (sattr3.get("gid") == arguments["gid"] or arguments["uid"] == 0):
+            # root can do whatever
+            os.lchown(fullpath, -1, sattr3["gid"])
+        else:
+            os.lchown(fullpath, -1, arguments["gid"])
+
+        with open(fullpath, "a+") as fh:
+            if sattr3.get("size", False) != False:
+                fh.truncate(sattr3["size"])
+
+        # atime
+        # mtime
+
+    def parsesattr3(self, body):
+        sattr3 = {}
+        # value follows for mode
+        if struct.unpack("!I", body.read(4))[0]:
+            sattr3["mode"]    = struct.unpack("!I", body.read(4))
+
+        # value follows for uid
+        if struct.unpack("!I", body.read(4))[0]:
+            sattr3["uid"]    = struct.unpack("!I", body.read(4))
+
+        # value follows for uid
+        if struct.unpack("!I", body.read(4))[0]:
+            sattr3["gid"]    = struct.unpack("!I", body.read(4))
+
+        # value follows for size
+        if struct.unpack("!I", body.read(4))[0]:
+            sattr3["size"]    = struct.unpack("!Q", body.read(8))
+
+        # value follows for atime
+        [atime] = struct.unpack("!I", body.read(4))
+        if atime:
+            if atime == 1:
+                # set to server time
+                sattr3["atime"] = True
+            elif atime == 2:
+                sattr3["atime"]    = float("{}.{}".format(*struct.unpack("!II", body.read(2*4))))
+                print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(sattr3["atime"]))
+
+        # value follows for mtime
+        [mtime] = struct.unpack("!I", body.read(4))
+        if mtime:
+            if mtime == 1:
+                # set to server time
+                sattr3["mtime"] = True
+            elif mtime == 2:
+                sattr3["mtime"]    = float("{}.{}".format(*struct.unpack("!II", body.read(2*4))))
+                print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(sattr3["mtime"]))
+        return sattr3
+
     def canperm(self, perm, path, **arguments):
         """
         Evaluate a file's permissions against a specific user
@@ -772,6 +914,17 @@ class NFS(rpcbind.RPCBIND):
             return stat
         except KeyError:
             return self.LRUCache(self.server_settings["statcache"], self.server_settings["statcachelock"], path, os.lstat(path))
+
+    def invalidatecache(self, cache, lock, key):
+        lock.acquire()
+        # multiprocessing.manager artefact: doesn't update lists properly
+        # so we copy, modify, replace
+        metadata = cache["metadata"]
+        if key in metadata:
+            del cache[key]
+            metadata.remove(key)
+            cache["metadata"] = metadata
+        lock.release()
 
     def getattr(self, path):
         """

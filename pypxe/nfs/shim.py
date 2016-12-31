@@ -1,4 +1,5 @@
 import sys
+sys.dont_write_bytecode = True
 import logging
 from pypxe import helpers
 import multiprocessing
