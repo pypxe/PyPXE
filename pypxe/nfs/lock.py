@@ -1,10 +1,5 @@
 import rpcbind
-import logging
-from pypxe import helpers
-import socket
-import threading
 import time
-import struct
 import programs
 
 class RPC(rpcbind.RPCBase):
@@ -106,9 +101,6 @@ class LOCKD(rpcbind.DAEMON):
 
         server_settings["rpcnumber"] = 100021
         server_settings["programs"] = {server_settings["rpcnumber"]: programs.programs[server_settings["rpcnumber"]]}
-
-        tcp_settings = server_settings.copy()
-        udp_settings = server_settings.copy()
 
         self.port = server_settings.get("port", 4045)
         # address can be passed to here from cli, and also to portmapper for bind addr

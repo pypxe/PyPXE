@@ -1,30 +1,13 @@
 import struct
 import StringIO
-import sys
 from pypxe import helpers
-import traceback
-import RPCExceptions
 import threading
 import select
 import socket
 import random
-import os
 import SocketServer
 import logging
-import time
-
-import cProfile
-def do_cprofile(func):
-    def profiled_func(*args, **kwargs):
-        profile = cProfile.Profile()
-        try:
-            profile.enable()
-            result = func(*args, **kwargs)
-            profile.disable()
-            return result
-        finally:
-            profile.dump_stats(str(time.time()))
-    return profiled_func
+from multiprocessing.pool import ThreadPool
 
 class RPCBase:
     """For Constants from RFC1057"""
@@ -75,7 +58,6 @@ class RPCBIND(SocketServer.BaseRequestHandler):
 
     # skip registration. Used for portmapper itself
     autoregister = True
-    # @do_cprofile
     def handle(self):
         self.server_settings = self.server.server_settings
         self.PROTO = self.server_settings["PROTO"]
@@ -259,10 +241,42 @@ class RPCBIND(SocketServer.BaseRequestHandler):
     def deregisterPort(self, rpcnumber, version, protocol, port):
         self.portmapper(rpcnumber, version, protocol, port, False)
 
-class serverTCP(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+# the following *significantly* speeds everything up, at least for UDP
+# maybe we can use ThreadPool somehow for TCP connections?
+class PooledThreadingMixIn:
+    """Mix-in class to handle each request in a new thread.
+    Taken from SocketServer.py, modified to use a thread pool
+    """
+
+    # Decides how threads will act upon termination of the
+    # main process
+    daemon_threads = False
+
+    def __init__(self, threadcount = 8):
+        self.pool = ThreadPool(threadcount)
+
+    def process_request_thread(self, request, client_address):
+        """Same as in BaseServer but as a thread.
+
+        In addition, exception handling is done here.
+
+        """
+        try:
+            self.finish_request(request, client_address)
+            self.shutdown_request(request)
+        except:
+            self.handle_error(request, client_address)
+            self.shutdown_request(request)
+
+    def process_request(self, request, client_address):
+        """Start a new thread to process the request."""
+        self.pool.apply_async(self.process_request_thread, (request, client_address))
+
+class serverTCP(PooledThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
     def __init__(self, server_address, RequestHandlerClass, logger):
         SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
+        PooledThreadingMixIn.__init__(self, threadcount = 8)
         self.RequestHandlerClass = RequestHandlerClass
         self.logger = logger
 
@@ -276,10 +290,11 @@ class serverTCP(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.logger.info("Started")
         SocketServer.TCPServer.serve_forever(self)
 
-class serverUDP(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
+class serverUDP(PooledThreadingMixIn, SocketServer.UDPServer):
     allow_reuse_address = True
     def __init__(self, server_address, RequestHandlerClass, logger):
         SocketServer.UDPServer.__init__(self, server_address, RequestHandlerClass)
+        PooledThreadingMixIn.__init__(self, threadcount = 8)
         self.logger = logger
 
     def serve_forever(self):
@@ -309,6 +324,13 @@ class DAEMON:
         self.TCP4.daemon = True
 
     def createUDP4Thread(self, target, server_settings):
+        if server_settings["mode_debug"]:
+            self.logger.setLevel(logging.DEBUG)
+        elif server_settings["mode_verbose"]:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARN)
+
         udp_settings = server_settings.copy()
         udp_settings.update({"PROTO": "UDP", "logger": helpers.get_child_logger(self.logger, "UDP")})
         UDP4 = serverUDP((self.addr, self.port), target, udp_settings["logger"])

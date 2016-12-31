@@ -17,10 +17,12 @@ run = threading.Thread
 try:
         threads = []
         nfsroot = "/home/rory/PyPXE/pypxe/nfs/nfsroot/"
+        debug = False
+        verbose = True
 
         import portmapper
         portmapper_logger = helpers.get_child_logger(sys_logger, 'NFS.PORTMAPPER')
-        portmapperd = portmapper.PORTMAPPERD(logger = portmapper_logger, mode_debug = True)
+        portmapperd = portmapper.PORTMAPPERD(logger = portmapper_logger, mode_debug = debug, mode_verbose = verbose)
         portmapperdthread = run(target = portmapperd.listen)
         portmapperdthread.daemon = True
         portmapperdthread.start()
@@ -28,7 +30,7 @@ try:
 
         import mount
         mount_logger = helpers.get_child_logger(sys_logger, 'NFS.MOUNT')
-        mountd = mount.MOUNTD(logger = mount_logger, mode_debug = True, nfsroot = nfsroot)
+        mountd = mount.MOUNTD(logger = mount_logger, mode_debug = debug, nfsroot = nfsroot, mode_verbose = verbose)
         mountdthread = run(target = mountd.listen)
         mountdthread.daemon = True
         mountdthread.start()
@@ -36,7 +38,7 @@ try:
 
         import lock
         lock_logger = helpers.get_child_logger(sys_logger, 'NFS.LOCK')
-        lockd = lock.LOCKD(logger = lock_logger, mode_debug = True)
+        lockd = lock.LOCKD(logger = lock_logger, mode_debug = debug, mode_verbose = verbose)
         lockdthread = run(target = lockd.listen)
         lockdthread.daemon = True
         lockdthread.start()
@@ -44,7 +46,7 @@ try:
 
         import nfs
         nfs_logger = helpers.get_child_logger(sys_logger, 'NFS.NFS')
-        nfsd = nfs.NFSD(logger = nfs_logger, mode_debug = True, nfsroot = nfsroot, readcachesize = "256MiB")
+        nfsd = nfs.NFSD(logger = nfs_logger, mode_debug = debug, mode_verbose = verbose, nfsroot = nfsroot, cachesize = "256MiB")
         nfsdthread = run(target = nfsd.listen)
         nfsdthread.daemon = True
         nfsdthread.start()

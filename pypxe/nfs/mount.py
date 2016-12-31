@@ -1,13 +1,8 @@
 import rpcbind
-import logging
-from pypxe import helpers
-import socket
-import threading
 import time
 import struct
 import hashlib
 import programs
-import StringIO
 import os
 
 class RPC(rpcbind.RPCBase):

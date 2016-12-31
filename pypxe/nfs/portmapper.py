@@ -1,12 +1,7 @@
-import logging
-import socket
 import rpcbind
 import struct
-import threading
 import time
 import programs
-from pypxe import helpers
-import SocketServer
 
 def padtomultiple(string, boundary):
     while len(string) % boundary:

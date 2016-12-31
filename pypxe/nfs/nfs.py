@@ -1,7 +1,5 @@
 import rpcbind
-import logging
 from pypxe import helpers
-import socket
 import threading
 import time
 import struct
@@ -11,14 +9,20 @@ import stat
 import math
 import multiprocessing
 import multiprocessing.managers
-
-import ctypes
 import os
-libc = ctypes.CDLL("libc.so.6")
-# On success (all requested permissions granted), zero is returned.
-# normal os.access does not take into account euid
-os.euidaccess = lambda *args: not bool(libc.euidaccess(*args))
-os.euidaccess.__doc__ = "int euidaccess(const char *pathname, int mode);"
+
+import cProfile
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.dump_stats("profiles/{}".format(str(time.time())))
+    return profiled_func
 
 class RPC(rpcbind.RPCBase):
     NFS_PROC = programs.RPC.NFS_PROC
@@ -81,59 +85,14 @@ class RPC(rpcbind.RPCBase):
         W_OK = 2
         X_OK = 1
 
-class dropprivs:
-    def __init__(self, uid, gid, groups):
-        self.uid = uid
-        self.gid = gid
-        self.groups = groups
-
-        self.olduid = os.getuid()
-        self.oldgid = os.getgid()
-        self.oldgroups = os.getgroups()
-
-    def __enter__(self):
-        if not os.fork(): return
-        os.setgroups(self.groups)
-        os.setegid(self.gid)
-        os.seteuid(self.uid)
-
-    def __exit__(self, type, value, traceback):
-        os.seteuid(self.olduid)
-        os.setegid(self.oldgid)
-        os.setgroups(self.oldgroups)
-
-# runas priv dropper via multiprocessing.Process, with a Pipe to send back the return value.
-# usage example:
-# @runas(1000, 100, (100,))
-# def func(foo):
-#   print "I am user 1000 in group 100"
-#   return dostuff(foo)
-# this is super slow and therefore not good.
-# can't use Pool because g and h are closures
-def runas(uid, gid, groups):
-    def decorator(f):
-        def g(*args, **kwargs):
-            gpipe = kwargs["gpipe"]
-            del kwargs["gpipe"]
-            with dropprivs(uid, gid, groups):
-                gpipe.send(f(*args, **kwargs))
-            gpipe.close()
-        def h(*args, **kwargs):
-            [gpipea, gpipeb] = multiprocessing.Pipe()
-            kwargs["gpipe"] = gpipeb
-            gthread = multiprocessing.Process(target = g, args = args, kwargs = kwargs)
-            gthread.daemon = True
-            gthread.start()
-            gthread.join()
-            return gpipea.recv()
-        return h
-    return decorator
-
 class NFS(rpcbind.RPCBIND):
     def setup(self):
         self.server_settings = self.server.server_settings
         self.nfsroot = os.path.abspath(self.server_settings["nfsroot"])
-        self.lastfile = False
+
+    def finish(self):
+        # can be used to do UDP caches
+        pass
 
     def process(self, **arguments):
         # new thread starts here
@@ -193,11 +152,10 @@ class NFS(rpcbind.RPCBIND):
         if not path: return RPC.nfsstat3.NFS3ERR_BADHANDLE, {"path": path}
         self.logger.debug("GETATTR({0}) from {1}".format(path, arguments["addr"]))
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(path):
-            return self.getattr(path)
+        if not self.canread(path, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
 
-        self.sendnfsresponseOK(f(path), **arguments)
+        self.sendnfsresponseOK(self.getattr(path), **arguments)
 
     def SETATTR(self, body = None, **arguments):
         path = self.extractpath(body)
@@ -209,7 +167,7 @@ class NFS(rpcbind.RPCBIND):
             return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
 
         if not self.canread(fullfile, **arguments):
-            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": fullfile}
 
         self.logger.debug("SETATTR({0}) from {1}".format(path, arguments["addr"]))
 
@@ -227,20 +185,18 @@ class NFS(rpcbind.RPCBIND):
         if not os.path.exists(fullfile):
             return RPC.nfsstat3.NFS3ERR_EXIST, {"path": path}
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(fullfile, path):
-            resp = struct.pack("!I", 64)
-            fh = self.getfh(fullfile)
-            if not fh:
-                fh = self.addfh(fullfile)
-            resp += fh
-            resp += struct.pack("!I", 1)
-            resp += self.getattr(fullfile)
-            resp += struct.pack("!I", 1)
-            resp += self.getattr(path)
-            return resp
+        if not self.canread(fullfile, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": fullpath}
 
-        resp = f(fullfile, path)
+        resp = struct.pack("!I", 64)
+        fh = self.getfh(fullfile)
+        if not fh:
+            fh = self.addfh(fullfile)
+        resp += fh
+        resp += struct.pack("!I", 1)
+        resp += self.getattr(fullfile)
+        resp += struct.pack("!I", 1)
+        resp += self.getattr(path)
 
         self.sendnfsresponseOK(resp, **arguments)
 
@@ -262,14 +218,16 @@ class NFS(rpcbind.RPCBIND):
                 RPC.ACCESS3.ACCESS3_EXECUTE: RPC.access.X_OK
             }
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(path, mode):
-            return os.euidaccess(path, mode)
-        for mapping in mappings:
-            # if the client requested it, and we've not already got a positive result
-            if nfsmode & mapping and not mode & mapping:
-                if f(path, mappings[mapping]):
-                    mode |= mapping
+        # need canwrite, canexecute
+        if nfsmode & RPC.ACCESS3.ACCESS3_READ:
+            mode |= (RPC.ACCESS3.ACCESS3_READ * self.canread(path, **arguments))
+
+        if nfsmode & (RPC.ACCESS3.ACCESS3_MODIFY|RPC.ACCESS3.ACCESS3_EXTEND|RPC.ACCESS3.ACCESS3_DELETE):
+            # these three all seem to map to write access
+            mode |= ((RPC.ACCESS3.ACCESS3_MODIFY|RPC.ACCESS3.ACCESS3_EXTEND|RPC.ACCESS3.ACCESS3_DELETE) * self.canwrite(path, **arguments))
+
+        if nfsmode & (RPC.ACCESS3.ACCESS3_LOOKUP|RPC.ACCESS3.ACCESS3_EXECUTE):
+            mode |= ((RPC.ACCESS3.ACCESS3_LOOKUP|RPC.ACCESS3.ACCESS3_EXECUTE) * self.canexecute(path, **arguments))
 
         resp = struct.pack("!I", 1)
         resp += self.getattr(path)
@@ -288,15 +246,10 @@ class NFS(rpcbind.RPCBIND):
         if not self.canread(path, **arguments):
             return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(path):
-            # 1 getattr
-            resp = struct.pack("!I", 1)
-            resp += self.getattr(path)
-            resp += self.packstring(os.readlink(path))
-            return resp
-
-        resp = f(path)
+        # 1 getattr
+        resp = struct.pack("!I", 1)
+        resp += self.getattr(path)
+        resp += self.packstring(os.readlink(path))
 
         self.sendnfsresponseOK(resp, **arguments)
 
@@ -309,21 +262,10 @@ class NFS(rpcbind.RPCBIND):
         if not self.canread(path, **arguments):
             return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(file, offset, count, fh):
-            resp = struct.pack("!I", 1)
-            resp += self.getattr(path)
-            # optimize consecutive reads
-            if not fh or fh.name != file:
-                # no file or wrong file
-                if fh: fh.close()
-                fh = open(path)
-            elif fh and fh.name == file and fh.tell() != offset:
-                print "semihit"
-                # valid file, invalid offset
-                fh.seek(offset)
-            else:
-                print "hit"
+        resp = struct.pack("!I", 1)
+        resp += self.getattr(path)
+
+        with open(path) as fh:
             fh.seek(offset)
             data = fh.read(count)
             resp += struct.pack("!I", len(data))
@@ -331,67 +273,39 @@ class NFS(rpcbind.RPCBIND):
             resp += struct.pack("!I", 0 if len(fh.read(1)) else 1)
             resp += struct.pack("!I", len(data))
             resp += data
-            return resp, fh
 
-        [resp, fh] = f(path, offset, count, self.lastfile)
-        self.lastfile = fh
         self.sendnfsresponseOK(resp, **arguments)
         return
 
-        readcache = selfserver_settings["readcache"]
-        readcachelock = selfserver_settings["readcachelock"]
-
-        addtocache = False
-        if (path, offset, count) in readcache:
-            self.logger.debug("READ cache hit")
-            resp = readcache[(path, offset, count)]
-        else:
-            self.logger.debug("READ cache miss")
-            addtocache = True
-            resp = f(path, offset, count)
-
-        self.sendnfsresponseOK(resp, **arguments)
-        if addtocache:
-            readcachelock.acquire()
-            # if we've hit the cache limit, evict something first
-            if len(readcache["metadata"]) > readcache["maxcacheelems"]:
-                idx = readcache["metadata"].pop(0)
-                del readcache[idx]
-            # order is important
-            readcache["metadata"].append((path, offset, count))
-            readcache[(path, offset, count)] = resp
-            readcachelock.release()
-
-
     def WRITE(self, **arguments):
-        self.logger.debug("WRITE from {0}".format(arguments["addr"]))
+        self.logger.info("WRITE from {0}".format(arguments["addr"]))
         pass
     def CREATE(self, **arguments):
-        self.logger.debug("CREATE from {0}".format(arguments["addr"]))
+        self.logger.info("CREATE from {0}".format(arguments["addr"]))
         pass
     def MKDIR(self, **arguments):
-        self.logger.debug("MKDIR from {0}".format(arguments["addr"]))
+        self.logger.info("MKDIR from {0}".format(arguments["addr"]))
         pass
     def SYMLINK(self, **arguments):
-        self.logger.debug("SYMLINK from {0}".format(arguments["addr"]))
+        self.logger.info("SYMLINK from {0}".format(arguments["addr"]))
         pass
     def MKNOD(self, **arguments):
-        self.logger.debug("MKNOD from {0}".format(arguments["addr"]))
+        self.logger.info("MKNOD from {0}".format(arguments["addr"]))
         pass
     def REMOVE(self, **arguments):
-        self.logger.debug("REMOVE from {0}".format(arguments["addr"]))
+        self.logger.info("REMOVE from {0}".format(arguments["addr"]))
         pass
     def RMDIR(self, **arguments):
-        self.logger.debug("RMDIR from {0}".format(arguments["addr"]))
+        self.logger.info("RMDIR from {0}".format(arguments["addr"]))
         pass
     def RENAME(self, **arguments):
-        self.logger.debug("RENAME from {0}".format(arguments["addr"]))
+        self.logger.info("RENAME from {0}".format(arguments["addr"]))
         pass
     def LINK(self, **arguments):
-        self.logger.debug("LINK from {0}".format(arguments["addr"]))
+        self.logger.info("LINK from {0}".format(arguments["addr"]))
         pass
     def READDIR(self, **arguments):
-        self.logger.debug("READDIR from {0}".format(arguments["addr"]))
+        self.logger.info("READDIR from {0}".format(arguments["addr"]))
         pass
 
     def READDIRPLUS(self, body = None, **arguments):
@@ -405,61 +319,59 @@ class NFS(rpcbind.RPCBIND):
             maxcount
             ] = struct.unpack("!QQII", body.read(2*8+2*4))
 
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(cookie, dircount, **arguments):
-            preresp = ""
-            # 1 dir_attributes
-            preresp += struct.pack("!I", 1)
-            preresp += self.getattr(".")
-            # verifier
-            preresp += struct.pack("!Q", 0)
-            fullresp = preresp
-            count = 0
-            broken = False
+        if not self.canexecute(path, **arguments):
+            return RPC.nfsstat3.NFS3ERR_ACCES, {"path": path}
 
-            for dirent in os.listdir("."):
-                if count < cookie:
-                    # skip up to cookie
-                    count += 1
-                    continue
-                resp = ""
-                direntstat = os.lstat(dirent)
-                resp += struct.pack("!Q", direntstat.st_ino)
+        preresp = ""
+        # 1 dir_attributes
+        preresp += struct.pack("!I", 1)
+        preresp += self.getattr(".")
+        # verifier
+        preresp += struct.pack("!Q", 0)
+        fullresp = preresp
+        count = 0
+        broken = False
 
-                resp += self.packstring(dirent)
+        for dirent in os.listdir("."):
+            if count < cookie:
+                # skip up to cookie
                 count += 1
-                # cookie, for advancing
-                resp += struct.pack("!Q", count)
-                # attrib follows
-                resp += struct.pack("!I", 1)
-                # attrib
-                resp += self.getattr(dirent)
-                # fh follows, 64 bytes
-                resp += struct.pack("!II", 1, 64)
-                resp += self.addfh(dirent)
+                continue
+            resp = ""
+            direntstat = self.cachestat(dirent)
+            resp += struct.pack("!Q", direntstat.st_ino)
 
-                if len(fullresp)+len(resp) > dircount and len(fullresp) == len(preresp):
-                    self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_TOOSMALL, "", **arguments)
-                elif len(fullresp)+len(resp)+4 > dircount:
-                    broken = True
-                    break
-                else:
-                    # value follows
-                    fullresp += struct.pack("!I", 1)
-                    fullresp += resp
+            resp += self.packstring(dirent)
+            count += 1
+            # cookie, for advancing
+            resp += struct.pack("!Q", count)
+            # attrib follows
+            resp += struct.pack("!I", 1)
+            # attrib
+            resp += self.getattr(dirent)
+            # fh follows, 64 bytes
+            resp += struct.pack("!II", 1, 64)
+            resp += self.addfh(dirent)
 
-            # value follows no
-            fullresp += struct.pack("!I", 0)
-            # eof if we didn't break early
-            fullresp += struct.pack("!I", 0 if broken else 1)
-            return fullresp
+            if len(fullresp)+len(resp) > dircount and len(fullresp) == len(preresp):
+                return self.sendnfsresponse(RPC.nfsstat3.NFS3ERR_TOOSMALL, "", **arguments)
+            elif len(fullresp)+len(resp)+4 > dircount:
+                broken = True
+                break
+            else:
+                # value follows
+                fullresp += struct.pack("!I", 1)
+                fullresp += resp
 
-        fullresp = f(cookie, dircount, **arguments)
+        # value follows no
+        fullresp += struct.pack("!I", 0)
+        # eof if we didn't break early
+        fullresp += struct.pack("!I", 0 if broken else 1)
 
         self.sendnfsresponseOK(fullresp, **arguments)
 
     def FSSTAT(self, **arguments):
-        self.logger.debug("FSSTAT from {0}".format(arguments["addr"]))
+        self.logger.info("FSSTAT from {0}".format(arguments["addr"]))
         pass
 
     def FSINFO(self, body = None, **arguments):
@@ -530,35 +442,96 @@ class NFS(rpcbind.RPCBIND):
         self.sendnfsresponseOK(resp, **arguments)
 
     def COMMIT(self, **arguments):
-        self.logger.debug("COMMIT from {0}".format(arguments["addr"]))
+        self.logger.info("COMMIT from {0}".format(arguments["addr"]))
         pass
 
     ############################
     # util functions from here #
     ############################
 
+    def canperm(self, perm, path, **arguments):
+        """
+        Evaluate a file's permissions against a specific user
+        """
+        mode = self.getmode(path)
+        user, group = self.getowner(path)
+        # ordered by scope, so more likely is first ish
+        if (perm in ("READ", "WRITE")) and arguments["uid"] == 0:
+            # root can rw all
+            return True
+
+        perms = {
+                "READ": {
+                    "other": 0x004,
+                    "group": 0x020,
+                    "user" : 0x100,
+                    },
+                "WRITE": {
+                    "other": 0x002,
+                    "group": 0x010,
+                    "user" : 0x080
+                    },
+                "EXEC": {
+                    "other": 0x001,
+                    "group": 0x008,
+                    "user" : 0x040
+                    }
+                }
+
+        if   mode & perms[perm]["other"]:
+            # o+PERM
+            return True
+        elif mode & perms[perm]["group"] and (group in arguments["group"] or group == arguments["gid"]):
+            # g+PERM
+            return True
+        elif mode & perms[perm]["user"] and (user == arguments["uid"]):
+            # u+PERM
+            return True
+        else:
+            return False
+
     def canread(self, path, **arguments):
-        @runas(arguments["uid"], arguments["gid"], arguments["groups"])
-        def f(path, mode):
-            return os.euidaccess(path, mode)
-        return f(path, RPC.access.R_OK)
+        return self.canperm("READ", path, **arguments)
+
+    def canwrite(self, path, **arguments):
+        return self.canperm("WRITE", path, **arguments)
+
+    def canexecute(self, path, **arguments):
+        return self.canperm("EXEC", path, **arguments)
+
+    def getowner(self, path):
+        """
+        Return the user and group for a path
+        """
+        stat = self.cachestat(path)
+        return stat.st_uid, stat.st_gid
 
     def extractstring(self, body):
+        """
+        extract a variable length string from a request, and remove padding
+        strings are passed as uint32 length, string, padding to 4 byte boundary
+        """
         [strlen] = struct.unpack("!I", body.read(4))
         str = body.read(strlen)
+        body.read(((4 - (strlen % 4))&~4))
         return str
 
     def packstring(self, string):
+        """
+        Opposite of extract string. Return packed length uint32, string and padding to 4 byte
+        """
         # string length
         ret = struct.pack("!I", len(string))
         # string itself
         ret += string
         # padding
         ret += "\x00" * ((4 - (len(string) % 4))&~4)
-
         return ret
 
     def extractpath(self, body):
+        """
+        Extract a file handle and turn it into a path
+        """
         fh = self.extractstring(body)
         path = self.getpath(fh)
 
@@ -568,6 +541,9 @@ class NFS(rpcbind.RPCBIND):
             return helpers.normalize_path(self.nfsroot, path)
 
     def getfh(self, fh):
+        """
+        Turn a file handle into a path using the cache
+        """
         filehandles = self.server_settings["filehandles"]
         if fh not in filehandles: return {}
         if fh in filehandles and filehandles[fh].get("expires", 0) < time.time():
@@ -576,6 +552,9 @@ class NFS(rpcbind.RPCBIND):
         return filehandles[fh]
 
     def addfh(self, path):
+        """
+        Turn a path into a file handle using the cache
+        """
         filehandles = self.server_settings["filehandles"]
         matchingfh = []
         for handle in filehandles.keys():
@@ -593,18 +572,31 @@ class NFS(rpcbind.RPCBIND):
             return fh
 
     def getpath(self, fh):
+        """
+        getfh returns an object, so only return the path component
+        """
         return self.getfh(fh).get("path", "")
 
     def sendnfsresponseOK(self, args, **arguments):
+        """
+        Function for an NFS3_OK reply
+        """
         self.sendnfsresponse(RPC.nfsstat3.NFS3_OK, args, **arguments)
 
     def sendnfsresponse(self, errno, args, **arguments):
+        """
+        Send an RPC accepted response. This is ok for errors because they'd be
+        NFS errors which are still MSG_SUCCESS
+        """
         resp = struct.pack("!I", errno)
         resp += args
         self.makeRPCHeader(resp, RPC.reply_stat.MSG_ACCEPTED, RPC.accept_stat.SUCCESS, **arguments)
 
     def gettype(self, path):
-        mode = os.lstat(path).st_mode
+        """
+        Return the filetype in terms of NFS constants
+        """
+        mode = self.cachestat(path).st_mode
         return filter(lambda x:x[1], [
         [RPC.ftype3.NF3REG,  stat.S_ISREG(mode)],
         [RPC.ftype3.NF3DIR,  stat.S_ISDIR(mode)],
@@ -616,7 +608,10 @@ class NFS(rpcbind.RPCBIND):
         ])[0][0]
 
     def getmode(self, path):
-        mode = os.lstat(path).st_mode
+        """
+        Return the permissions set for a file
+        """
+        mode = self.cachestat(path).st_mode
         mode &= (0x800| # setuid
                 0x400| # setgid
                 0x200| # save swapped text
@@ -632,32 +627,94 @@ class NFS(rpcbind.RPCBIND):
         return mode
 
     def packtime(self, time):
+        """
+        Turn the double time to two uint32s
+        """
         i, f = math.modf(time)[::-1]
         while f != 0 and f < 2**32-1: f *= 10
         f /= 10
         return (i, f)
 
+    def cachestat(self, path):
+        """
+        Caching interface to os.lpath
+        """
+        # lstat doesn't follow links
+        try:
+            stat = self.LRUCache(self.server_settings["statcache"], self.server_settings["statcachelock"], path)
+            return stat
+        except KeyError:
+            return self.LRUCache(self.server_settings["statcache"], self.server_settings["statcachelock"], path, os.lstat(path))
+
     def getattr(self, path):
-        # return fattr3 RFC1813 p22
-        pathstat = os.lstat(path)
-        fattr3  = struct.pack("!I", self.gettype(path))
-        fattr3 += struct.pack("!I", self.getmode(path))
-        fattr3 += struct.pack("!I", pathstat.st_nlink)
-        fattr3 += struct.pack("!I", pathstat.st_uid)
-        fattr3 += struct.pack("!I", pathstat.st_gid)
-        #  twice for size and used
-        fattr3 += struct.pack("!Q", pathstat.st_size)
-        fattr3 += struct.pack("!Q", pathstat.st_size)
+        """
+        Return a fattr3 object for a path
+        cached
+        """
+        try:
+            fattr3 = self.LRUCache(self.server_settings["fattr3cache"], self.server_settings["fattr3cachelock"], path)
+        except KeyError:
+            # return fattr3 RFC1813 p22
+            # pathstat = os.lstat(path)
+            pathstat = self.cachestat(path)
+            fattr3  = struct.pack("!I", self.gettype(path))
+            fattr3 += struct.pack("!I", self.getmode(path))
+            fattr3 += struct.pack("!I", pathstat.st_nlink)
+            fattr3 += struct.pack("!I", pathstat.st_uid)
+            fattr3 += struct.pack("!I", pathstat.st_gid)
+            #  twice for size and used
+            fattr3 += struct.pack("!Q", pathstat.st_size)
+            fattr3 += struct.pack("!Q", pathstat.st_size)
 
-        fattr3 += struct.pack("!II", pathstat.st_rdev/256, pathstat.st_rdev%256)
-        # filesystem identifier
-        fattr3 += "\x00\x00\x00PyPXE"
-        fattr3 += struct.pack("!Q", pathstat.st_ino)
+            fattr3 += struct.pack("!II", pathstat.st_rdev/256, pathstat.st_rdev%256)
+            # filesystem identifier
+            fattr3 += "\x00\x00\x00PyPXE"
+            fattr3 += struct.pack("!Q", pathstat.st_ino)
 
-        fattr3 += struct.pack("!II", *self.packtime(pathstat.st_atime))
-        fattr3 += struct.pack("!II", *self.packtime(pathstat.st_mtime))
-        fattr3 += struct.pack("!II", *self.packtime(pathstat.st_ctime))
+            fattr3 += struct.pack("!II", *self.packtime(pathstat.st_atime))
+            fattr3 += struct.pack("!II", *self.packtime(pathstat.st_mtime))
+            fattr3 += struct.pack("!II", *self.packtime(pathstat.st_ctime))
+            self.LRUCache(self.server_settings["fattr3cache"], self.server_settings["fattr3cachelock"], path, fattr3)
         return fattr3
+
+    def LRUCache(self, cache, lock, key, value = False):
+        """
+        Least recently used cache.
+        When a value is set/get it is set as the most recently used value
+        The first item in the metadata cache is the least mostly recently used
+        so can be popped
+
+        cache["metadata"] is an list of keys ordered by use
+        cache["maxcacheelems"] is the total number of allowed elements, calculated by specified cache size
+        cache[x] is a cached item
+        """
+        metadata = cache["metadata"]
+        if value: # set
+            lock.acquire()
+            if key not in metadata:
+                # check it's not been added by another thread
+                cache[key] = value
+                metadata.append(key)
+                if len(metadata) > cache["maxcacheelems"]:
+                    # if the cache is too large, pop and delete the last recently used
+                    del cache[metadata.pop(0)]
+            cache["metadata"] = metadata
+            lock.release()
+            # allow functions to just return on this function
+            return value
+        else: # get
+            lock.acquire()
+            if key in metadata:
+                value = cache[key]
+                metadata.remove(key)
+                metadata.append(key)
+                cache["metadata"] = metadata
+                lock.release()
+                return value
+            else:
+                lock.release()
+                raise KeyError, key
+
 
 class NFSD(rpcbind.DAEMON):
     def __init__(self, **server_settings):
@@ -684,14 +741,19 @@ class NFSD(rpcbind.DAEMON):
         manager.register("Lock", threading.Lock, multiprocessing.managers.AcquirerProxy)
         manager.start()
         filehandles = manager.dict()
-        readcache = manager.dict()
-        readcache["metadata"] = []
-        readcachelock = manager.Lock()
 
-        # 4096 average read
-        cachesize = int(filter(lambda x:x.isdigit(), server_settings["readcachesize"]))
-        cacheunit = filter(lambda x:not x.isdigit(), server_settings["readcachesize"])
-        readcache["maxcacheelems"] = (cachesize * {
+        fattr3cache = manager.dict()
+        fattr3cache["metadata"] = []
+        fattr3cachelock = manager.Lock()
+
+        statcache = manager.dict()
+        statcache["metadata"] = []
+        statcachelock = manager.Lock()
+
+        # 144 byte == sys.getsizeof(open("/etc/passwd"))
+        cachesize = int(filter(lambda x:x.isdigit(), server_settings["cachesize"]))
+        cacheunit = filter(lambda x:not x.isdigit(), server_settings["cachesize"])
+        fattr3cache["maxcacheelems"] = (cachesize * {
             "": 1,
             "b": 1,
             "Kb":  1000**1,
@@ -700,14 +762,29 @@ class NFSD(rpcbind.DAEMON):
             "MiB": 1024**2,
             "Gb":  1000**3,
             "GiB": 1024**3
-            }[cacheunit]) / 4096
+            }[cacheunit]) / 144
+
+        # 152 byte == sys.getsizeof(os.stat("/"))
+        statcache["maxcacheelems"] = (cachesize * {
+            "": 1,
+            "b": 1,
+            "Kb":  1000**1,
+            "KiB": 1024**1,
+            "Mb" : 1000**2,
+            "MiB": 1024**2,
+            "Gb":  1000**3,
+            "GiB": 1024**3
+            }[cacheunit]) / 152
 
         self.nfsroot = os.path.abspath(server_settings.get('nfsroot', 'nfsroot'))
         filehandles[hashlib.sha256(self.nfsroot).hexdigest()] = {"path": self.nfsroot, "expires": float("inf")}
 
         server_settings["filehandles"] = filehandles
-        server_settings["readcache"] = readcache
-        server_settings["readcachelock"] = readcachelock
+        server_settings["fattr3cache"] = fattr3cache
+        server_settings["fattr3cachelock"] = fattr3cachelock
+        server_settings["statcache"] = statcache
+        server_settings["statcachelock"] = statcachelock
+
 
         self.createTCP4Thread(NFS, server_settings)
         self.createUDP4Thread(NFS, server_settings)
