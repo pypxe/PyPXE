@@ -135,7 +135,7 @@ def main():
                 del settings['DUMP_CONFIG']
                 del settings['DUMP_CONFIG_MERGED']
                 del settings['JSON_CONFIG']
-            print json.dumps(settings, sort_keys=True, indent=4)
+            print(json.dumps(settings, sort_keys=True, indent=4))
             sys.exit()
 
         if args.JSON_CONFIG: # load from configuration file if specified
@@ -156,7 +156,7 @@ def main():
 
         # warn the user that they are starting PyPXE as non-root user
         if os.getuid() != 0:
-            print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
+            sys.stderr.write('\nWARNING: Not root. Servers will probably fail to bind.\n')
 
 
         # ideally this would be in dhcp itself, but the chroot below *probably*
