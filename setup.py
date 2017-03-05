@@ -6,9 +6,6 @@ from sys import version_info, exit
 deps = []
 
 # Python 3 unsupported
-if version_info >= (3,):
-    print("Sorry, PyPXE doesn't support Python 3.")
-    exit(1)
 
 # require argparse on Python <2.7
 if version_info[0] == 2 and version_info[1] < 7:
