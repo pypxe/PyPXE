@@ -136,14 +136,14 @@ def signalhandler(signum, frame):
             try:
                 static_config = open(args.STATIC_CONFIG, 'rb')
             except IOError:
-                print("Failed to open {0}".format(args.STATIC_CONFIG))
+                sys_logger.error("Failed to open {0}".format(args.STATIC_CONFIG))
                 continue
 
             try:
                 loaded_statics = json.load(static_config)
                 static_config.close()
             except ValueError:
-                print("{0} does not contain valid json".format(args.STATIC_CONFIG))
+                sys_logger.error("{0} does not contain valid json".format(args.STATIC_CONFIG))
                 continue
 
             # add and overwrite the old config
