@@ -834,7 +834,7 @@ class NFS(rpcbind.RPCBIND):
             if filehandles[matchingfh]["expires"] > time.time():
                 return matchingfh
             else:
-                del filehandles[matchinfh]
+                del filehandles[matchingfh]
         else:
             fh = hashlib.sha256(path).hexdigest()
             filehandles[fh] = {"path": path, "expires": time.time()+600}
