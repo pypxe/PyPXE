@@ -74,6 +74,11 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--dhcp-fileserver-ip DHCP_FILESERVER_IP`__|Specify DHCP file server IP address|`192.168.2.2`|
 |__`--dhcp-whitelist`__|Only serve clients specified in the static lease file (`--static-config`)|`False`|
 
+##### TFTP Service Arguments
+
+|Argument|Description|Default|
+|---|---|---|
+|__`--tftp-server-ip TFTP_SERVER_IP`__|Specify TFTP server IP address|`0.0.0.0`|
 
 ##### File Name/Directory Arguments
 
