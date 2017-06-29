@@ -122,7 +122,9 @@ class DHCPD:
                     import_safe[packed_mac] = imported[lease]
                 self.leases.update(import_safe)
                 self.logger.info('Loaded leases from {0}'.format(self.save_leases_file))
-            except IOError, ValueError:
+            except IOError:
+                pass
+            except ValueError:
                 pass
 
         signal.signal(signal.SIGINT, self.export_leases)

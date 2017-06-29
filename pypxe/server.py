@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import threading
 import os
+import io
 import sys
 import json
 import logging
@@ -48,6 +49,7 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'NBD_COPY_TO_RAM':False,
             'NBD_SERVER_IP':'0.0.0.0',
             'NBD_PORT':10809,
+            'HTTP_PORT':80,
             'MODE_DEBUG':'',
             'MODE_VERBOSE':''}
 
@@ -113,6 +115,9 @@ def parse_cli_arguments():
     tftp_group = parser.add_argument_group(title = 'TFTP', description = 'Arguments relevant to the TFTP server')
     tftp_group.add_argument('--tftp-server-ip', action = 'store', dest = 'TFTP_SERVER_IP', help = 'TFTP Server IP', default = SETTINGS['TFTP_SERVER_IP'])
 
+    # HTTP server arguments
+    http_group = parser.add_argument_group(title = 'HTTP', description = 'Arguments relevant to the HTTP server')
+    http_group.add_argument('--http-port', action = 'store', dest = 'HTTP_PORT', help = 'HTTP Server Port', default = SETTINGS['HTTP_PORT'])
 
     return parser.parse_args()
 
@@ -141,12 +146,12 @@ def main():
                 del settings['DUMP_CONFIG']
                 del settings['DUMP_CONFIG_MERGED']
                 del settings['JSON_CONFIG']
-            print json.dumps(settings, sort_keys=True, indent=4)
+            print(json.dumps(settings, sort_keys=True, indent=4))
             sys.exit()
 
         if args.JSON_CONFIG: # load from configuration file if specified
             try:
-                config_file = open(args.JSON_CONFIG, 'rb')
+                config_file = io.open(args.JSON_CONFIG, 'r')
             except IOError:
                 sys.exit('Failed to open {0}'.format(args.JSON_CONFIG))
             try:
@@ -161,15 +166,14 @@ def main():
             args = parse_cli_arguments() # re-parse, CLI options take precedence
 
         # warn the user that they are starting PyPXE as non-root user
-        if os.getuid() != 0:
-            print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
-
+        if os.geteuid() != 0:
+            print("You need to have root privileges to run this script.\n Servers will probably fail to bind")
 
         # ideally this would be in dhcp itself, but the chroot below *probably*
         # breaks the ability to open the config file.
         if args.STATIC_CONFIG:
             try:
-                static_config = open(args.STATIC_CONFIG, 'rb')
+                static_config = io.open(args.STATIC_CONFIG, 'r')
             except IOError:
                 sys.exit("Failed to open {0}".format(args.STATIC_CONFIG))
             try:
@@ -285,7 +289,12 @@ def main():
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
+            http_server = http.HTTPD(
+                    mode_debug = do_debug('http'), 
+                    mode_verbose = do_debug('http'), 
+                    logger = http_logger,
+                    port = args.HTTP_PORT,
+                    netboot_directory = args.NETBOOT_DIR)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
