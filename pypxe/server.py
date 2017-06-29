@@ -31,6 +31,7 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'DHCP_BROADCAST':'',
             'DHCP_FILESERVER':'192.168.2.2',
             'DHCP_WHITELIST':False,
+            'HTTP_PORT':80,
             'LEASES_FILE':'',
             'STATIC_CONFIG':'',
             'SYSLOG_SERVER':None,
@@ -93,6 +94,10 @@ def parse_cli_arguments():
     dhcp_group.add_argument('--dhcp-broadcast', action = 'store', dest = 'DHCP_BROADCAST', help = 'DHCP broadcast address', default = SETTINGS['DHCP_BROADCAST'])
     dhcp_group.add_argument('--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
     dhcp_group.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = SETTINGS['DHCP_WHITELIST'])
+
+    # HTTP server arguments
+    http_group = parser.add_argument_group(title = 'HTTP', description = 'Arguments relevant to the HTTP server')
+    http_group.add_argument('--http-port', action = 'store', dest = 'HTTP_PORT', help = 'HTTP Server Port', default = SETTINGS['HTTP_PORT'])
 
     # network boot directory and file name arguments
     parser.add_argument('--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
@@ -274,7 +279,12 @@ def main():
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
+            http_server = http.HTTPD(
+                    mode_debug = do_debug('http'),
+                    mode_verbose = do_debug('http'),
+                    logger = http_logger,
+                    port = args.HTTP_PORT,
+                    netboot_directory = args.NETBOOT_DIR)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
