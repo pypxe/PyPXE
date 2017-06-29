@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import threading
+import io
 import os
 import sys
 import json
@@ -141,12 +142,12 @@ def main():
                 del settings['DUMP_CONFIG']
                 del settings['DUMP_CONFIG_MERGED']
                 del settings['JSON_CONFIG']
-            print json.dumps(settings, sort_keys=True, indent=4)
+            print(json.dumps(settings, sort_keys=True, indent=4))
             sys.exit()
 
         if args.JSON_CONFIG: # load from configuration file if specified
             try:
-                config_file = open(args.JSON_CONFIG, 'rb')
+                config_file = io.open(args.JSON_CONFIG, 'r')
             except IOError:
                 sys.exit('Failed to open {0}'.format(args.JSON_CONFIG))
             try:
@@ -162,14 +163,14 @@ def main():
 
         # warn the user that they are starting PyPXE as non-root user
         if os.getuid() != 0:
-            print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
+            print(sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n')
 
 
         # ideally this would be in dhcp itself, but the chroot below *probably*
         # breaks the ability to open the config file.
         if args.STATIC_CONFIG:
             try:
-                static_config = open(args.STATIC_CONFIG, 'rb')
+                static_config = io.open(args.STATIC_CONFIG, 'r')
             except IOError:
                 sys.exit("Failed to open {0}".format(args.STATIC_CONFIG))
             try:
