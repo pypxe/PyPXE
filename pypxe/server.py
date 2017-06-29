@@ -161,7 +161,7 @@ def main():
             args = parse_cli_arguments() # re-parse, CLI options take precedence
 
         # warn the user that they are starting PyPXE as non-root user
-        if os.getuid() != 0:
+        if os.geteuid() != 0:
             print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
 
 
