@@ -90,10 +90,12 @@ class HTTPD:
             self.logger.debug('{0}'.format(repr(response)))
             self.logger.debug('<--END MESSAGE-->')
             return
-        handle = open(target, 'rb')
-        response += handle.read()
-        handle.close()
         connection.send(response)
+        with open(target, 'rb') as handle:
+            while True:
+                data = handle.read(8192)
+                if not data: break
+                connection.send(data)
         connection.close()
         self.logger.info('File Sent - {target} -> {addr[0]}:{addr[1]}'.format(target = target, addr = addr))
 

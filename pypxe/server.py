@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import threading
+import io
 import os
 import sys
 import json
@@ -31,10 +32,12 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'DHCP_BROADCAST':'',
             'DHCP_FILESERVER':'192.168.2.2',
             'DHCP_WHITELIST':False,
+            'HTTP_PORT':80,
             'LEASES_FILE':'',
             'STATIC_CONFIG':'',
             'SYSLOG_SERVER':None,
             'SYSLOG_PORT':514,
+            'TFTP_SERVER_IP':'0.0.0.0',
             'USE_IPXE':False,
             'USE_HTTP':False,
             'USE_TFTP':True,
@@ -94,6 +97,10 @@ def parse_cli_arguments():
     dhcp_group.add_argument('--dhcp-fileserver', action = 'store', dest = 'DHCP_FILESERVER', help = 'DHCP fileserver IP', default = SETTINGS['DHCP_FILESERVER'])
     dhcp_group.add_argument('--dhcp-whitelist', action = 'store_true', dest = 'DHCP_WHITELIST', help = 'Only respond to DHCP clients present in --static-config', default = SETTINGS['DHCP_WHITELIST'])
 
+    # HTTP server arguments
+    http_group = parser.add_argument_group(title = 'HTTP', description = 'Arguments relevant to the HTTP server')
+    http_group.add_argument('--http-port', action = 'store', dest = 'HTTP_PORT', help = 'HTTP Server Port', default = SETTINGS['HTTP_PORT'])
+
     # network boot directory and file name arguments
     parser.add_argument('--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
     parser.add_argument('--netboot-file', action = 'store', dest = 'NETBOOT_FILE', help = 'PXE boot file name (after iPXE if --ipxe)', default = SETTINGS['NETBOOT_FILE'])
@@ -107,6 +114,11 @@ def parse_cli_arguments():
     nbd_group.add_argument('--nbd-copy-to-ram', action = 'store_true', dest = 'NBD_COPY_TO_RAM', help = 'Copy the NBD device to memory before serving clients', default = SETTINGS['NBD_COPY_TO_RAM'])
     nbd_group.add_argument('--nbd-server', action = 'store', dest = 'NBD_SERVER_IP', help = 'NBD Server IP', default = SETTINGS['NBD_SERVER_IP'])
     nbd_group.add_argument('--nbd-port', action = 'store', dest = 'NBD_PORT', help = 'NBD Server Port', default = SETTINGS['NBD_PORT'])
+
+    # TFTP server arguments
+    tftp_group = parser.add_argument_group(title = 'TFTP', description = 'Arguments relevant to the TFTP server')
+    tftp_group.add_argument('--tftp-server-ip', action = 'store', dest = 'TFTP_SERVER_IP', help = 'TFTP Server IP', default = SETTINGS['TFTP_SERVER_IP'])
+
 
     return parser.parse_args()
 
@@ -135,12 +147,12 @@ def main():
                 del settings['DUMP_CONFIG']
                 del settings['DUMP_CONFIG_MERGED']
                 del settings['JSON_CONFIG']
-            print json.dumps(settings, sort_keys=True, indent=4)
+            print(json.dumps(settings, sort_keys=True, indent=4))
             sys.exit()
 
         if args.JSON_CONFIG: # load from configuration file if specified
             try:
-                config_file = open(args.JSON_CONFIG, 'rb')
+                config_file = io.open(args.JSON_CONFIG, 'r')
             except IOError:
                 sys.exit('Failed to open {0}'.format(args.JSON_CONFIG))
             try:
@@ -156,14 +168,14 @@ def main():
 
         # warn the user that they are starting PyPXE as non-root user
         if os.getuid() != 0:
-            print >> sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n'
+            print(sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n')
 
 
         # ideally this would be in dhcp itself, but the chroot below *probably*
         # breaks the ability to open the config file.
         if args.STATIC_CONFIG:
             try:
-                static_config = open(args.STATIC_CONFIG, 'rb')
+                static_config = io.open(args.STATIC_CONFIG, 'r')
             except IOError:
                 sys.exit("Failed to open {0}".format(args.STATIC_CONFIG))
             try:
@@ -224,7 +236,12 @@ def main():
             sys_logger.info('Starting TFTP server...')
 
             # setup the thread
-            tftp_server = tftp.TFTPD(mode_debug = do_debug('tftp'), mode_verbose = do_verbose('tftp'), logger = tftp_logger, netboot_directory = args.NETBOOT_DIR)
+            tftp_server = tftp.TFTPD(
+                mode_debug = do_debug('tftp'),
+                mode_verbose = do_verbose('tftp'),
+                logger = tftp_logger,
+                netboot_directory = args.NETBOOT_DIR,
+                ip = args.TFTP_SERVER_IP)
             tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True
             tftpd.start()
@@ -274,7 +291,12 @@ def main():
             sys_logger.info('Starting HTTP server...')
 
             # setup the thread
-            http_server = http.HTTPD(mode_debug = do_debug('http'), mode_verbose = do_debug('http'), logger = http_logger, netboot_directory = args.NETBOOT_DIR)
+            http_server = http.HTTPD(
+                    mode_debug = do_debug('http'),
+                    mode_verbose = do_debug('http'),
+                    logger = http_logger,
+                    port = args.HTTP_PORT,
+                    netboot_directory = args.NETBOOT_DIR)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
