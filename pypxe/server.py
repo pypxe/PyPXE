@@ -6,6 +6,7 @@ import sys
 import json
 import logging
 import logging.handlers
+import signal
 
 try:
     import argparse
@@ -132,8 +133,37 @@ def do_verbose(service):
             or 'all' in args.MODE_VERBOSE.lower())
             and '-{0}'.format(service) not in args.MODE_VERBOSE.lower())
 
+def signalhandler(signum, frame):
+    if args.USE_DHCP and args.STATIC_CONFIG:
+        # so we can skip out, sort of like a goto, without loads of nesting
+        for _ in (True,):
+            try:
+                # if we're called before the object is initialised
+                dhcp_server
+            except NameError:
+                continue
+
+            sys_logger.info("Reloading DHCP static leases")
+
+            try:
+                static_config = open(args.STATIC_CONFIG, 'rb')
+            except IOError:
+                sys_logger.error("Failed to open {0}".format(args.STATIC_CONFIG))
+                continue
+
+            try:
+                loaded_statics = json.load(static_config)
+                static_config.close()
+            except ValueError:
+                sys_logger.error("{0} does not contain valid json".format(args.STATIC_CONFIG))
+                continue
+
+            # add and overwrite the old config
+            # set as global inside main
+            dhcp_server.static_config = loaded_statics
+
 def main():
-    global SETTINGS, args
+    global SETTINGS, args, dhcp_server, sys_logger
     try:
         # configure
         args = parse_cli_arguments()
@@ -333,4 +363,5 @@ def main():
         sys.exit('\nShutting down PyPXE...\n')
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGUSR1, signalhandler)
     main()
