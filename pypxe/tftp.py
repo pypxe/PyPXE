@@ -101,7 +101,9 @@ class Client:
         '''
         options = self.message.split(chr(0))[2: -1]
         options = dict(zip(options[0::2], map(int, options[1::2])))
-        self.blksize = options.get('blksize', self.blksize)
+        self.changed_blksize = 'blksize' in options
+        if self.changed_blksize:
+            self.blksize = options['blksize']
         self.lastblock = math.ceil(self.filesize / float(self.blksize))
         self.tsize = True if 'tsize' in options else False
         if self.filesize > (2 ** 16) * self.blksize:
@@ -118,8 +120,9 @@ class Client:
         '''Acknowledges any options received.'''
         # only called if options, so send them all
         response = struct.pack("!H", 6)
-        response += 'blksize' + chr(0)
-        response += str(self.blksize) + chr(0)
+        if self.changed_blksize:
+            response += 'blksize' + chr(0)
+            response += str(self.blksize) + chr(0)
         if self.tsize:
             response += 'tsize' + chr(0)
             response += str(self.filesize) + chr(0)
