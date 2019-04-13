@@ -13,6 +13,9 @@ import json
 from collections import defaultdict
 from time import time
 
+TYPE_53_DHCPDISCOVER = 1
+TYPE_53_DHCPREQUEST =  3
+
 class OutOfLeasesError(Exception):
     pass
 
@@ -360,15 +363,14 @@ class DHCPD:
             if not self.validate_req(client_mac):
                 continue
             type = ord(self.options[client_mac][53][0]) # see RFC2131, page 10
-            if type == 1:
+            if type == TYPE_53_DHCPDISCOVER:
                 self.logger.debug('Sending DHCPOFFER to {0}'.format(self.get_mac(client_mac)))
                 try:
                     self.dhcp_offer(message)
                 except OutOfLeasesError:
                     self.logger.critical('Ran out of leases')
-            elif type == 3 and address[0] == '0.0.0.0' and not self.mode_proxy:
+            elif type == TYPE_53_DHCPREQUEST:
                 self.logger.debug('Sending DHCPACK to {0}'.format(self.get_mac(client_mac)))
                 self.dhcp_ack(message)
-            elif type == 3 and address[0] != '0.0.0.0' and self.mode_proxy:
-                self.logger.debug('Sending DHCPACK to {0}'.format(self.get_mac(client_mac)))
-                self.dhcp_ack(message)
+            else:
+                self.logger.debug('Unhandled DHCP message type {0} from {1}'.format(type, self.get_mac(client_mac)))
