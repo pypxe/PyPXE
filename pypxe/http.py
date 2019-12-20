@@ -57,7 +57,7 @@ class HTTPD:
         self.logger.debug('<--BEGIN MESSAGE-->')
         self.logger.debug('{0}'.format(repr(request)))
         self.logger.debug('<--END MESSAGE-->')
-        method, target, version = request.split('\r\n')[0].split(' ')
+        method, target, version = request.decode('ascii').split('\r\n')[0].split(' ')
         target = target.lstrip('/')
         try:
             self.logger.debug("Netboot: {0}, Target: {1}".format(self.netboot_directory, target))
@@ -72,7 +72,7 @@ class HTTPD:
             status = '403 Forbidden'
         response = 'HTTP/1.1 {0}\r\n'.format(status)
         if status[:3] != '200': # fail out
-            connection.send(response)
+            connection.send(response.encode('ascii'))
             connection.close()
             self.logger.warn('Sending {status} to {addr[0]}:{addr[1]} for {target}'.format(status = status, target = target, addr = addr))
             self.logger.debug('Sending message to {0}'.format(repr(addr)))
@@ -90,7 +90,7 @@ class HTTPD:
             self.logger.debug('{0}'.format(repr(response)))
             self.logger.debug('<--END MESSAGE-->')
             return
-        connection.send(response)
+        connection.send(response.encode('ascii'))
         with open(target, 'rb') as handle:
             while True:
                 data = handle.read(8192)
