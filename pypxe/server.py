@@ -33,6 +33,7 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'DHCP_FILESERVER':'192.168.2.2',
             'DHCP_WHITELIST':False,
             'HTTP_PORT':80,
+            'HTTP_SERVER_IP':'0.0.0.0',
             'LEASES_FILE':'',
             'STATIC_CONFIG':'',
             'SYSLOG_SERVER':None,
@@ -79,7 +80,6 @@ def parse_cli_arguments():
     parser.add_argument('--syslog', action = 'store', dest = 'SYSLOG_SERVER', help = 'Syslog server', default = SETTINGS['SYSLOG_SERVER'])
     parser.add_argument('--syslog-port', action = 'store', dest = 'SYSLOG_PORT', help = 'Syslog server port', default = SETTINGS['SYSLOG_PORT'])
 
-
     # DHCP server arguments
     dhcp_group = parser.add_argument_group(title = 'DHCP', description = 'Arguments relevant to the DHCP server')
     exclusive = dhcp_group.add_mutually_exclusive_group(required = False)
@@ -100,6 +100,7 @@ def parse_cli_arguments():
     # HTTP server arguments
     http_group = parser.add_argument_group(title = 'HTTP', description = 'Arguments relevant to the HTTP server')
     http_group.add_argument('--http-port', action = 'store', dest = 'HTTP_PORT', help = 'HTTP Server Port', default = SETTINGS['HTTP_PORT'])
+    http_group.add_argument('--http-server-ip', action = 'store', dest = 'HTTP_SERVER_IP', help = 'HTTP Server IP', default = SETTINGS['HTTP_SERVER_IP'])
 
     # network boot directory and file name arguments
     parser.add_argument('--netboot-dir', action = 'store', dest = 'NETBOOT_DIR', help = 'Local file serve directory', default = SETTINGS['NETBOOT_DIR'])
@@ -118,7 +119,6 @@ def parse_cli_arguments():
     # TFTP server arguments
     tftp_group = parser.add_argument_group(title = 'TFTP', description = 'Arguments relevant to the TFTP server')
     tftp_group.add_argument('--tftp-server-ip', action = 'store', dest = 'TFTP_SERVER_IP', help = 'TFTP Server IP', default = SETTINGS['TFTP_SERVER_IP'])
-
 
     return parser.parse_args()
 
@@ -296,7 +296,8 @@ def main():
                     mode_verbose = do_verbose('http'),
                     logger = http_logger,
                     port = args.HTTP_PORT,
-                    netboot_directory = args.NETBOOT_DIR)
+                    netboot_directory = args.NETBOOT_DIR,
+                    ip = args.HTTP_SERVER_IP)
             httpd = threading.Thread(target = http_server.listen)
             httpd.daemon = True
             httpd.start()
