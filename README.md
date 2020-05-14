@@ -54,7 +54,7 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--verbose`__|Enable selected services in verbose mode; services are selected by passing the name in a comma separated list. Follows the same syntax for selecting service as `--debug`._|`''`|
 |__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
 |__`--static-config`__|Load DHCP lease configuration from JSON file. (see [`example-leases.json`](example-leases.json))|`None`|
-|__`--save-leases`|Saves allocated leases on `HUP`, `INT`(`^C`), `ALRM` and `TERM`. Loads on start if the file exists already|`None`|
+|__`--save-leases`__|Saves allocated leases on `HUP`, `INT`(`^C`), `ALRM` and `TERM`. Loads on start if the file exists already|`None`|
 |__`--syslog`__|Specify a syslog server|`None`|
 |__`--syslog-port`__|Specify a syslog server port|`514`|
 
@@ -68,7 +68,7 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--dhcp-begin DHCP_OFFER_BEGIN`__|Specify DHCP lease range start|`192.168.2.100`|
 |__`--dhcp-end DHCP_OFFER_END`__|Specify DHCP lease range end|`192.168.2.150`|
 |__`--dhcp-subnet DHCP_SUBNET`__|Specify DHCP subnet mask|`255.255.255.0`|
-| __`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
+|__`--dhcp-router DHCP_ROUTER`__|Specify DHCP lease router|`192.168.2.1`|
 |__`--dhcp-dns DHCP_DNS`__|Specify DHCP lease DNS server|`8.8.8.8`|
 |__`--dhcp-broadcast DHCP_BROADCAST`__|Specify DHCP broadcast address|`''`|
 |__`--dhcp-fileserver DHCP_FILESERVER`__|Specify DHCP file server IP address|`192.168.2.2`|
@@ -79,6 +79,13 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |Argument|Description|Default|
 |---|---|---|
 |__`--tftp-server-ip TFTP_SERVER_IP`__|Specify TFTP server IP address|`0.0.0.0`|
+
+##### HTTP Service Arguments
+
+|Argument|Description|Default|
+|---|---|---|
+|__`--http-server-ip HTTP_SERVER_IP`__|Specify HTTP server IP address|`0.0.0.0`|
+|__`--http-port HTTP_PORT`__|Specify HTTP server Port|80|
 
 ##### File Name/Directory Arguments
 
