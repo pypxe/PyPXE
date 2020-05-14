@@ -293,7 +293,7 @@ def main():
             # setup the thread
             http_server = http.HTTPD(
                     mode_debug = do_debug('http'),
-                    mode_verbose = do_debug('http'),
+                    mode_verbose = do_verbose('http'),
                     logger = http_logger,
                     port = args.HTTP_PORT,
                     netboot_directory = args.NETBOOT_DIR)
