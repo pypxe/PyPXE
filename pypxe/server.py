@@ -63,8 +63,8 @@ def parse_cli_arguments():
     ipxeexclusive.add_argument('--no-ipxe', action = 'store_false', dest = 'USE_IPXE', help = 'Disable iPXE ROM', default = not SETTINGS['USE_IPXE'])
 
     httpexclusive = parser.add_mutually_exclusive_group(required = False)
-    httpexclusive.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Disable built-in HTTP server', default = SETTINGS['USE_HTTP'])
-    httpexclusive.add_argument('--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = not SETTINGS['USE_HTTP'])
+    httpexclusive.add_argument('--http', action = 'store_true', dest = 'USE_HTTP', help = 'Enable built-in HTTP server', default = SETTINGS['USE_HTTP'])
+    httpexclusive.add_argument('--no-http', action = 'store_false', dest = 'USE_HTTP', help = 'Disable built-in HTTP server', default = not SETTINGS['USE_HTTP'])
 
     tftpexclusive = parser.add_mutually_exclusive_group(required = False)
     tftpexclusive.add_argument('--tftp', action = 'store_true', dest = 'USE_TFTP', help = 'Enable built-in TFTP server, by default it is enabled', default = SETTINGS['USE_TFTP'])
