@@ -1,1 +1,1 @@
-from nbd import *
+from . import *
