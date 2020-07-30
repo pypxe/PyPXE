@@ -53,7 +53,7 @@ class HTTPD:
     def handle_request(self, connection, addr):
         '''This method handles HTTP request.'''
         request = connection.recv(1024)
-        self.logger.debug('Recieved message from {addr}'.format(addr = repr(addr)))
+        self.logger.debug('Received message from {addr}'.format(addr = repr(addr)))
         self.logger.debug('<--BEGIN MESSAGE-->')
         self.logger.debug('{0}'.format(repr(request)))
         self.logger.debug('<--END MESSAGE-->')
