@@ -13,7 +13,7 @@ if version_info[0] == 2 and version_info[1] < 7:
 
 setup(name='PyPXE',
       version=pypxe.__version__,
-      description='Pure Python2 PXE (DHCP-(Proxy)/TFTP/HTTP/NBD) Server',
+      description='Pure Python PXE (DHCP-(Proxy)/TFTP/HTTP/NBD) Server',
       url='https://github.com/pypxe/PyPXE',
       license='MIT',
       packages=find_packages(),
