@@ -106,7 +106,7 @@ class Client:
             block based on the filesize and blocksize.
         '''
         options = self.message.split(b'\x00')[2: -1]
-        options = dict(zip(options[0::2], map(int, options[1::2])))
+        options = dict(zip((i.decode('ascii') for i in options[0::2]), map(int, options[1::2])))
         self.changed_blksize = 'blksize' in options
         if self.changed_blksize:
             self.blksize = options['blksize']
@@ -127,11 +127,11 @@ class Client:
         # only called if options, so send them all
         response = struct.pack("!H", 6)
         if self.changed_blksize:
-            response += 'blksize' + b'\x00'
+            response += b'blksize' + b'\x00'
             response += str(self.blksize) + b'\x00'
         if self.tsize:
-            response += 'tsize' + b'\x00'
-            response += str(self.filesize) + b'\x00'
+            response += b'tsize' + b'\x00'
+            response += str(self.filesize).encode('ascii') + b'\x00'
         self.sock.sendto(response, self.address)
 
     def new_request(self):
