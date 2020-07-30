@@ -153,7 +153,7 @@ class Client:
         self.fh = open(self.filename, 'rb')
         self.filesize = os.path.getsize(self.filename)
         if not self.parse_options():
-            # no options recieved so start transfer
+            # no options received so start transfer
             if self.block == 1:
                 self.send_block()
             return
@@ -288,7 +288,7 @@ class TFTPD:
                 else:
                     # client socket, so tell the client object it's ready
                     sock.parent.ready()
-            # if we haven't recieved an ACK in timeout time, retry
+            # if we haven't received an ACK in timeout time, retry
             [client.send_block() for client in self.ongoing if client.no_ack()]
             # if we have run out of retries, kill the client
             [client.complete() for client in self.ongoing if client.no_retries()]
