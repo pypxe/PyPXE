@@ -294,5 +294,5 @@ class TFTPD:
             # if we have run out of retries, kill the client
             for client in self.ongoing:
                 if client.no_retries():
-                    self.logger.info('Timeout while sending {0}'.format(self.filename))
+                    client.logger.info('Timeout while sending {0}'.format(client.filename))
                     client.complete()
