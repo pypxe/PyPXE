@@ -327,7 +327,7 @@ def main():
 
         sys_logger.info('PyPXE successfully initialized and running!')
 
-        while all(map(lambda x: x.isAlive(), running_services)):
+        while all(map(lambda x: x.is_alive(), running_services)):
             sleep(1)
 
     except KeyboardInterrupt:
