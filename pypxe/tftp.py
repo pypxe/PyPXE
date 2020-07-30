@@ -150,6 +150,7 @@ class Client:
             # so forcefully shutdown
             self.complete()
             return
+        self.logger.info('File {0} requested'.format(self.filename))
         self.fh = open(self.filename, 'rb')
         self.filesize = os.path.getsize(self.filename)
         if not self.parse_options():
