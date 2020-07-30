@@ -60,7 +60,7 @@ class Client:
         response = struct.pack('!HH', 3, self.block % 65536)
         response += data
         self.sock.sendto(response, self.address)
-        self.logger.debug('Sending block {0}'.format(self.block))
+        self.logger.debug('Sending block {0}/{1}'.format(self.block, self.lastblock))
         self.retries -= 1
         self.sent_time = time.time()
 
@@ -233,6 +233,7 @@ class Client:
             self.send_error(4, 'Write support not implemented')
             self.dead = True
 
+
 class TFTPD:
     '''
         This class implements a read-only TFTP server
@@ -291,4 +292,7 @@ class TFTPD:
             # if we haven't received an ACK in timeout time, retry
             [client.send_block() for client in self.ongoing if client.no_ack()]
             # if we have run out of retries, kill the client
-            [client.complete() for client in self.ongoing if client.no_retries()]
+            for client in self.ongoing:
+                if client.no_retries():
+                    self.logger.info('Timeout while sending {0}'.format(self.filename))
+                    client.complete()
