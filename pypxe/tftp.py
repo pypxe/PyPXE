@@ -26,7 +26,7 @@ class Client:
         self.message, self.address = mainsock.recvfrom(1024)
         self.logger = helpers.get_child_logger(parent.logger, 'Client.{0}'.format(self.address))
         self.netboot_directory = parent.netboot_directory
-        self.logger.debug('Recieving request...')
+        self.logger.debug('Receiving request...')
         self.retries = self.default_retries
         self.block = 1
         self.blksize = 512
