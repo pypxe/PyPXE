@@ -161,7 +161,7 @@ def main():
             except ValueError:
                 sys.exit('{0} does not contain valid JSON'.format(args.JSON_CONFIG))
             for setting in loaded_config:
-                if type(loaded_config[setting]) is unicode:
+                if type(loaded_config[setting]) is str:
                     loaded_config[setting] = loaded_config[setting].encode('ascii')
             SETTINGS.update(loaded_config) # update settings with JSON config
             args = parse_cli_arguments() # re-parse, CLI options take precedence
