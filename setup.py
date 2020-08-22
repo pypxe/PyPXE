@@ -7,10 +7,6 @@ import pypxe
 
 deps = []
 
-# require argparse on Python <2.7
-if version_info[0] == 2 and version_info[1] < 7:
-    deps.append('argparse')
-
 setup(name='PyPXE',
       version=pypxe.__version__,
       description='Pure Python PXE (DHCP-(Proxy)/TFTP/HTTP/NBD) Server',
