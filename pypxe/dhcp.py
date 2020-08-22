@@ -248,7 +248,7 @@ class DHCPD:
         # BOOTP legacy pad
         response += b'\x00' * 64 # server name
         if self.mode_proxy:
-            response += self.file_name
+            response += self.file_name.encode('ascii')
             response += b'\x00' * (128 - len(self.file_name))
         else:
             response += b'\x00' * 128
@@ -300,7 +300,7 @@ class DHCPD:
 
         if self.mode_proxy:
             response += self.tlv_encode(60, 'PXEClient')
-            response += struct.pack('!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, b'\x00' + 'PXE', 0xff)
+            response += struct.pack('!BBBBBBB4sB', 43, 10, 6, 1, 0b1000, 10, 4, b'\x00' + b'PXE', 0xff)
         response += b'\xff'
         return response
 
