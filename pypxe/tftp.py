@@ -128,7 +128,7 @@ class Client:
         response = struct.pack("!H", 6)
         if self.changed_blksize:
             response += b'blksize' + b'\x00'
-            response += str(self.blksize) + b'\x00'
+            response += str(self.blksize).encode('ascii') + b'\x00'
         if self.tsize:
             response += b'tsize' + b'\x00'
             response += str(self.filesize).encode('ascii') + b'\x00'
