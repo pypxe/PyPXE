@@ -177,7 +177,7 @@ class DHCPD:
                 if self.leases[i]['expire'] > time()]
 
         # convert to 32-bit int
-        leased = map(encode, leased)
+        leased = list(map(encode, leased))
 
         # loop through, make sure not already leased and not in form X.Y.Z.0
         for offset in range(to_host - from_host):
