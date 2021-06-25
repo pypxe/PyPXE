@@ -364,7 +364,7 @@ class DHCPD:
             self.logger.debug('{0}'.format(repr(self.options[client_mac])))
             self.logger.debug('<--END OPTIONS-->')
             if not self.validate_req(client_mac):
-               continue
+                continue
             type = ord(self.options[client_mac][53][0]) # see RFC2131, page 10
             if type == TYPE_53_DHCPDISCOVER:
                 self.logger.debug('Sending DHCPOFFER to {0}'.format(self.get_mac(client_mac)))
