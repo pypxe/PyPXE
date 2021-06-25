@@ -225,10 +225,7 @@ class DHCPD:
 
         # op, htype, hlen, hops, xid
         response =  struct.pack('!BBBB4s', 2, 1, 6, 0, xid)
-        if not self.mode_proxy:
-            response += struct.pack('!HHI', 0, 0, 0) # secs, flags, ciaddr
-        else:
-            response += struct.pack('!HHI', 0, 0x8000, 0)
+        response += struct.pack('!HHI', 0, 0x8000, 0) # secs, flags, ciaddr
         if not self.mode_proxy:
             if self.leases[client_mac]['ip'] and self.leases[client_mac]['expire'] > time(): # OFFER
                 offer = self.leases[client_mac]['ip']
@@ -274,6 +271,9 @@ class DHCPD:
             dns_server = b''.join([socket.inet_aton(i) for i in dns_server])
             response += self.tlv_encode(6, dns_server)
             response += self.tlv_encode(51, struct.pack('!I', 86400)) # lease time
+            if self.broadcast:
+                broadcast = self.get_namespaced_static('dhcp.binding.{0}.broadcast'.format(self.get_mac(client_mac)), self.broadcast)
+                response += self.tlv_encode(28, socket.inet_aton(broadcast))
 
         # TFTP Server OR HTTP Server; if iPXE, need both
         response += self.tlv_encode(66, self.file_server)
@@ -319,7 +319,7 @@ class DHCPD:
         self.logger.debug('<--BEGIN RESPONSE-->')
         self.logger.debug('{0}'.format(repr(response)))
         self.logger.debug('<--END RESPONSE-->')
-        self.sock.sendto(response, (self.broadcast, 68))
+        self.sock.sendto(response, ("255.255.255.255", 68))
 
     def dhcp_ack(self, message):
         '''This method responds to DHCP request with acknowledge.'''
@@ -336,7 +336,7 @@ class DHCPD:
         self.logger.debug('<--BEGIN RESPONSE-->')
         self.logger.debug('{0}'.format(repr(response)))
         self.logger.debug('<--END RESPONSE-->')
-        self.sock.sendto(response, (self.broadcast, 68))
+        self.sock.sendto(response, ("255.255.255.255", 68))
 
     def validate_req(self, client_mac):
         # client request is valid only if contains Vendor-Class = PXEClient
@@ -364,7 +364,7 @@ class DHCPD:
             self.logger.debug('{0}'.format(repr(self.options[client_mac])))
             self.logger.debug('<--END OPTIONS-->')
             if not self.validate_req(client_mac):
-                continue
+               continue
             type = ord(self.options[client_mac][53][0]) # see RFC2131, page 10
             if type == TYPE_53_DHCPDISCOVER:
                 self.logger.debug('Sending DHCPOFFER to {0}'.format(self.get_mac(client_mac)))
