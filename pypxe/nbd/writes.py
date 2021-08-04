@@ -12,13 +12,13 @@ class COW:
         length -= 4096 - (offset % 4096)
         offset += 4096
 
-        # all following FULL chunks, definate page boundary and full size
+        # all following FULL chunks, definite page boundary and full size
         while length >= 4096:
             basepages.append((offset, 0, 4096))
             length -= 4096
             offset += 4096
 
-        # final non-full chunk, definate offset, variable length
+        # final non-full chunk, definite offset, variable length
         if length > 0:
             basepages.append((offset, 0, length))
 
@@ -90,7 +90,7 @@ class DiskCOW(COW):
         self.logger = helpers.get_child_logger(logger, 'FS')
         self.logger.info('Copy-On-Write for {addr} in PyPXE_NBD_COW_{addr[0]}_{addr[1]}'.format(addr = addr))
 
-        # never want readonly cow, also definately creating file
+        # never want readonly cow, also definitely creating file
         self.fh = open('PyPXE_NBD_COW_{addr[0]}_{addr[1]}'.format(addr = addr), 'w+b')
 
         # pages is a list of the addresses for which we have different pages

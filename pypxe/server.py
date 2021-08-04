@@ -201,7 +201,7 @@ def main():
         if args.USE_HTTP and not args.USE_IPXE and not args.USE_DHCP:
             sys_logger.warning('HTTP selected but iPXE disabled. PXE ROM must support HTTP requests.')
 
-        # if the argument was pased to enabled ProxyDHCP then enable the DHCP server
+        # if the argument was passed to enabled ProxyDHCP then enable the DHCP server
         if args.DHCP_MODE_PROXY:
             args.USE_DHCP = True
 
