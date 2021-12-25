@@ -51,7 +51,7 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |__`--debug`__|Enable selected services in DEBUG mode; services are selected by passing the name in a comma separated list. **Options are: http, tftp and dhcp**; one can also prefix an option with `-` to prevent debugging of that service; for example, the following will enable debugging for all services _except_ the DHCP service `--debug all,-dhcp`. _This mode adds a level of verbosity so that you can see what's happening in the background._|`''`|
 |__`--verbose`__|Enable selected services in verbose mode; services are selected by passing the name in a comma separated list. Follows the same syntax for selecting service as `--debug`._|`''`|
 |__`--config`__|Load configuration from JSON file. (see [`example_cfg.json`](example_cfg.json))|`None`|
-|__`--static-config`__|Load DHCP lease configuration from JSON file. (see [`example-leases.json`](example-leases.json))|`None`|
+|__`--static-config`__|Load DHCP lease configuration from JSON file. (see [`example_leases.json`](example_leases.json))|`None`|
 |__`--save-leases`__|Saves allocated leases on `HUP`, `INT`(`^C`), `ALRM` and `TERM`. Loads on start if the file exists already|`None`|
 |__`--syslog`__|Specify a syslog server|`None`|
 |__`--syslog-port`__|Specify a syslog server port|`514`|
