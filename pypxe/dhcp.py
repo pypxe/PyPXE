@@ -141,7 +141,7 @@ class DHCPD:
             for lease in self.leases:
                 # translate the key to json safe (and human readable) mac
                 export_safe[self.get_mac(lease)] = self.leases[lease]
-            leases_file = open(self.save_leases_file, 'wb')
+            leases_file = open(self.save_leases_file, 'w')
             json.dump(export_safe, leases_file)
             self.logger.info('Exported leases to {0}'.format(self.save_leases_file))
 
