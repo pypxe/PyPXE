@@ -38,6 +38,7 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'STATIC_CONFIG':'',
             'SYSLOG_SERVER':None,
             'SYSLOG_PORT':514,
+            'TFTP_PORT':69,
             'TFTP_SERVER_IP':'0.0.0.0',
             'USE_IPXE':False,
             'USE_HTTP':False,
@@ -118,6 +119,7 @@ def parse_cli_arguments():
 
     # TFTP server arguments
     tftp_group = parser.add_argument_group(title = 'TFTP', description = 'Arguments relevant to the TFTP server')
+    tftp_group.add_argument('--tftp-port', action = 'store', dest = 'TFTP_PORT', help = 'TFTP Server Port', default = SETTINGS['TFTP_PORT'])
     tftp_group.add_argument('--tftp-server-ip', action = 'store', dest = 'TFTP_SERVER_IP', help = 'TFTP Server IP', default = SETTINGS['TFTP_SERVER_IP'])
 
     return parser.parse_args()
@@ -241,6 +243,7 @@ def main():
                 mode_verbose = do_verbose('tftp'),
                 logger = tftp_logger,
                 netboot_directory = args.NETBOOT_DIR,
+                port = args.TFTP_PORT,
                 ip = args.TFTP_SERVER_IP)
             tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True

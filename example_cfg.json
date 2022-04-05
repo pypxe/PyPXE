@@ -27,6 +27,7 @@
     "STATIC_CONFIG": "", 
     "SYSLOG_PORT": 514, 
     "SYSLOG_SERVER": null, 
+    "TFTP_PORT": 69,
     "TFTP_SERVER_IP": "192.168.2.2", 
     "USE_DHCP": true, 
     "USE_HTTP": false, 

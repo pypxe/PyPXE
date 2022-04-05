@@ -77,6 +77,7 @@ The following are arguments that can be passed to `pypxe.server` when running fr
 |Argument|Description|Default|
 |---|---|---|
 |__`--tftp-server-ip TFTP_SERVER_IP`__|Specify TFTP server IP address|`0.0.0.0`|
+|__`--tftp-port TFTP_PORT`__|Specify TFTP server Port|69|
 
 ##### HTTP Service Arguments
 
