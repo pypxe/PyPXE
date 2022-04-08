@@ -6,6 +6,7 @@ import sys
 import json
 import logging
 import logging.handlers
+import signal
 
 try:
     import argparse
@@ -250,6 +251,13 @@ def main():
         # configure/start DHCP server
         if args.USE_DHCP:
 
+            def dhcp_export_leases(signum, frame):
+                dhcp_server.export_leases()
+
+                # if keyboard interrupt, propagate upwards
+                if signum == signal.SIGINT:
+                    raise KeyboardInterrupt
+
             # setup DHCP logger
             dhcp_logger = helpers.get_child_logger(sys_logger, 'DHCP')
             if args.DHCP_MODE_PROXY:
@@ -278,6 +286,10 @@ def main():
                 static_config = loaded_statics,
                 logger = dhcp_logger,
                 saveleases = args.LEASES_FILE)
+            signal.signal(signal.SIGINT, dhcp_export_leases)
+            signal.signal(signal.SIGTERM, dhcp_export_leases)
+            signal.signal(signal.SIGALRM, dhcp_export_leases)
+            signal.signal(signal.SIGHUP, dhcp_export_leases)
             dhcpd = threading.Thread(target = dhcp_server.listen)
             dhcpd.daemon = True
             dhcpd.start()

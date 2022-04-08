@@ -8,7 +8,6 @@ import socket
 import struct
 import os
 import logging
-import signal
 import json
 from collections import defaultdict
 from time import time
@@ -130,12 +129,7 @@ class DHCPD:
             except ValueError:
                 pass
 
-        signal.signal(signal.SIGINT, self.export_leases)
-        signal.signal(signal.SIGTERM, self.export_leases)
-        signal.signal(signal.SIGALRM, self.export_leases)
-        signal.signal(signal.SIGHUP, self.export_leases)
-
-    def export_leases(self, signum, frame):
+    def export_leases(self):
         if self.save_leases_file:
             export_safe = dict()
             for lease in self.leases:
@@ -144,10 +138,6 @@ class DHCPD:
             leases_file = open(self.save_leases_file, 'w')
             json.dump(export_safe, leases_file)
             self.logger.info('Exported leases to {0}'.format(self.save_leases_file))
-
-        # if keyboard interrupt, propagate upwards
-        if signum == signal.SIGINT:
-            raise KeyboardInterrupt
 
     def get_namespaced_static(self, path, fallback = {}):
         statics = self.static_config
