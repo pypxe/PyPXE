@@ -170,22 +170,6 @@ def main():
         if os.getuid() != 0:
             print(sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n')
 
-
-        # ideally this would be in dhcp itself, but the chroot below *probably*
-        # breaks the ability to open the config file.
-        if args.STATIC_CONFIG:
-            try:
-                static_config = io.open(args.STATIC_CONFIG, 'r')
-            except IOError:
-                sys.exit("Failed to open {0}".format(args.STATIC_CONFIG))
-            try:
-                loaded_statics = json.load(static_config)
-                static_config.close()
-            except ValueError:
-                sys.exit("{0} does not contain valid json".format(args.STATIC_CONFIG))
-        else:
-            loaded_statics = dict()
-
         # setup main logger
         sys_logger = logging.getLogger('PyPXE')
         if args.SYSLOG_SERVER:
@@ -249,6 +233,31 @@ def main():
 
         # configure/start DHCP server
         if args.USE_DHCP:
+
+            def load_dhcp_static_config(filename):
+                result = ['', dict()]
+
+                try:
+                    static_config = io.open(filename, 'r')
+                except IOError:
+                    result[0] = "Failed to open {0}".format(filename)
+                    return result
+
+                try:
+                    result[1] = json.load(static_config)
+                    static_config.close()
+                except ValueError:
+                    result[0] = "{0} does not contain valid json".format(filename)
+                    return result
+
+                return result
+
+            if args.STATIC_CONFIG:
+                message, loaded_statics = load_dhcp_static_config(args.STATIC_CONFIG)
+                if message:
+                    sys.exit(message)
+            else:
+                loaded_statics = dict()
 
             # setup DHCP logger
             dhcp_logger = helpers.get_child_logger(sys_logger, 'DHCP')
