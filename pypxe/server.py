@@ -39,6 +39,7 @@ SETTINGS = {'NETBOOT_DIR':'netboot',
             'STATIC_CONFIG':'',
             'SYSLOG_SERVER':None,
             'SYSLOG_PORT':514,
+            'TFTP_PORT':69,
             'TFTP_SERVER_IP':'0.0.0.0',
             'USE_IPXE':False,
             'USE_HTTP':False,
@@ -119,6 +120,7 @@ def parse_cli_arguments():
 
     # TFTP server arguments
     tftp_group = parser.add_argument_group(title = 'TFTP', description = 'Arguments relevant to the TFTP server')
+    tftp_group.add_argument('--tftp-port', action = 'store', dest = 'TFTP_PORT', help = 'TFTP Server Port', default = SETTINGS['TFTP_PORT'])
     tftp_group.add_argument('--tftp-server-ip', action = 'store', dest = 'TFTP_SERVER_IP', help = 'TFTP Server IP', default = SETTINGS['TFTP_SERVER_IP'])
 
     return parser.parse_args()
@@ -170,22 +172,6 @@ def main():
         # warn the user that they are starting PyPXE as non-root user
         if os.getuid() != 0:
             print(sys.stderr, '\nWARNING: Not root. Servers will probably fail to bind.\n')
-
-
-        # ideally this would be in dhcp itself, but the chroot below *probably*
-        # breaks the ability to open the config file.
-        if args.STATIC_CONFIG:
-            try:
-                static_config = io.open(args.STATIC_CONFIG, 'r')
-            except IOError:
-                sys.exit("Failed to open {0}".format(args.STATIC_CONFIG))
-            try:
-                loaded_statics = json.load(static_config)
-                static_config.close()
-            except ValueError:
-                sys.exit("{0} does not contain valid json".format(args.STATIC_CONFIG))
-        else:
-            loaded_statics = dict()
 
         # setup main logger
         sys_logger = logging.getLogger('PyPXE')
@@ -242,6 +228,7 @@ def main():
                 mode_verbose = do_verbose('tftp'),
                 logger = tftp_logger,
                 netboot_directory = args.NETBOOT_DIR,
+                port = args.TFTP_PORT,
                 ip = args.TFTP_SERVER_IP)
             tftpd = threading.Thread(target = tftp_server.listen)
             tftpd.daemon = True
@@ -257,6 +244,31 @@ def main():
                 # if keyboard interrupt, propagate upwards
                 if signum == signal.SIGINT:
                     raise KeyboardInterrupt
+
+            def load_dhcp_static_config(filename):
+                result = ['', dict()]
+
+                try:
+                    static_config = io.open(filename, 'r')
+                except IOError:
+                    result[0] = "Failed to open {0}".format(filename)
+                    return result
+
+                try:
+                    result[1] = json.load(static_config)
+                    static_config.close()
+                except ValueError:
+                    result[0] = "{0} does not contain valid json".format(filename)
+                    return result
+
+                return result
+
+            if args.STATIC_CONFIG:
+                message, loaded_statics = load_dhcp_static_config(args.STATIC_CONFIG)
+                if message:
+                    sys.exit(message)
+            else:
+                loaded_statics = dict()
 
             # setup DHCP logger
             dhcp_logger = helpers.get_child_logger(sys_logger, 'DHCP')
