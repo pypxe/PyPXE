@@ -83,7 +83,7 @@ class HTTPD:
         response += 'Content-Length: {0}\r\n'.format(os.path.getsize(target))
         response += '\r\n'
         if method == 'HEAD':
-            connection.send(response)
+            connection.send(response.encode('ascii'))
             connection.close()
             self.logger.debug('Sending message to {0}'.format(repr(addr)))
             self.logger.debug('<--BEING MESSAGE-->')
