@@ -10,6 +10,7 @@ import os
 import threading
 import logging
 from pypxe import helpers
+from urllib import parse
 
 class HTTPD:
     '''
@@ -58,7 +59,7 @@ class HTTPD:
         self.logger.debug('{0}'.format(repr(request)))
         self.logger.debug('<--END MESSAGE-->')
         method, target, version = request.decode('ascii').split('\r\n')[0].split(' ')
-        target = target.lstrip('/')
+        target = parse.unquote(target).lstrip('/')
         try:
             self.logger.debug("Netboot: {0}, Target: {1}".format(self.netboot_directory, target))
             target = helpers.normalize_path(self.netboot_directory, target)
